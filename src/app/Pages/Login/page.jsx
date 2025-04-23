@@ -62,10 +62,10 @@ const LoginPage = () => {
 
           <form className="mt-6" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-sm text-gray-700">Username</label>
+              <label className="block text-sm text-gray-700">Email</label>
               <input
                 type="text"
-                placeholder="Enter Username"
+                placeholder="Enter Your Email"
                 className="w-full px-4 py-3 rounded-lg bg-gray-200 mt-2 border focus:border-blue-500 focus:bg-white focus:outline-none"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
