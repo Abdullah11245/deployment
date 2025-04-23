@@ -2,26 +2,31 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios'; // Import axios
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { json2csv } from 'json-2-csv';
 
 function RouteList() {
   const [activeRow, setActiveRow] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [routes, setRoutes] = useState([]); // State to store routes data from the API
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch the supplier data from the API
     const fetchRoutes = async () => {
       try {
         const response = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
-           console.log(response?.data)
         if (response?.status === 200) {
-          setRoutes(response?.data); // Update state with API data
+          setRoutes(response?.data); 
+          setLoading(false)// Update state with API data
         } else {
-          console.error('Failed to fetch routes');
+          setLoading(false)// Update state with API data
+
         }
       } catch (error) {
-        console.error('Error fetching routes:', error);
+        setLoading(false)// Update state with API data
       }
     };
 
@@ -32,21 +37,119 @@ function RouteList() {
     router.push('/Pages/Dashboard/SupplierList/CreateSupplier');
   };
 
-  const toggleEditMenu = (rowId) => {
-    if (activeRow === rowId) {
-      setActiveRow(null);
-    } else {
-      setActiveRow(rowId);
-    }
-  };
+
 
   const handleEdit = (route) => {
     router.push(`/Pages/Dashboard/SupplierList/${route.id}`); // Redirect to edit page with route ID
   }
-
+  const exportCSV = async () => {
+    const dataToExport = routes?.suppliers?.map((route, index) => ({
+      '#': index + 1,
+      'Supplier Code': route.supplier_code,
+      'Name': route.name,
+      'Name Urdu': route.name_ur,
+      'Address': route.address,
+      'Route': route.route?.name || '',
+      'Status': route.status === 1 ? 'Active' : 'Inactive',
+    }));
+  
+    try {
+      const csv = await json2csv(dataToExport);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'supplier_list.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('CSV Export Error:', err);
+    }
+  };
+  
+  const exportExcel = () => {
+    const dataToExport = routes?.suppliers?.map((route, index) => ({
+      '#': index + 1,
+      'Supplier Code': route.supplier_code,
+      'Name': route.name,
+      'Name Urdu': route.name_ur,
+      'Address': route.address,
+      'Route': route.route?.name || '',
+      'Status': route.status === 1 ? 'Active' : 'Inactive',
+    }));
+  
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Suppliers');
+    XLSX.writeFile(workbook, 'supplier_list.xlsx');
+  };
+  
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    const tableColumn = ['#', 'Supplier Code', 'Name', 'Name Urdu', 'Address', 'Route', 'Status'];
+    const tableRows = [];
+  
+    routes?.suppliers?.forEach((route, index) => {
+      tableRows.push([
+        index + 1,
+        route.supplier_code,
+        route.name,
+        route.name_ur,
+        route.address,
+        route.route?.name || '',
+        route.status === 1 ? 'Active' : 'Inactive',
+      ]);
+    });
+  
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 20,
+    });
+  
+    doc.save('supplier_list.pdf');
+  };
+  
+  const handlePrint = () => {
+    const printWindow = window.open('', '', 'width=900,height=650');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Supplier List</title>
+          <style>
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }
+            thead { background-color: #f3f4f6; }
+            body { font-family: Arial, sans-serif; padding: 20px; }
+          </style>
+        </head>
+        <body>
+          <h2>Supplier List</h2>
+          ${document.querySelector('table').outerHTML}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="flex space-x-2">
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:0.15s]"></span>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header and Create New Button */}
       <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
         <h2 className="text-xl font-semibold text-gray-700">List of Suppliers</h2>
         <button
@@ -65,21 +168,19 @@ function RouteList() {
 
       <div className="flex justify-between items-center">
         <div className="flex justify-between items-center space-x-1 mt-8 mb-4">
-          <button className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
-            CSV
-          </button>
+        <button onClick={exportCSV} className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
+  CSV
+</button>
+<button onClick={exportExcel} className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
+  Excel
+</button>
+<button onClick={exportPDF} className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
+  PDF
+</button>
+<button onClick={handlePrint} className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
+  Print
+</button>
 
-          <button className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
-            Excel
-          </button>
-
-          <button className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
-            PDF
-          </button>
-
-          <button className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
-            Print
-          </button>
         </div>
 
         <div className="relative text-gray-600 border-2 rounded-full">
