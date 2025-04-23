@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Select from 'react-select';
-import SaleDetailTable from './SaleDetailTable';
+import SaleDetailTable from './SaledetailTable';
 import './Sale.css';
 
 function CreateSale() {
