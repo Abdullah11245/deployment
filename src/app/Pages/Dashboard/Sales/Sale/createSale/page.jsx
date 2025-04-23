@@ -13,16 +13,21 @@ function CreateSale() {
   const [notes, setNotes] = useState('');
   const [parties, setParties] = useState([]);
   const [saleDetails, setSaleDetails] = useState([]);
+  const [isFormValid, setIsFormValid] = useState(true); // Form validity state
 
   // Fetch Party List
   useEffect(() => {
     const fetchParties = async () => {
       try {
         const response = await axios.get('https://accounts-management.onrender.com/common/parties/getAll');
-        const partyOptions = response.data.map(party => ({
+        
+        // Filter only active parties (status: 1)
+        const activeParties = response.data.filter(party => party.status === 1);
+        const partyOptions = activeParties.map(party => ({
           value: party.id,
           label: party.name,
         }));
+        
         setParties(partyOptions);
       } catch (error) {
         console.error('Error fetching parties:', error);
@@ -44,21 +49,25 @@ function CreateSale() {
     const tax = (parseFloat(taxPercentage) || 0) * total / 100;
     setTaxAmount(tax.toFixed(2));
   }, [saleDetails, taxPercentage]);
-  useEffect(() => {
-    const total = saleDetails.reduce((acc, detail) => {
-      const weight = parseFloat(detail.weight) || 0;
-      const rate = parseFloat(detail.rate) || 0;
-      const adjustment = parseFloat(detail.adjustment) || 0;
-      return acc + (weight * rate + adjustment);
-    }, 0);
-  
-    const tax = (parseFloat(taxPercentage) || 0) * total / 100;
-    setTaxAmount(tax.toFixed(2));
-  }, [saleDetails, taxPercentage]);
-  
+
   // Handle Form Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate that all required fields in the SaleDetailTable are filled
+    const allFieldsFilled = saleDetails.every(detail =>
+      detail.weight && detail.rate && detail.adjustment && detail.uom && detail.itemId && detail.vehicleNo
+    );
+
+    // Add console logs to debug
+    console.log("Sale Details: ", saleDetails);
+    console.log("Is All Fields Filled: ", allFieldsFilled);
+
+    if (!saleDate || !partyId || !taxPercentage || !allFieldsFilled) {
+      console.log("Form validation failed");
+      setIsFormValid(false); // Disable submission if validation fails
+      return; // Prevent form submission
+    }
 
     const payload = {
       sale_date: saleDate,
@@ -106,6 +115,16 @@ function CreateSale() {
       console.error('Error:', error);
       alert('Error while submitting the form');
     }
+  };
+
+  // Check validity of form (SaleDate, Party, TaxPercentage, and SaleDetails)
+  const checkFormValidity = () => {
+    const allFieldsFilled = saleDetails.every(detail =>
+      detail.weight && detail.rate && detail.adjustment && detail.uom && detail.itemId && detail.vehicleNo
+    );
+
+
+    return saleDate && partyId && taxPercentage && allFieldsFilled;
   };
 
   return (
@@ -167,17 +186,13 @@ function CreateSale() {
               </div>
             </div>
             <div className="mb-5 w-full">
-            <SaleDetailTable
-  saleDetails={saleDetails}
-  setSaleDetails={setSaleDetails}
-  taxPercentage={taxPercentage}
-  taxAmount={taxAmount}
-/>
-
+              <SaleDetailTable
+                saleDetails={saleDetails}
+                setSaleDetails={setSaleDetails}
+                taxPercentage={taxPercentage}
+                taxAmount={taxAmount}
+              />
             </div>
-
-            {/* Tax Fields */}
-           
 
             {/* Notes */}
             <div className="mb-5">
@@ -194,7 +209,8 @@ function CreateSale() {
             <div className="w-full mt-8">
               <button
                 type="submit"
-                className="hover:shadow-form rounded-md bg-[#3B82F6] w-1/2 py-3 px-8 text-center text-base font-semibold text-white outline-none"
+                className={`hover:shadow-form rounded-md bg-[#3B82F6] w-1/2 py-3 px-8 text-center text-base font-semibold text-white outline-none }`}
+              // Disable if any field is empty
               >
                 Submit
               </button>

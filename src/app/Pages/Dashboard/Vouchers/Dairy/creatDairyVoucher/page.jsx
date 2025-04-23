@@ -2,8 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './Sale.css';
+  import toast, { Toaster } from 'react-hot-toast';
 
 const CreateDiaryVoucher = () => {
+  const [loading, setLoading] = useState(true);
+
   const [formData, setFormData] = useState({
     issue_date: '',
     cheque_date: '',
@@ -19,10 +22,12 @@ const CreateDiaryVoucher = () => {
   const [banks, setBanks] = useState([]);
 
   useEffect(() => {
+
     const fetchBanks = async () => {
       try {
         const res = await axios.get('https://accounts-management.onrender.com/common/banks/getAll');
         setBanks(res.data || []);
+        setLoading(false);
       } catch (err) {
         console.error('Failed to fetch banks:', err);
       }
@@ -41,15 +46,15 @@ const CreateDiaryVoucher = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setLoading
     try {
       const res = await axios.post(
         'https://accounts-management.onrender.com/common/diaryVoucher/create',
         formData
       );
-   console.log(res.data);
       if (res?.data) {
-        alert('Diary Voucher created successfully!');
+        setLoading(false);
+        toast.success('Diary Voucher created successfully!');
         setFormData({
           issue_date: '',
           cheque_date: '',
@@ -61,6 +66,7 @@ const CreateDiaryVoucher = () => {
           notes: '',
           dv_status: 'A',
         });
+        
       } else {
         throw new Error('Failed to create diary voucher');
       }
@@ -69,9 +75,18 @@ const CreateDiaryVoucher = () => {
       alert('An error occurred while creating the diary voucher.');
     }
   };
-
+  if (loading) return <div className="flex justify-center items-center h-screen">
+  <div className="flex space-x-2">
+    <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+    <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+    <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></span>
+    <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:0.15s]"></span>
+  </div>
+</div>
   return (
     <div className="mx-auto p-6 bg-white shadow-md rounded-lg mt-10">
+            <Toaster position="top-right" reverseOrder={false} />
+      
       <h2 className="text-2xl font-semibold mb-6 text-gray-700">Create Diary Voucher</h2>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-2 gap-6">

@@ -23,17 +23,19 @@ function CreateSupplier() {
 
   useEffect(() => {
     setIsClient(true);
-
+  
     const fetchRoutes = async () => {
       try {
         const response = await axios.get('https://accounts-management.onrender.com/common/routes/getAll');
         const data = response.data;
-
+  
         if (data?.routes) {
-          const routeOptions = data.routes.map(route => ({
-            value: route.id,
-            label: route.name,
-          }));
+          const routeOptions = data.routes
+            .filter(route => route.status === "1" || route.status === 1)
+            .map(route => ({
+              value: route.id,
+              label: route.name,
+            }));
           setPartyOptions(routeOptions);
         } else {
           toast.error('No routes found');
@@ -42,9 +44,10 @@ function CreateSupplier() {
         toast.error('Error fetching routes');
       }
     };
-
+  
     fetchRoutes();
   }, []);
+  
 
   const handleStatusChange = (e) => {
     setStatus(e.target.value);

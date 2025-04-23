@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios'; // Import axios
 import Select from 'react-select'; // For dropdowns
-import './Purchase.css'
+import './Purchase.css';
 import SupplierTable from './Suppliertable';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -19,11 +19,12 @@ function CreatePurchase() {
   const [isClient, setIsClient] = useState(false); // Flag to check if the component is rendered on the client
   const [suppliers, setSuppliers] = useState([]); // New state to store filtered suppliers
   const [supplierInputs, setSupplierInputs] = useState([]);
-    const [loading, setLoading] = useState(true); // ✅ Loading state
+  const [loading, setLoading] = useState(true); // ✅ Loading state
+  const [hasSuppliers, setHasSuppliers] = useState(false); // New state to check if suppliers exist
   
   useEffect(() => {
     setIsClient(true); // Set to true once the component is mounted on the client
-
+    
     // Fetch available routes and items from the API
     const fetchRoutesAndItems = async () => {
       try {
@@ -31,13 +32,17 @@ function CreatePurchase() {
           axios.get('https://accounts-management.onrender.com/common/routes/getAll'),
           axios.get('https://accounts-management.onrender.com/common/items/getAll'),
         ]);
+    
+        // Filter routes based on status being '1' (active)
+        const filteredRoutes = routeResponse?.data?.routes.filter(route => route.status === '1') || [];
+    
         setRoutes(
-          routeResponse?.data?.routes.map(route => ({
+          filteredRoutes.map(route => ({
             value: route.id,
             label: route.name,
-          })) || []
+          }))
         );
-
+    
         setItems(
           itemResponse?.data?.map(item => ({
             value: item.id,
@@ -50,9 +55,40 @@ function CreatePurchase() {
         console.error('Error fetching routes or items:', error);
       }
     };
-
+    
     fetchRoutesAndItems();
   }, []);
+
+  const handleRouteChange = async (selectedOption) => {
+    setRouteId(selectedOption);
+    await fetchSuppliers(selectedOption?.value); // Fetch suppliers for the selected route
+  };
+
+  const fetchSuppliers = async (selectedRouteId) => {
+    try {
+      const response = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
+      const allSuppliers = response?.data?.suppliers || [];
+  
+      const filteredSuppliers = allSuppliers?.filter(supplier => 
+        supplier?.route?.id === selectedRouteId
+      );
+  
+      setSuppliers(filteredSuppliers);
+      setHasSuppliers(filteredSuppliers.length > 0); // Check if suppliers exist for the selected route
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+    }
+  };
+
+  const handleQuantityChange = (index, value) => {
+    // Round the value if it's fractional (i.e., contains a decimal)
+    const roundedValue = Math.round(parseFloat(value));  // Rounds to the nearest integer
+
+    // Update the supplierInputs with the rounded value
+    const newSupplierInputs = [...supplierInputs];
+    newSupplierInputs[index].qty_mann = roundedValue;
+    setSupplierInputs(newSupplierInputs);
+  };
 
   const handleSubmit = async (e) => {
     setLoading(true); // Set loading to true when the form is submitted
@@ -72,8 +108,6 @@ function CreatePurchase() {
       const response = await axios.post('https://accounts-management.onrender.com/common/purchase/create', payload);
   
       if (response.data?.message === 'Purchase created successfully') {
-        // Set loading to false after successful submission
-  
         const purchaseId = response.data?.result?.insertId || response.data?.id; // Adjust based on response structure         
         const purchaseDetailRequests = supplierInputs.map((input, index) => {
           const detailPayload = {
@@ -82,12 +116,12 @@ function CreatePurchase() {
             qty: parseFloat(input.qty_mann || 0),
             rate: parseFloat(input.rate || 0),
           };
-          console.log('Detail Payload:', detailPayload); // Debugging line
           return axios.post('https://accounts-management.onrender.com/common/purchaseDetail/create', detailPayload);
         });
   
         await Promise.all(purchaseDetailRequests);
   
+        // Reset form after submission
         setPurchaseDate('');
         setEndDate('');
         setNameUr('');
@@ -98,10 +132,8 @@ function CreatePurchase() {
         setSupplierInputs([]);
         setLoading(false);
         toast.success('Purchase created successfully!');
-
-  
       } else {
-     setLoading(false); // Set loading to false if there's an error
+        setLoading(false); // Set loading to false if there's an error
         toast.error('Failed to create purchase');
       }
     } catch (error) {
@@ -109,31 +141,11 @@ function CreatePurchase() {
       toast.error('Error while submitting the form');
     }
   };
-  
 
   if (!isClient) {
     return null; 
   }
-  const fetchSuppliers = async (selectedRouteId) => {
-    try {
-      const response = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
-      const allSuppliers = response?.data?.suppliers || [];
-  
-      const filteredSuppliers = allSuppliers?.filter(supplier => 
-        supplier?.route?.id === selectedRouteId
-      );
-  
-      setSuppliers(filteredSuppliers);
-    } catch (error) {
-      console.error('Error fetching suppliers:', error);
-    }
-  };
-  
 
-  function handleRouteChange(selectedOption) {
-    setRouteId(selectedOption);
-    fetchSuppliers(selectedOption?.value); // Pass selected route's ID
-  }
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -146,6 +158,7 @@ function CreatePurchase() {
       </div>
     );
   }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
@@ -204,15 +217,12 @@ function CreatePurchase() {
               <div className="w-1/2">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Route</label>
                 <Select
-  options={routes}
-  value={routeId}
-  onChange={(selectedOption) => {
-    setRouteId(selectedOption);
-    handleRouteChange(selectedOption);
-  }}
-  placeholder="Select Route"
-  className="w-full rounded-md"
-/>
+                  options={routes}
+                  value={routeId}
+                  onChange={handleRouteChange}
+                  placeholder="Select Route"
+                  className="w-full rounded-md"
+                />
               </div>
             </div>
 
@@ -228,8 +238,6 @@ function CreatePurchase() {
                   className="w-full rounded-md"
                 />
               </div>
-
-             
             </div>
 
             {/* Status */}
@@ -262,12 +270,13 @@ function CreatePurchase() {
                 </div>
               </div>
             </div>
+
             <SupplierTable 
              supplier={suppliers}
              supplierInputs={supplierInputs}
              setSupplierInputs={setSupplierInputs}
-            
-           />
+             handleQuantityChange={handleQuantityChange} // Pass handleQuantityChange to SupplierTable
+            />
 
             <div className="w-1/2">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Note</label>
@@ -280,8 +289,13 @@ function CreatePurchase() {
                   className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                 />
               </div>
+
             <div className="w-full mt-8">
-              <button type="submit" className="hover:shadow-form rounded-md bg-[#3B82F6] w-1/2 py-3 px-8 text-center text-base font-semibold text-white outline-none">
+              <button 
+                type="submit" 
+                className="hover:shadow-form rounded-md bg-[#3B82F6] w-1/2 py-3 px-8 text-center text-base font-semibold text-white outline-none"
+                disabled={!hasSuppliers} // Disable button if no suppliers for selected route
+              >
                 Submit
               </button>
             </div>

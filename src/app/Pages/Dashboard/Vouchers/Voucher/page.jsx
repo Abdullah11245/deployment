@@ -8,11 +8,12 @@ const VoucherList = () => {
   const [voucherDetails, setVoucherDetails] = useState([]);
   const [activeRow, setActiveRow] = useState(null);
   const [loading, setLoading] = useState(true); // Track loading state
+  const [currentPage, setCurrentPage] = useState(1); // Current page state
+  const itemsPerPage = 10; // Items per page
   const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
-
       try {
         const [voucherRes, detailRes] = await Promise.all([
           axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
@@ -20,7 +21,6 @@ const VoucherList = () => {
         ]);
 
         setVouchers(voucherRes.data || []);
-        console.log(voucherRes)
         setVoucherDetails(detailRes.data || []);
       } catch (err) {
         console.error('Error fetching vouchers:', err);
@@ -29,11 +29,8 @@ const VoucherList = () => {
       }
     };
 
-    
     fetchData();
   }, []);
-
-
 
   const handleEdit = (voucher) => {
     router.push(`/Pages/Dashboard/Vouchers/Voucher/${voucher.id}`);
@@ -51,6 +48,17 @@ const VoucherList = () => {
 
   const getTotalCredit = (details) =>
     details.reduce((sum, d) => sum + parseFloat(d.credit || 0), 0);
+
+  // Calculate the indexes for the current page of data
+  const indexOfLastVoucher = currentPage * itemsPerPage;
+  const indexOfFirstVoucher = indexOfLastVoucher - itemsPerPage;
+  const currentVouchers = vouchers.slice(indexOfFirstVoucher, indexOfLastVoucher);
+
+  // Handle pagination page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -63,12 +71,12 @@ const VoucherList = () => {
       </div>
     );
   }
-else{
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
         <h2 className="text-xl font-semibold text-gray-700">List of Vouchers</h2>
-        <div className='flex justify-between space-x-2 items-center'>
+        <div className="flex justify-between space-x-2 items-center">
           <button
             className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
             onClick={() => { handleCreateNew('CP_CR') }}
@@ -89,8 +97,7 @@ else{
           </button>
         </div>
       </div>
-
-      <div className='flex justify-between items-center'>
+{/* <div className='flex justify-between items-center'>
         <div className=" flex justify-between items-center space-x-1 mt-8 mb-4">
           <button className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
             Archive
@@ -137,9 +144,7 @@ else{
             </svg>
           </button>
         </div>
-      </div>
-
-   
+      </div> */}
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-2">
         <table className="min-w-full border-collapse">
           <thead className="bg-gray-100">
@@ -151,12 +156,11 @@ else{
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entries</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Debit</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Credit</th>
-              {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th> */}
             </tr>
           </thead>
           <tbody>
-            {vouchers.length > 0 ? (
-              vouchers.map((voucher, index) => {
+            {currentVouchers.length > 0 ? (
+              currentVouchers.map((voucher, index) => {
                 const details = getDetailsForVoucher(voucher.id);
                 const totalDebit = getTotalDebit(details);
                 const totalCredit = getTotalCredit(details);
@@ -172,18 +176,6 @@ else{
                     <td className="px-6 py-4 text-sm text-gray-700">{details.length}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{totalDebit.toFixed(2)}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{totalCredit.toFixed(2)}</td>
-                    {/* <td className="px-6 py-4 text-sm text-gray-700">
-                      <div className="relative">
-                      <button
-    onClick={() => handleEdit(voucher)}
-    className="bg-gray-200 text-white p-2 rounded-full hover:bg-green-200 w-[35px] h-[35px] flex items-center justify-center"
-  >
-  <svg viewBox="0 0 24 24" fill="none" width='25px' height='25px' ><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M20.1498 7.93997L8.27978 19.81C7.21978 20.88 4.04977 21.3699 3.32977 20.6599C2.60977 19.9499 3.11978 16.78 4.17978 15.71L16.0498 3.84C16.5979 3.31801 17.3283 3.03097 18.0851 3.04019C18.842 3.04942 19.5652 3.35418 20.1004 3.88938C20.6356 4.42457 20.9403 5.14781 20.9496 5.90463C20.9588 6.66146 20.6718 7.39189 20.1498 7.93997V7.93997Z" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg>
-
-  </button>
-                        
-                      </div>
-                    </td> */}
                   </tr>
                 );
               })
@@ -197,10 +189,50 @@ else{
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      <div className="flex justify-between items-center mt-4">
+        <span className="text-sm font-semibold text-gray-700">
+          Showing {indexOfFirstVoucher + 1} to {Math.min(indexOfLastVoucher, vouchers.length)} of {vouchers.length} entries
+        </span>
+
+        <div className="flex gap-2 text-xs font-medium">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 bg-white text-gray-900"
+          >
+            <span className="sr-only">Previous</span>
+            
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
+            </svg>
+          </button>
+
+          {[...Array(Math.ceil(vouchers.length / itemsPerPage))].map((_, idx) => (
+            <button
+              key={idx + 1}
+              onClick={() => handlePageChange(idx + 1)}
+              className={`inline-flex items-center justify-center w-8 h-8 rounded border ${currentPage === idx + 1 ? 'bg-blue-500 text-white' : 'bg-white text-gray-900'}`}
+            >
+              {idx + 1}
+            </button>
+          ))}
+
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === Math.ceil(vouchers.length / itemsPerPage)}
+            className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 bg-white text-gray-900"
+          >
+            <span className="sr-only">Next</span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   );
-}
- 
 };
 
 export default VoucherList;

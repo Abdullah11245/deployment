@@ -11,7 +11,6 @@ function RouteList() {
   const [endDate, setEndDate] = useState('');
   const [selectedValue, setSelectedValue] = useState([]);
   const [selectedItem, setSelectedItem] = useState([]);
-  const [isClient, setIsClient] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [sales, setSales] = useState([]);
@@ -26,8 +25,13 @@ function RouteList() {
 
   const router = useRouter();
 
+  const salesPerPage = 10;
+  const indexOfLastSale = currentPage * salesPerPage;
+  const indexOfFirstSale = indexOfLastSale - salesPerPage;
+  const currentSales = filteredSales.slice(indexOfFirstSale, indexOfLastSale);
+  const totalPages = Math.ceil(filteredSales.length / salesPerPage);
+
   useEffect(() => {
-    setIsClient(true);
     const fetchInitialData = async () => {
       try {
         const [saleRes, detailRes, partyRes] = await Promise.all([
@@ -41,15 +45,17 @@ function RouteList() {
         setFilteredSales(fetchedSales);
         setSaleDetails(detailRes.data || []);
 
-        const parties = partyRes.data.map(p => ({
-          value: p.id,
-          label: p.name,
-        }));
+        const parties = partyRes.data
+          .filter(p => p.status) // ✅ Filter active parties
+          .map(p => ({
+            value: p.id,
+            label: p.name,
+          }));
         setPartyOptions(parties);
       } catch (err) {
         console.error('Error fetching initial data:', err);
       } finally {
-        setLoading(false); // Hide loader after fetching
+        setLoading(false);
       }
     };
 
@@ -97,16 +103,23 @@ function RouteList() {
     });
 
     setFilteredSales(filtered);
+    setCurrentPage(1); // reset to first page on new search
   };
 
-  if (!isClient || loading) {
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-white">
         <div className="flex space-x-2">
-        <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-      <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-      <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></span>
-      <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:0.15s]"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:0.15s]"></span>
         </div>
       </div>
     );
@@ -114,104 +127,68 @@ function RouteList() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
-        <h2 className="text-xl font-semibold text-gray-700">Customers Wise Report</h2>
-      </div>
+      <h2 className="text-xl font-semibold text-gray-700 border-b pb-4 mb-4">Customers Wise Report</h2>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 mt-4">
-        {/* Party Name */}
+      <div className="flex flex-wrap gap-4">
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium text-gray-900">Party Name</label>
-          <Select
-            isMulti
-            value={selectedValue}
-            onChange={setSelectedValue}
-            options={partyOptions}
-            placeholder="Select Party"
-            className="w-full mt-2"
-          />
+          <Select isMulti value={selectedValue} onChange={setSelectedValue} options={partyOptions} />
         </div>
-
-        {/* Start Date */}
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium text-gray-900">Start Date</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full mt-2 px-4 py-2 border rounded-md text-sm text-gray-900"
-          />
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full mt-2 px-4 py-2 border rounded-md text-sm" />
         </div>
-
-        {/* End Date */}
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium text-gray-900">End Date</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full mt-2 px-4 py-2 border rounded-md text-sm text-gray-900"
-          />
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full mt-2 px-4 py-2 border rounded-md text-sm" />
         </div>
-
-        {/* Item Name */}
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium text-gray-900">Item Name</label>
           <Select
             isMulti
             value={selectedItem}
-            onChange={(selected) => {
-              if (selected && selected.some(item => item.value === 'all')) {
-                setSelectedItem([{ value: 'all', label: 'All' }]);
-              } else {
-                setSelectedItem(selected || []);
-              }
-            }}
+            onChange={(selected) =>
+              selected.some((item) => item.value === 'all')
+                ? setSelectedItem([{ value: 'all', label: 'All' }])
+                : setSelectedItem(selected)
+            }
             options={itemOptions}
-            placeholder="Select Item"
-            className="w-full mt-2"
           />
         </div>
       </div>
 
-      {/* Search & Reset */}
       <div className="mt-4 flex gap-2">
-        <button
-          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md"
-          onClick={handleSearch}
-        >
+        <button className="px-4 py-2 bg-blue-500 text-white rounded-md text-sm" onClick={handleSearch}>
           Search
         </button>
         <button
-          className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md"
+          className="px-4 py-2 bg-gray-500 text-white rounded-md text-sm"
           onClick={() => {
             setFilteredSales(sales);
             setSelectedValue([]);
             setSelectedItem([]);
             setStartDate('');
             setEndDate('');
+            setCurrentPage(1);
           }}
         >
           Reset
         </button>
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
         <table className="min-w-full border-collapse">
           <thead className="bg-gray-100">
             <tr>
               {['#', 'Date', 'Vr#', 'Item Name', 'Weight', 'Rate', 'Gross Amount', 'Freight', 'Net Amount'].map((header) => (
-                <th key={header} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  {header}
-                </th>
+                <th key={header} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{header}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {filteredSales.length > 0 ? (
-              filteredSales.map((sale, index) => {
+            {currentSales.length > 0 ? (
+              currentSales.map((sale, index) => {
                 const details = getDetailsForSale(sale.id);
                 const firstDetail = details[0] || {};
                 const totalWeight = getTotalWeight(details);
@@ -222,29 +199,71 @@ function RouteList() {
 
                 return (
                   <tr key={sale.id} className="border-t">
-                    <td className="px-6 py-4 text-sm text-gray-700">{index + 1}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {new Date(sale.sale_date).toISOString().split('T')[0]}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{firstDetail.vehicle_no || '-'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{firstDetail.item_id ?? '-'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{totalWeight}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{averageRate}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{grossAmount}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{freight || '-'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{netAmount}</td>
+                    <td className="px-6 py-4 text-sm">{indexOfFirstSale + index + 1}</td>
+                    <td className="px-6 py-4 text-sm">{new Date(sale.sale_date).toISOString().split('T')[0]}</td>
+                    <td className="px-6 py-4 text-sm">{firstDetail.vehicle_no || '-'}</td>
+                    <td className="px-6 py-4 text-sm">{firstDetail.item_id ?? '-'}</td>
+                    <td className="px-6 py-4 text-sm">{totalWeight}</td>
+                    <td className="px-6 py-4 text-sm">{averageRate}</td>
+                    <td className="px-6 py-4 text-sm">{grossAmount}</td>
+                    <td className="px-6 py-4 text-sm">{freight || '-'}</td>
+                    <td className="px-6 py-4 text-sm">{netAmount}</td>
                   </tr>
                 );
               })
             ) : (
               <tr>
-                <td colSpan="9" className="text-center px-6 py-4 text-sm text-gray-700">
-                  No sales data found for the applied filters.
-                </td>
+                <td colSpan="9" className="text-center px-6 py-4 text-sm text-gray-700">No sales data found.</td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-between items-center mt-8">
+        <span className="text-sm text-gray-700">
+          Showing {indexOfFirstSale + 1} to {Math.min(indexOfLastSale, filteredSales.length)} of {filteredSales.length} entries
+        </span>
+
+        <ol className="flex gap-1 text-xs font-medium">
+          <li>
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 bg-white text-gray-900"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
+              </svg>
+            </button>
+          </li>
+
+          {Array.from({ length: totalPages }, (_, i) => (
+            <li key={i}>
+              <button
+                onClick={() => handlePageChange(i + 1)}
+                className={`w-8 h-8 rounded border text-center leading-8 ${
+                  currentPage === i + 1 ? 'bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-900'
+                }`}
+              >
+                {i + 1}
+              </button>
+            </li>
+          ))}
+
+          <li>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 bg-white text-gray-900"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
+              </svg>
+            </button>
+          </li>
+        </ol>
       </div>
     </div>
   );

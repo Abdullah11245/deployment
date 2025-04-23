@@ -35,15 +35,18 @@ function CreateSupplier() {
   const fetchRoutes = async () => {
     try {
       const res = await axios.get('https://accounts-management.onrender.com/common/routes/getAll');
-      const options = res.data.routes.map(route => ({
-        value: route.id,
-        label: route.name,
-      }));
+      const options = res.data.routes
+        .filter(route => route.status === "1" || route.status === 1) // ✅ Filter active routes
+        .map(route => ({
+          value: route.id,
+          label: route.name,
+        }));
       setPartyOptions(options);
     } catch (err) {
       toast.error('Error fetching routes');
     }
   };
+  
 
   const fetchSupplierDetails = async (id) => {
     try {

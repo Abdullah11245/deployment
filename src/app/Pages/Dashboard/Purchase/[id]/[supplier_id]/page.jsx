@@ -192,6 +192,8 @@ function EditPurchase() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <Toaster position="top-right" reverseOrder={false} />      
+
       <h2 className="text-xl font-semibold text-gray-700 border-b pb-2 mb-6">Edit Purchase</h2>
 
       <form onSubmit={handleSubmit}>
@@ -286,7 +288,7 @@ function EditPurchase() {
         />
 
         {/* Note */}
-        <div className="mb-5">
+        <div className="mb-5 mt-5">
           <label className="block mb-2 text-sm font-medium text-gray-700">Note</label>
           <textarea
             value={note}

@@ -5,7 +5,7 @@ import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { json2csv } from 'json-2-csv'; // ✅ Correct import
+import { json2csv } from 'json-2-csv';
 
 function Receiptreport() {
   const [routes, setRoutes] = useState([]);
@@ -19,6 +19,8 @@ function Receiptreport() {
   const [originalRoutes, setOriginalRoutes] = useState([]);
   const [originalVoucherDetails, setOriginalVoucherDetails] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10); // You can adjust this as needed
   const tableRef = useRef(null);
 
   useEffect(() => {
@@ -29,21 +31,25 @@ function Receiptreport() {
           axios.get('https://accounts-management.onrender.com/common/voucherDetail/getAll'),
           axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
           axios.get('https://accounts-management.onrender.com/common/banks/getAll')
-          
         ]);
+
+        // Filter parties to show only active ones
+        const activeParties = partiesRes.data.filter(party => party.status);
 
         setRoutes(voucherRes.data || []);
         setVoucherDetails(detailRes.data || []);
         setOriginalRoutes(voucherRes.data || []);
         setOriginalVoucherDetails(detailRes.data || []);
-        setPartiesOptions(partiesRes.data.map(party => ({ value: party.id, label: party.name })));
+        setPartiesOptions(
+          activeParties.map(party => ({ value: party.id, label: party.name }))
+        );
 
         const banksData = banksRes.data.map(bank => ({
           value: bank.account_code,
           label: bank.account_title
         }));
 
-        setBanksOptions([
+        setBanksOptions([ 
           { value: 'All', label: 'All' },
           ...banksData,
           { value: 'Cash', label: 'Cash' }
@@ -58,11 +64,19 @@ function Receiptreport() {
     fetchData();
   }, []);
 
-  const getDetailsForVoucher = (voucherId) =>
-    voucherDetails.filter((detail) => detail.main_id === voucherId);
+  // Handle paginated data
+  const getPaginatedData = () => {
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    return routes.slice(indexOfFirstItem, indexOfLastItem);
+  };
 
-  const getTotalDebit = (details) =>
-    details.reduce((sum, d) => sum + parseFloat(d.debit || 0), 0);
+  // Pagination handler
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= Math.ceil(routes.length / itemsPerPage)) {
+      setCurrentPage(page);
+    }
+  };
 
   const handleSearch = () => {
     let filteredData = originalRoutes;
@@ -94,6 +108,7 @@ function Receiptreport() {
     }
 
     setRoutes(filteredData);
+    setCurrentPage(1); // Reset to first page when search is performed
   };
 
   const handleReset = () => {
@@ -102,8 +117,10 @@ function Receiptreport() {
     setSelectedParty([]);
     setSelectedCashBank([]);
     setRoutes(originalRoutes);
+    setCurrentPage(1); // Reset to first page when reset is performed
   };
 
+  // Export functions
   const exportCSV = async () => {
     const dataToExport = routes.map((route, index) => {
       const details = getDetailsForVoucher(route.id);
@@ -119,7 +136,7 @@ function Receiptreport() {
     });
 
     try {
-      const csv = await json2csv(dataToExport); // ✅ Correct usage
+      const csv = await json2csv(dataToExport);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -234,6 +251,10 @@ function Receiptreport() {
     );
   }
 
+  const totalPages = Math.ceil(routes.length / itemsPerPage);
+  const indexOfFirstRoute = (currentPage - 1) * itemsPerPage;
+  const indexOfLastRoute = Math.min(indexOfFirstRoute + itemsPerPage, routes.length);
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
@@ -303,46 +324,90 @@ function Receiptreport() {
       </div>
 
       {/* Table */}
-      <div ref={tableRef} className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
-        <table className="min-w-full border-collapse">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Voucher #</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Parties</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nature/Mode</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Particulars</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+      <div ref={tableRef} className="overflow-x-auto bg-white shadow-lg rounded-lg mt-4">
+        <table className="min-w-full table-auto border-collapse">
+          <thead>
+            <tr className="text-sm font-semibold bg-gray-100">
+              <th className="py-3 px-4 text-left">#</th>
+              <th className="py-3 px-4 text-left">Voucher #</th>
+              <th className="py-3 px-4 text-left">Date</th>
+              <th className="py-3 px-4 text-left">Party</th>
+              <th className="py-3 px-4 text-left">Nature/Mode</th>
+              <th className="py-3 px-4 text-left">Particulars</th>
+              <th className="py-3 px-4 text-left">Amount</th>
             </tr>
           </thead>
           <tbody>
-            {routes.length > 0 ? (
-              routes.map((route, index) => {
-                const details = getDetailsForVoucher(route.id);
-                const totalAmount = getTotalDebit(details).toFixed(2);
-
-                return (
-                  <tr key={route.id} className="border-t">
-                    <td className="px-6 py-4 text-sm text-gray-700">{index + 1}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{route.voucher_id}-{route.voucher_type}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{new Date(route.voucher_date).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{route.party_code || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{route.voucher_type}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{route.note}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">${totalAmount}</td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan="7" className="px-6 py-4 text-sm text-gray-700 text-center">
-                  No data found for the applied filters.
-                </td>
-              </tr>
-            )}
+            {getPaginatedData().map((route, index) => {
+              const details = getDetailsForVoucher(route.id);
+              return (
+                <tr key={route.id} className="text-sm text-gray-700">
+                  <td className="py-3 px-4">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                  <td className="py-3 px-4">{route.voucher_id}</td>
+                  <td className="py-3 px-4">{new Date(route.voucher_date).toLocaleDateString()}</td>
+                  <td className="py-3 px-4">{route.party_code || 'N/A'}</td>
+                  <td className="py-3 px-4">{route.voucher_type}</td>
+                  <td className="py-3 px-4">{route.note}</td>
+                  <td className="py-3 px-4">{getTotalDebit(details).toFixed(2)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex justify-between items-center mt-8">
+        <span className="text-sm font-semibold text-gray-700">
+          Showing {indexOfFirstRoute + 1} to {Math.min(indexOfLastRoute, routes.length)} of {routes.length} entries
+        </span>
+
+        <ol className="flex gap-1 text-xs font-medium">
+          <li>
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="inline-flex items-center justify-center rounded border w-8 h-8 border-gray-300 bg-white text-gray-900"
+            >
+              <span className="sr-only">Prev Page</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </li>
+
+          {Array.from({ length: totalPages }, (_, i) => (
+            <li key={i}>
+              <button
+                onClick={() => handlePageChange(i + 1)}
+                className={`block w-8 h-8 rounded border ${currentPage === i + 1 ? 'bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-900'} text-center leading-8`}
+              >
+                {i + 1}
+              </button>
+            </li>
+          ))}
+
+          <li>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="inline-flex items-center justify-center rounded border w-8 h-8 border-gray-300 bg-white text-gray-900"
+            >
+              <span className="sr-only">Next Page</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </li>
+        </ol>
       </div>
     </div>
   );

@@ -26,6 +26,8 @@ function RouteList() {
 
   const router = useRouter();
 
+  const salesPerPage = 10; // Define how many sales you want to display per page
+
   useEffect(() => {
     setIsClient(true);
     const fetchInitialData = async () => {
@@ -49,7 +51,7 @@ function RouteList() {
       } catch (err) {
         console.error('Error fetching initial data:', err);
       } finally {
-        setLoading(false); // Hide loader after fetching
+        setLoading(false);
       }
     };
 
@@ -97,16 +99,28 @@ function RouteList() {
     });
 
     setFilteredSales(filtered);
+    setCurrentPage(1); // Reset to the first page after filtering
   };
+
+  const handlePagination = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  const currentPageData = filteredSales.slice(
+    (currentPage - 1) * salesPerPage,
+    currentPage * salesPerPage
+  );
+
+  const totalPages = Math.ceil(filteredSales.length / salesPerPage);
 
   if (!isClient || loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-white">
         <div className="flex space-x-2">
-        <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-      <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-      <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></span>
-      <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:0.15s]"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:0.15s]"></span>
         </div>
       </div>
     );
@@ -191,51 +205,13 @@ function RouteList() {
             setSelectedItem([]);
             setStartDate('');
             setEndDate('');
+            setCurrentPage(1); // Reset to the first page
           }}
         >
           Reset
         </button>
       </div>
-      <div className="flex justify-between items-center mt-8 mb-4">
-        <div className="flex space-x-1">
-          <button className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
-            Archive
-          </button>
-          <button className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
-            Add
-          </button>
-        </div>
 
-        {/* Search Box */}
-        <div className="relative text-gray-600 border-2 rounded-full">
-          <input
-            type="search"
-            name="search"
-            placeholder="Search"
-            className="bg-white h-10 px-5 pr-10 rounded-full text-sm focus:outline-none"
-          />
-          <button type="submit" className="absolute right-0 top-0 mt-3 mr-4">
-            <svg
-              className="h-4 w-4 fill-current"
-              xmlns="http://www.w3.org/2000/svg"
-              xmlnsXlink="http://www.w3.org/1999/xlink"
-              version="1.1"
-              id="Capa_1"
-              x="0px"
-              y="0px"
-              viewBox="0 0 56.966 56.966"
-              style={{ enableBackground: 'new 0 0 56.966 56.966' }}
-              xmlSpace="preserve"
-              width="512px"
-              height="512px"
-            >
-              <path
-                d="M55.146,51.887L41.588,37.786c3.486-4.144,5.396-9.358,5.396-14.786c0-12.682-10.318-23-23-23s-23,10.318-23,23 s10.318,23,23,23c4.761,0,9.298-1.436,13.177-4.162l13.661,14.208c0.571,0.593,1.339,0.92,2.162,0.92 c0.779,0,1.518-0.297,2.079-0.837C56.255,54.982,56.293,53.08,55.146,51.887z M23.984,6c9.374,0,17,7.626,17,17s-7.626,17-17,17 s-17-7.626-17-17S14.61,6,23.984,6z"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
       {/* Table */}
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
         <table className="min-w-full border-collapse">
@@ -249,8 +225,8 @@ function RouteList() {
             </tr>
           </thead>
           <tbody>
-            {filteredSales.length > 0 ? (
-              filteredSales.map((sale, index) => {
+            {currentPageData.length > 0 ? (
+              currentPageData.map((sale, index) => {
                 const details = getDetailsForSale(sale.id);
                 const firstDetail = details[0] || {};
                 const totalWeight = getTotalWeight(details);
@@ -284,6 +260,31 @@ function RouteList() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex justify-end mt-4">
+        <button
+          onClick={() => handlePagination(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md"
+        >
+ <span className="sr-only">Prev Page</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
+              </svg>        </button>
+        <span className="px-4 py-2 text-sm font-medium text-gray-700">
+          Page {currentPage} of {totalPages}
+        </span>
+        <button
+          onClick={() => handlePagination(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md"
+        >
+<span className="sr-only">Next Page</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
+              </svg>        </button>
       </div>
     </div>
   );

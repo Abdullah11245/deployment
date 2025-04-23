@@ -2,14 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { useSaleContext } from '../../../../context/Salexontext'; // Update the path as needed
 
 const SaleList = () => {
   const [sales, setSales] = useState([]);
   const [saleDetails, setSaleDetails] = useState([]);
-  const [activeRow, setActiveRow] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10); // Number of items per page
   const router = useRouter();
-  const { setEditSaleDetails } = useSaleContext();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -50,10 +49,21 @@ const SaleList = () => {
       return sum + (weight * rate + adjustment);
     }, 0);
 
-  const handleEdit = (sale,detail) => {
-    console.log(detail)
-    setEditSaleDetails(detail.item_id); 
-    router.push(`/Pages/Dashboard/Sales/Sale/${sale.id}/${detail.item_id}`);  
+  const handleEdit = (sale, detail) => {
+    console.log(detail);
+    router.push(`/Pages/Dashboard/Sales/Sale/${sale.id}/${detail.item_id}`);
+  };
+
+  // Pagination Logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentSales = sales.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sales.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
   };
 
   return (
@@ -84,8 +94,8 @@ const SaleList = () => {
             </tr>
           </thead>
           <tbody>
-            {sales.length > 0 ? (
-              sales.map((sale, index) => {
+            {currentSales.length > 0 ? (
+              currentSales.map((sale, index) => {
                 const details = getDetailsForSale(sale.id);
                 const totalWeight = getTotalWeight(details);
                 const averageRate = getAverageRate(details);
@@ -106,7 +116,7 @@ const SaleList = () => {
                     <td className="px-6 py-4 text-sm text-gray-700">
                       <div className="relative">
                         <button
-                          onClick={() => handleEdit(sale,details[0])}
+                          onClick={() => handleEdit(sale, details[0])}
                           className="bg-gray-200 text-white p-2 rounded-full hover:bg-green-200 w-[35px] h-[35px] flex items-center justify-center"
                         >
                           <svg viewBox="0 0 24 24" fill="none" width="25px" height="25px">
@@ -127,6 +137,52 @@ const SaleList = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-between items-center mt-4">
+        <span className="text-sm font-semibold text-gray-700">
+          Showing {sales.length === 0 ? 0 : indexOfFirstItem + 1} to {Math.min(indexOfLastItem, sales.length)} of {sales.length} entries
+        </span>
+
+        <ol className="flex gap-1 text-xs font-medium">
+          <li>
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 bg-white text-gray-900"
+            >
+              <span className="sr-only">Prev Page</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
+              </svg>
+            </button>
+          </li>
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <li key={page}>
+              <button
+                onClick={() => handlePageChange(page)}
+                className={`inline-flex items-center justify-center w-8 h-8 rounded border ${currentPage === page ? 'bg-blue-500 text-white' : 'bg-white text-gray-900'}`}
+              >
+                {page}
+              </button>
+            </li>
+          ))}
+
+          <li>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 bg-white text-gray-900"
+            >
+              <span className="sr-only">Next Page</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
+              </svg>
+            </button>
+          </li>
+        </ol>
       </div>
     </div>
   );

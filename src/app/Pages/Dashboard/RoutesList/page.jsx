@@ -4,10 +4,11 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
 function RouteList() {
-  const [activeRow, setActiveRow] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [routes, setRoutes] = useState([]);
-  const [loading, setLoading] = useState(true); // 👈 Loading state
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const router = useRouter();
 
   useEffect(() => {
@@ -22,7 +23,7 @@ function RouteList() {
       } catch (error) {
         console.error('Error fetching routes:', error);
       } finally {
-        setLoading(false); // 👈 Stop loading after fetch
+        setLoading(false);
       }
     };
 
@@ -37,7 +38,18 @@ function RouteList() {
     router.push(`/Pages/Dashboard/RoutesList/${route.id}`);
   };
 
-  // 🔄 Loading animation while fetching
+  // Calculate the routes for the current page
+  const indexOfLastRoute = currentPage * itemsPerPage;
+  const indexOfFirstRoute = indexOfLastRoute - itemsPerPage;
+  const currentRoutes = routes.slice(indexOfFirstRoute, indexOfLastRoute);
+  const totalPages = Math.ceil(routes.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -79,7 +91,7 @@ function RouteList() {
             </tr>
           </thead>
           <tbody>
-            {routes.map((route) => (
+            {currentRoutes.map((route) => (
               <tr key={route.id} className="border-t">
                 <td className="px-6 py-4 text-sm text-gray-700">{route.name}</td>
                 <td className="px-6 py-4 text-sm">
@@ -90,7 +102,7 @@ function RouteList() {
                         : 'bg-gray-200 text-gray-800'
                     } px-2 py-1 rounded-md text-xs font-semibold`}
                   >
-                    {route.status == 1 ? 'Active' : 'Inactive'}
+                    {route.status === '1' ? 'Active' : 'Inactive'}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-700">
@@ -117,15 +129,17 @@ function RouteList() {
         </table>
       </div>
 
+      {/* Pagination */}
       <div className="flex justify-between items-center mt-8">
         <span className="text-sm font-semibold text-gray-700">
-          Showing 1 to 200 of 517 entries
+          Showing {indexOfFirstRoute + 1} to {Math.min(indexOfLastRoute, routes.length)} of {routes.length} entries
         </span>
 
         <ol className="flex gap-1 text-xs font-medium">
           <li>
-            <a
-              href="#"
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
               className="inline-flex items-center justify-center rounded border w-8 h-8 border-gray-300 bg-white text-gray-900"
             >
               <span className="sr-only">Prev Page</span>
@@ -136,27 +150,29 @@ function RouteList() {
                   clipRule="evenodd"
                 />
               </svg>
-            </a>
+            </button>
           </li>
 
-          {[1, 2, 3, 4].map((page) => (
-            <li key={page}>
-              <a
-                href="#"
+          {Array.from({ length: totalPages }, (_, i) => (
+            <li key={i}>
+              <button
+                onClick={() => handlePageChange(i + 1)}
                 className={`block w-8 h-8 rounded border ${
-                  currentPage === page ? 'bg-blue-600 text-white' : 'border-gray-300'
-                } text-center leading-8 text-gray-900`}
-                onClick={() => setCurrentPage(page)}
+                  currentPage === i + 1
+                    ? 'bg-blue-600 text-white'
+                    : 'border-gray-300 bg-white text-gray-900'
+                } text-center leading-8`}
               >
-                {page}
-              </a>
+                {i + 1}
+              </button>
             </li>
           ))}
 
           <li>
-            <a
-              href="#"
-              className="inline-flex items-center justify-center rounded border border-gray-300 w-8 h-8 bg-white text-gray-900"
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="inline-flex items-center justify-center rounded border w-8 h-8 border-gray-300 bg-white text-gray-900"
             >
               <span className="sr-only">Next Page</span>
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -166,7 +182,7 @@ function RouteList() {
                   clipRule="evenodd"
                 />
               </svg>
-            </a>
+            </button>
           </li>
         </ol>
       </div>

@@ -35,18 +35,21 @@ const SaleDetailTable = ({
   const grandTotal = subtotal + parseFloat(taxAmount || 0);
 
   const addRow = () => {
-    setSaleDetails([
-      ...saleDetails,
-      {
-        itemId: '',
-        vehicleNo: '',
-        frieght: '',
-        uom: '',
-        weight: '',
-        rate: '',
-        adjustment: ''
-      }
-    ]);
+    // Check if there are already rows, if not, allow adding one row
+    if (saleDetails.length === 0) {
+      setSaleDetails([
+        ...saleDetails,
+        {
+          itemId: '',
+          vehicleNo: '',
+          frieght: '',
+          uom: '',
+          weight: '',
+          rate: '',
+          adjustment: ''
+        }
+      ]);
+    }
   };
 
   const removeRow = (index) => {
@@ -192,6 +195,7 @@ const SaleDetailTable = ({
           type="button"
           onClick={addRow}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          disabled={saleDetails.length >= 1}  
         >
           Add row
         </button>

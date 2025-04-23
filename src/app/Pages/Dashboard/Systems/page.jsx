@@ -24,7 +24,6 @@ function UserTable() {
       try {
         const res = await fetch('https://accounts-management.onrender.com/common/system/get');
         const data = await res.json();
-        console.log(data);
 
         if (data !== undefined && data !== null && data !== '') {
           const system = data;

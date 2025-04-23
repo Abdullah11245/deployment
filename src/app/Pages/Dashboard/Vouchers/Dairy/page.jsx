@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -7,6 +7,7 @@ function Diary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5); // Number of items per page (you can adjust this)
   const router = useRouter();
 
   // Fetch data on component mount
@@ -26,8 +27,30 @@ function Diary() {
     fetchData();
   }, []);
 
-  if (loading) return <div className="p-8 text-gray-700">Loading diary vouchers...</div>;
-  if (error) return <div className="p-8 text-red-600">{error}</div>;
+  // Logic to handle paginated data
+  const totalItems = data.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  // Get the data for the current page
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Handle previous and next page changes
+  const handlePageChange = (page) => {
+    if (page > 0 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  if (loading) return <div className="flex justify-center items-center h-screen">
+  <div className="flex space-x-2">
+    <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+    <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+    <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></span>
+    <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:0.15s]"></span>
+  </div>
+</div>
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -40,29 +63,6 @@ function Diary() {
         >
           Create New
         </button>
-      </div>
-
-      {/* Actions and Search */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="space-x-2">
-          <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm">Archive</button>
-          <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm">Delete</button>
-          <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm">Restore</button>
-          <button className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm">Add</button>
-        </div>
-
-        <div className="relative">
-          <input
-            type="search"
-            placeholder="Search"
-            className="bg-white h-10 px-5 pr-10 rounded-full border border-gray-300 text-sm focus:outline-none"
-          />
-          <button type="submit" className="absolute right-0 top-0 mt-2 mr-4">
-            <svg className="h-4 w-4 text-gray-500" viewBox="0 0 56.966 56.966" fill="currentColor">
-              <path d="M55.146,51.887L41.588,37.786..." />
-            </svg>
-          </button>
-        </div>
       </div>
 
       {/* Table */}
@@ -81,9 +81,9 @@ function Diary() {
             </tr>
           </thead>
           <tbody>
-            {data.map((entry, index) => (
+            {currentItems.map((entry, index) => (
               <tr key={entry.id || index} className="border-t hover:bg-gray-50 transition">
-                <td className="px-4 py-2 text-sm text-gray-700">{index + 1}</td>
+                <td className="px-4 py-2 text-sm text-gray-700">{indexOfFirstItem + index + 1}</td>
                 <td className="px-4 py-2 text-sm text-gray-700">{entry.issue_date?.split('T')[0]}</td>
                 <td className="px-4 py-2 text-sm text-gray-700">{entry.cheque_date?.split('T')[0]}</td>
                 <td className="px-4 py-2 text-sm text-gray-700">{entry.cheque_no}</td>
@@ -100,20 +100,39 @@ function Diary() {
       {/* Footer */}
       <div className="flex justify-between items-center mt-4">
         <span className="text-sm text-gray-600">
-          Showing {data.length > 0 ? 1 : 0} to {data.length} of {data.length} entries
+          Showing {indexOfFirstItem + 1} to {indexOfLastItem} of {totalItems} entries
         </span>
         <div className="flex space-x-2 text-sm">
-          {[1, 2, 3].map((page) => (
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            className={`px-3 py-1 border rounded ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'bg-blue-500 text-white'}`}
+            disabled={currentPage === 1}
+          >
+            <span className="sr-only">Prev Page</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
+              </svg>
+          </button>
+          {[...Array(totalPages)].map((_, index) => (
             <button
-              key={page}
-              onClick={() => setCurrentPage(page)}
+              key={index}
+              onClick={() => handlePageChange(index + 1)}
               className={`px-3 py-1 border rounded ${
-                page === currentPage ? 'bg-blue-500 text-white' : 'border-gray-300'
+                index + 1 === currentPage ? 'bg-blue-500 text-white' : 'border-gray-300'
               }`}
             >
-              {page}
+              {index + 1}
             </button>
           ))}
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            className={`px-3 py-1 border rounded ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'bg-blue-500 text-white'}`}
+            disabled={currentPage === totalPages}
+          >
+ <span className="sr-only">Next Page</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
+              </svg>          </button>
         </div>
       </div>
     </div>

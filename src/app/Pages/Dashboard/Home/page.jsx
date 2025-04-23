@@ -1,8 +1,38 @@
 'use client'
 import React from 'react';
 import Link from 'next/link';
-
+import { useState, useEffect } from 'react';
 const Dashboard = () => {
+  const [suppliersCount, setSuppliersCount] = useState(0);
+  const [itemsCount, setItemsCount] = useState(0);
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const [suppliersRes, itemsRes] = await Promise.all([
+          fetch('https://accounts-management.onrender.com/common/suppliers/getAll'),
+          fetch('https://accounts-management.onrender.com/common/items/getAll')
+        ]);
+
+        if (!suppliersRes.ok || !itemsRes.ok) {
+          throw new Error('Failed to fetch data');
+        }
+
+        const [suppliersData, itemsData] = await Promise.all([
+          suppliersRes.json(),
+          itemsRes.json()
+        ]);
+
+        setSuppliersCount(suppliersData.suppliers.length);
+        setItemsCount(itemsData.length);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchCounts();
+  }, []);
+
     const cards = [
         {
           title: "J.V",
@@ -318,7 +348,7 @@ const Dashboard = () => {
             </svg>
           </div>
           <div className="flex-grow flex flex-col ml-4">
-            <span className="text-xl font-bold">430</span>
+            <span className="text-xl font-bold">{suppliersCount}</span>
             <div className="flex items-center justify-between">
               <span className="text-gray-500">Total Suppliers</span>
               <span className="text-green-500 text-sm font-semibold ml-2">+12.6%</span>
@@ -343,7 +373,7 @@ const Dashboard = () => {
             </svg>
           </div>
           <div className="flex-grow flex flex-col ml-4">
-            <span className="text-xl font-bold">211</span>
+            <span className="text-xl font-bold">{itemsCount}</span>
             <div className="flex items-center justify-between">
               <span className="text-gray-500">Total Items</span>
               <span className="text-red-500 text-sm font-semibold ml-2">-8.1%</span>
