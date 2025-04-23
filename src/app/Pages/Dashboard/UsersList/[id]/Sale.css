@@ -1,0 +1,26 @@
+.css-hlgwow{
+    padding: 8px 12px !important;
+}
+.role_inpt{
+    padding: 11px 12px !important;
+}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  @keyframes bounce-custom {
+    0%, 100% {
+      transform: translateY(0);
+      animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    }
+    50% {
+      transform: translateY(-24px); /* 👈 go higher */
+      animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
+  }
+
+  .animate-bounce-fast {
+    animation: bounce-custom 0.5s infinite;
+  }
+}
