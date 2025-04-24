@@ -18,6 +18,7 @@ const RoutesTable = () => {
       setLoading(true); // Start loading
       try {
         const response = await axios.get('https://accounts-management.onrender.com/common/parties/getAll');
+        console.log(response.data);
         setRoutes(response.data);
       } catch (error) {
         console.error('Error fetching routes:', error);

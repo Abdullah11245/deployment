@@ -5,7 +5,7 @@ import toast, { Toaster } from 'react-hot-toast';
 
 function CreateRoute() {
   const [name, setName] = useState('');
-  const [status, setStatus] = useState('1');
+  const [status, setStatus] = useState('A');
   const [loading, setLoading] = useState(false); // ✅ Loading state
 
   const handleSubmit = async (e) => {
@@ -19,12 +19,11 @@ function CreateRoute() {
 
     try {
       const response = await axios.post('https://accounts-management.onrender.com/common/routes/create', payload);
-      console.log('API Response:', response);
 
       if (response.data && response.data.message === 'Route created successfully') {
         toast.success('Route created successfully!');
         setName('');
-        setStatus('1');
+        setStatus('A');
       } else {
         toast.error('Failed to create route');
       }
@@ -86,8 +85,8 @@ function CreateRoute() {
                     type="radio"
                     name="status"
                     id="active"
-                    value="1"
-                    checked={status === '1'}
+                    value="A"
+                    checked={status === 'A'}
                     onChange={(e) => setStatus(e.target.value)}
                     className="h-5 w-5"
                   />
@@ -100,8 +99,8 @@ function CreateRoute() {
                     type="radio"
                     name="status"
                     id="inactive"
-                    value="0"
-                    checked={status === '0'}
+                    value="I"
+                    checked={status === 'I'}
                     onChange={(e) => setStatus(e.target.value)}
                     className="h-5 w-5"
                   />

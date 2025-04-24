@@ -23,61 +23,55 @@ function RouteList() {
   const [supplierOptions, setSupplierOptions] = useState([]);
   const [routeOptions, setRouteOptions] = useState([]);
 
-  const [itemOptions] = useState([
-    { value: 'all', label: 'All' },
-    { value: '0', label: 'Oil' },
-    { value: '1', label: 'Protein' },
-  ]);
+  const [itemOptions, setItemOptions] = useState();
 
-  const router = useRouter();
+  const itemsPerPage = 10; // Define how many items per page
 
   useEffect(() => {
     setIsClient(true);
     const fetchInitialData = async () => {
       try {
-        const [saleRes, detailRes, partyRes, supplierRes, routeRes] = await Promise.all([
+        const [saleRes, detailRes, partyRes, supplierRes, routeRes, itemsRes] = await Promise.all([
           axios.get('https://accounts-management.onrender.com/common/sale/getAll'),
           axios.get('https://accounts-management.onrender.com/common/saleDetail/getAll'),
           axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
           axios.get('https://accounts-management.onrender.com/common/suppliers/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/routes/getAll')
+          axios.get('https://accounts-management.onrender.com/common/routes/getAll'),
+          axios.get('https://accounts-management.onrender.com/common/items/getAll')
         ]);
-
+        console.log(itemsRes.data);
+  
         const fetchedSales = saleRes.data || [];
         setSales(fetchedSales);
         setFilteredSales(fetchedSales);
         setSaleDetails(detailRes.data || []);
-
-        setPartyOptions(partyRes.data.map(p => ({
-          value: p.id,
-          label: p.name,
-        })));
-
-        setSupplierOptions((supplierRes.data.suppliers || []).map(s => ({
-          value: s.id,
-          label: s.name,
-        })));
-
-        setRouteOptions((routeRes.data.routes || []).map(r => ({
-          value: r.id,
-          label: r.name,
-        })));
-
+  
+        setPartyOptions(partyRes.data.map(p => ({ value: p.id, label: p.name })));
+        setSupplierOptions((supplierRes.data.suppliers || []).map(s => ({ value: s.id, label: s.name })));
+        setRouteOptions((routeRes.data.routes || []).map(r => ({ value: r.id, label: r.name })));
+  
+        const items = itemsRes.data || [];
+        const purchaseItems = items
+          .filter(item => item.type === 'Sale')
+          .map(item => ({
+            value: String(item.id),
+            label: item.name
+          }));
+        setItemOptions([{ value: 'all', label: 'All' }, ...purchaseItems]);
+  
       } catch (err) {
         console.error('Error fetching initial data:', err);
       } finally {
         setLoading(false);
       }
     };
-
+  
     fetchInitialData();
   }, []);
 
-  const getDetailsForSale = (saleId) =>
-    saleDetails.filter((detail) => detail.sale_id === saleId);
+  const getDetailsForSale = (saleId) => saleDetails.filter((detail) => detail.sale_id === saleId);
 
-  const getTotalWeight = (details) =>
-    details.reduce((sum, d) => sum + Number(d.weight || 0), 0);
+  const getTotalWeight = (details) => details.reduce((sum, d) => sum + Number(d.weight || 0), 0);
 
   const getAverageRate = (details) => {
     const validRates = details.map((d) => Number(d.rate || 0));
@@ -98,37 +92,43 @@ function RouteList() {
     const filtered = sales.filter((sale) => {
       const saleDateOnly = new Date(sale.sale_date).toISOString().split('T')[0];
       const details = getDetailsForSale(sale.id);
-
+    
+      // Party Filter: Match party_id from sale to selected party in filter
       const partyFilter =
         selectedValue.length === 0 || selectedValue.some(p => p.value === sale.party_id);
-
+  
+      // Item Filter: Match item_id from sale details to selected item in filter
       const selectedItemValues = selectedItem.map(i => i.value);
       const isAllSelected = selectedItemValues.includes('all');
       const itemFilter =
         selectedItem.length === 0 ||
         isAllSelected ||
         selectedItemValues.some(item =>
-          details.some(detail => String(detail.item_id) === item)
+          details.some(detail => String(detail.item_id) === item) // Match item_id in details with selected item value
         );
-
+  
+      // Supplier Filter: Ensure matching the supplier_id in details to selected suppliers
       const supplierFilter =
         selectedSuppliers.length === 0 ||
         selectedSuppliers.some(sup =>
           details.some(detail => detail.supplier_id === sup.value)
         );
-
+  
+      // Route Filter: Ensure matching route_id in details to selected routes
       const routeFilter =
         selectedRoutes.length === 0 ||
         selectedRoutes.some(rt =>
           details.some(detail => detail.route_id === rt.value)
         );
-
+  
+      // Date Filters: Ensure sale date falls within selected date range
       const startFilter = !startDate || saleDateOnly >= startDate;
       const endFilter = !endDate || saleDateOnly <= endDate;
-
+  
+      // Combine all filters and return the sale if all conditions are met
       return partyFilter && itemFilter && supplierFilter && routeFilter && startFilter && endFilter;
     });
-
+  
     setFilteredSales(filtered);
   };
 
@@ -140,6 +140,20 @@ function RouteList() {
     setStartDate('');
     setEndDate('');
     setFilteredSales(sales);
+  };
+
+  const totalPages = Math.ceil(filteredSales.length / itemsPerPage); // Total pages
+
+  // Slice the filtered sales array to get the current page's sales data
+  const currentPageData = filteredSales.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
   };
 
   if (!isClient || loading) {
@@ -163,101 +177,102 @@ function RouteList() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mt-4">
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium text-gray-900">Party Name</label>
-          <Select
-            isMulti
-            value={selectedValue}
-            onChange={setSelectedValue}
-            options={partyOptions}
-            placeholder="Select Party"
-            className="w-full mt-2"
-          />
-        </div>
+<div className="flex-1 min-w-[200px]">
+  <label className="block text-sm font-medium text-gray-900">Party Name</label>
+  <Select
+    isMulti
+    value={selectedValue}
+    onChange={setSelectedValue}
+    options={partyOptions}
+    placeholder="Select Party"
+    className="w-full mt-2"
+  />
+</div>
 
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium text-gray-900">Start Date</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full mt-2 px-4 py-2 border rounded-md text-sm text-gray-900"
-          />
-        </div>
+<div className="flex-1 min-w-[200px]">
+  <label className="block text-sm font-medium text-gray-900">Start Date</label>
+  <input
+    type="date"
+    value={startDate}
+    onChange={(e) => setStartDate(e.target.value)}
+    className="w-full mt-2 px-4 py-2 border rounded-md text-sm text-gray-900"
+  />
+</div>
 
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium text-gray-900">End Date</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full mt-2 px-4 py-2 border rounded-md text-sm text-gray-900"
-          />
-        </div>
+<div className="flex-1 min-w-[200px]">
+  <label className="block text-sm font-medium text-gray-900">End Date</label>
+  <input
+    type="date"
+    value={endDate}
+    onChange={(e) => setEndDate(e.target.value)}
+    className="w-full mt-2 px-4 py-2 border rounded-md text-sm text-gray-900"
+  />
+</div>
 
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium text-gray-900">Item Name</label>
-          <Select
-            isMulti
-            value={selectedItem}
-            onChange={(selected) => {
-              if (selected && selected.some(item => item.value === 'all')) {
-                setSelectedItem([{ value: 'all', label: 'All' }]);
-              } else {
-                setSelectedItem(selected || []);
-              }
-            }}
-            options={itemOptions}
-            placeholder="Select Item"
-            className="w-full mt-2"
-          />
-        </div>
+<div className="flex-1 min-w-[200px]">
+  <label className="block text-sm font-medium text-gray-900">Item Name</label>
+  <Select
+    isMulti
+    value={selectedItem}
+    onChange={(selected) => {
+      if (selected && selected.some(item => item.value === 'all')) {
+        setSelectedItem([{ value: 'all', label: 'All' }]);
+      } else {
+        setSelectedItem(selected || []);
+      }
+    }}
+    options={itemOptions}
+    placeholder="Select Item"
+    className="w-full mt-2"
+  />
+</div>
 
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium text-gray-900">Suppliers</label>
-          <Select
-            isMulti
-            value={selectedSuppliers}
-            onChange={setSelectedSuppliers}
-            options={supplierOptions}
-            placeholder="Select Supplier"
-            className="w-full mt-2"
-          />
-        </div>
+<div className="flex-1 min-w-[200px]">
+  <label className="block text-sm font-medium text-gray-900">Suppliers</label>
+  <Select
+    isMulti
+    value={selectedSuppliers}
+    onChange={setSelectedSuppliers}
+    isDisabled={true}
+    options={supplierOptions}
+    placeholder="Select Supplier"
+    className="w-full mt-2"
+  />
+</div>
 
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium text-gray-900">Routes</label>
-          <Select
-            isMulti
-            value={selectedRoutes}
-            onChange={setSelectedRoutes}
-            options={routeOptions}
-            placeholder="Select Route"
-            className="w-full mt-2"
-          />
-        </div>
-      </div>
+<div className="flex-1 min-w-[200px]">
+  <label className="block text-sm font-medium text-gray-900">Routes</label>
+  <Select
+    isMulti
+    value={selectedRoutes}
+    onChange={setSelectedRoutes}
+    isDisabled={true}
+    options={routeOptions}
+    placeholder="Select Route"
+    className="w-full mt-2"
+  />
+</div>
+</div>
 
-      {/* Search & Reset */}
-      <div className="mt-4 flex gap-2">
-        <button
-          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md"
-          onClick={handleSearch}
-        >
-          Search
-        </button>
-        <button
-          className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md"
-          onClick={handleReset}
-        >
-          Reset
-        </button>
-      </div>
-
+{/* Search & Reset */}
+<div className="mt-4 flex gap-2">
+<button
+  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md"
+  onClick={handleSearch}
+>
+  Search
+</button>
+<button
+  className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md"
+  onClick={handleReset}
+>
+  Reset
+</button>
+</div>
       {/* Table */}
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
         <table className="min-w-full border-collapse">
-          <thead className="bg-gray-100">
+        <thead className="bg-gray-100">
             <tr>
               {['#', 'Date', 'Vr#', 'Item Name', 'Weight', 'Rate', 'Gross Amount', 'Freight', 'Net Amount'].map((header) => (
                 <th key={header} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -267,8 +282,8 @@ function RouteList() {
             </tr>
           </thead>
           <tbody>
-            {filteredSales.length > 0 ? (
-              filteredSales.map((sale, index) => {
+            {currentPageData.length > 0 ? (
+              currentPageData.map((sale, index) => {
                 const details = getDetailsForSale(sale.id);
                 const firstDetail = details[0] || {};
                 const totalWeight = getTotalWeight(details);
@@ -276,8 +291,6 @@ function RouteList() {
                 const grossAmount = getTotalAmount(details).toFixed(2);
                 const freight = parseFloat(sale.frieght || firstDetail.frieght || 0);
                 const netAmount = (parseFloat(grossAmount) - freight).toFixed(2);
-
-                console.log('Item ID for sale:', firstDetail.item_id);
 
                 return (
                   <tr key={sale.id} className="border-t">
@@ -287,8 +300,9 @@ function RouteList() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">{firstDetail.vehicle_no || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">
-                      {firstDetail.item_id === 0 ? 'Oil' : firstDetail.item_id === 1 ? 'Protein' : '-'}
-                    </td>                    <td className="px-6 py-4 text-sm text-gray-700">{totalWeight}</td>
+                      {firstDetail.item_id === 2 ? 'Oil' : firstDetail.item_id === 3 ? 'Protein' : firstDetail.item_id}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{totalWeight}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{averageRate}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{grossAmount}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{freight || '-'}</td>
@@ -305,6 +319,25 @@ function RouteList() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex justify-between items-center mt-4">
+        <button
+          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md"
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          Previous
+        </button>
+        <span className="text-sm text-gray-700">Page {currentPage} of {totalPages}</span>
+        <button
+          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md"
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </button>
       </div>
     </div>
   );

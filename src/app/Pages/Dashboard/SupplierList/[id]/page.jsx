@@ -9,7 +9,7 @@ import './Suppliers.css';
 function CreateSupplier() {
   const { id: supplierId } = useParams();
 
-  const [status, setStatus] = useState("1");
+  const [status, setStatus] = useState(1);
   const [routeNo, setRouteNo] = useState(null);
   const [isClient, setIsClient] = useState(false);
   const [loading, setLoading] = useState(false); // For both fetching and submitting
@@ -36,7 +36,7 @@ function CreateSupplier() {
     try {
       const res = await axios.get('https://accounts-management.onrender.com/common/routes/getAll');
       const options = res.data.routes
-        .filter(route => route.status === "1" || route.status === 1) // ✅ Filter active routes
+        .filter(route => route.status === 'A'|| route.status === 1) // ✅ Filter active routes
         .map(route => ({
           value: route.id,
           label: route.name,
@@ -53,8 +53,7 @@ function CreateSupplier() {
       setLoading(true);
       const res = await axios.get(`https://accounts-management.onrender.com/common/suppliers/suppliers/${id}`);
       const data = res.data.supplier;
-      console.log('Supplier Data:', data);
-
+    console.log('Supplier Data:', data); // Log the supplier data
       setSupplierName(data.name || '');
       setSupplierNameUrdu(data.name_ur || '');
       setAddress(data.address || '');
@@ -62,7 +61,7 @@ function CreateSupplier() {
       setContact(data.contact || '');
       setEmail(data.email || '');
       setSupplierCode(data.supplier_code || '');
-      setStatus(data.status === 1 ? '1' : '0');
+      setStatus(data.status === 1 ? 1 : 0);
 
       if (data.route_no) {
         setRouteNo({
@@ -90,7 +89,7 @@ function CreateSupplier() {
       email,
       supplier_code: supplierCode,
       route_no: routeNo?.value,
-      status: status === "1" ? 1 : 0,
+      status: status === 1 ? 1 : 0,
     };
 
     try {
@@ -245,8 +244,8 @@ function CreateSupplier() {
                 <div className="flex items-center">
                   <input
                     type="radio"
-                    value="1"
-                    checked={status === "1"}
+                    value={1}
+                    checked={status === 1}
                     onChange={handleStatusChange}
                     className="h-5 w-5"
                   />
@@ -255,8 +254,8 @@ function CreateSupplier() {
                 <div className="flex items-center">
                   <input
                     type="radio"
-                    value="0"
-                    checked={status === "0"}
+                    value={0}
+                    checked={status === 0}
                     onChange={handleStatusChange}
                     className="h-5 w-5"
                   />

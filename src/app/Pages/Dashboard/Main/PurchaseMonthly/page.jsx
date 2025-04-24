@@ -44,9 +44,14 @@ function RouteList() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-gray-600 text-lg">Loading routes...</p>
+      <div className="flex justify-center items-center h-screen bg-white">
+      <div className="flex space-x-2">
+        <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+        <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+        <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></span>
+        <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:0.15s]"></span>
       </div>
+    </div>
     );
   }
 
@@ -89,10 +94,10 @@ function RouteList() {
                 <td className="px-6 py-4 text-sm">
                   <span
                     className={`${
-                      route.process === '1' ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-800'
+                      route.process === 'Y' ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-800'
                     } px-2 py-1 rounded-md text-xs font-semibold`}
                   >
-                    {route.process === '1' ? 'Yes' : 'No'}
+                    {route.process === 'Y' ? 'Yes' : 'No'}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-700">

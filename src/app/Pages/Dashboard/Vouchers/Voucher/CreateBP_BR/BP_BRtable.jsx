@@ -8,7 +8,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
   useEffect(() => {
     const fetchBanks = async () => {
       try {
-        const response = await fetch('https://accounts-management.onrender.com/common/banks/getAll');
+        const response = await fetch('https://accounts-management.onrender.com/common/parties/getAll');
         const data = await response.json();
         setBanks(data); // Assuming the response is an array of bank objects
       } catch (error) {
@@ -82,8 +82,8 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
                 >
                   <option value="">Select Account</option>
                   {banks.map((bank) => (
-                    <option key={bank.account_code} value={bank.account_code}>
-                      {bank.account_title}
+                    <option key={bank.party_code} value={bank.party_code}>
+                      {bank.name}
                     </option>
                   ))}
                 </select>

@@ -5,7 +5,6 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 
 function RouteList() {
-  const [activeRow, setActiveRow] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -17,15 +16,11 @@ function RouteList() {
   const [filteredSales, setFilteredSales] = useState([]);
   const [saleDetails, setSaleDetails] = useState([]);
   const [partyOptions, setPartyOptions] = useState([]);
-  const [itemOptions, setItemOptions] = useState([
-    { value: 'all', label: 'All' },
-    { value: '0', label: 'Oil' },
-    { value: '1', label: 'Protein' },
-  ]);
+  const [itemOptions, setItemOptions] = useState([]);
 
   const router = useRouter();
 
-  const salesPerPage = 10;
+  const salesPerPage = 50;
   const indexOfLastSale = currentPage * salesPerPage;
   const indexOfFirstSale = indexOfLastSale - salesPerPage;
   const currentSales = filteredSales.slice(indexOfFirstSale, indexOfLastSale);
@@ -34,10 +29,11 @@ function RouteList() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [saleRes, detailRes, partyRes] = await Promise.all([
+        const [saleRes, detailRes, partyRes, itemRes] = await Promise.all([
           axios.get('https://accounts-management.onrender.com/common/sale/getAll'),
           axios.get('https://accounts-management.onrender.com/common/saleDetail/getAll'),
           axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
+          axios.get('https://accounts-management.onrender.com/common/items/getAll'),
         ]);
 
         const fetchedSales = saleRes.data || [];
@@ -46,12 +42,15 @@ function RouteList() {
         setSaleDetails(detailRes.data || []);
 
         const parties = partyRes.data
-          .filter(p => p.status) // ✅ Filter active parties
-          .map(p => ({
-            value: p.id,
-            label: p.name,
-          }));
+          .filter(p => p.status)
+          .map(p => ({ value: p.id, label: p.name }));
         setPartyOptions(parties);
+
+        const saleItems = itemRes.data
+          .filter(item => item.type === 'Sale')
+          .map(item => ({ value: String(item.id), label: item.name }));
+
+        setItemOptions([{ value: 'all', label: 'All' }, ...saleItems]);
       } catch (err) {
         console.error('Error fetching initial data:', err);
       } finally {
@@ -62,14 +61,19 @@ function RouteList() {
     fetchInitialData();
   }, []);
 
-  const getDetailsForSale = (saleId) => saleDetails.filter((detail) => detail.sale_id === saleId);
-  const getTotalWeight = (details) => details.reduce((sum, d) => sum + Number(d.weight || 0), 0);
+  const getDetailsForSale = (saleId) =>
+    saleDetails.filter(detail => detail.sale_id === saleId);
+
+  const getTotalWeight = (details) =>
+    details.reduce((sum, d) => sum + Number(d.weight || 0), 0);
+
   const getAverageRate = (details) => {
-    const validRates = details.map((d) => Number(d.rate || 0));
+    const validRates = details.map(d => Number(d.rate || 0));
     return validRates.length > 0
       ? (validRates.reduce((sum, r) => sum + r, 0) / validRates.length).toFixed(2)
       : '0';
   };
+
   const getTotalAmount = (details) =>
     details.reduce((sum, d) => {
       const weight = parseFloat(d.weight) || 0;
@@ -84,7 +88,8 @@ function RouteList() {
       const saleDetailsForThisSale = getDetailsForSale(sale.id);
 
       const partyFilter =
-        selectedValue.length === 0 || selectedValue.some(p => p.value === sale.party_id);
+        selectedValue.length === 0 ||
+        selectedValue.some(p => p.value === sale.party_id);
 
       const selectedItemValues = selectedItem.map(i => i.value);
       const isAllSelected = selectedItemValues.includes('all');
@@ -103,7 +108,7 @@ function RouteList() {
     });
 
     setFilteredSales(filtered);
-    setCurrentPage(1); // reset to first page on new search
+    setCurrentPage(1);
   };
 
   const handlePageChange = (page) => {
@@ -132,7 +137,7 @@ function RouteList() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium text-gray-900">Party Name</label>
+          <label className="block text-sm font-medium text-gray-900 mb-2">Party Name</label>
           <Select isMulti value={selectedValue} onChange={setSelectedValue} options={partyOptions} />
         </div>
         <div className="flex-1 min-w-[200px]">
@@ -143,8 +148,8 @@ function RouteList() {
           <label className="block text-sm font-medium text-gray-900">End Date</label>
           <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full mt-2 px-4 py-2 border rounded-md text-sm" />
         </div>
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium text-gray-900">Item Name</label>
+        <div className="flex-1 min-w-[200px] ">
+          <label className="block text-sm font-medium text-gray-900 mb-2">Item Name</label>
           <Select
             isMulti
             value={selectedItem}
@@ -233,9 +238,7 @@ function RouteList() {
               disabled={currentPage === 1}
               className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 bg-white text-gray-900"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
-              </svg>
+              &lt;
             </button>
           </li>
 
@@ -258,9 +261,7 @@ function RouteList() {
               disabled={currentPage === totalPages}
               className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 bg-white text-gray-900"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
-              </svg>
+              &gt;
             </button>
           </li>
         </ol>

@@ -9,7 +9,7 @@ const VoucherList = () => {
   const [activeRow, setActiveRow] = useState(null);
   const [loading, setLoading] = useState(true); // Track loading state
   const [currentPage, setCurrentPage] = useState(1); // Current page state
-  const itemsPerPage = 10; // Items per page
+  const itemsPerPage = 200; // Items per page
   const router = useRouter();
 
   useEffect(() => {

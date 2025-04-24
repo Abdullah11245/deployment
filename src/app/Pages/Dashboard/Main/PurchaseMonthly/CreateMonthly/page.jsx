@@ -5,7 +5,7 @@ import toast, { Toaster } from 'react-hot-toast';
 
 function CreateRoute() {
   const [selectedDate, setSelectedDate] = useState('');
-  const [status, setStatus] = useState('1');
+  const [status, setStatus] = useState('Y');
   const [purchaseFile, setPurchaseFile] = useState(null);
   const [uploadedFileUrl, setUploadedFileUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -81,7 +81,7 @@ function CreateRoute() {
       if (response.data?.message === 'Monthly purchase created') {
         toast.success('Monthly purchase created!');
         setSelectedDate('');
-        setStatus('1');
+        setStatus('Y');
         setPurchaseFile(null);
         setUploadedFileUrl(null);
       } else {
@@ -146,8 +146,8 @@ function CreateRoute() {
                     type="radio"
                     name="status"
                     id="active"
-                    value="1"
-                    checked={status === '1'}
+                    value="Y"
+                    checked={status === 'Y'}
                     onChange={(e) => setStatus(e.target.value)}
                     className="h-5 w-5"
                   />
@@ -161,7 +161,7 @@ function CreateRoute() {
                     name="status"
                     id="inactive"
                     value="0"
-                    checked={status === '0'}
+                    checked={status === 'N'}
                     onChange={(e) => setStatus(e.target.value)}
                     className="h-5 w-5"
                   />

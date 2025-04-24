@@ -4,25 +4,25 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Select from 'react-select';
 import './Purchase.css';
-import SupplierTable from './Suppliertable';
-import { useParams, useRouter } from 'next/navigation';
+import SupplierTable from './Suppliertable'; // Make sure this path is correct
+import { useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
 
 function EditPurchase() {
   const { id: purchaseId, supplier_id } = useParams();
-  const [loading, setLoading] = useState(true); // ✅ Loading state
+  const [loading, setLoading] = useState(true);
 
   const [purchaseDate, setPurchaseDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [nameUr, setNameUr] = useState('');
-  const [routeId, setRouteId] = useState(null); // This will hold the selected route
+  const [routeId, setRouteId] = useState(null);
   const [itemId, setItemId] = useState(null);
   const [note, setNote] = useState('');
   const [status, setStatus] = useState('1');
   const [routes, setRoutes] = useState([]);
   const [items, setItems] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
-  const [supplierInputs, setSupplierInputs] = useState([]); // Contains the details for qty and rate
+  const [supplierInputs, setSupplierInputs] = useState([]);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -36,19 +36,23 @@ function EditPurchase() {
           axios.get('https://accounts-management.onrender.com/common/routes/getAll'),
           axios.get('https://accounts-management.onrender.com/common/items/getAll'),
         ]);
+        const filteredRoutes = routeRes?.data?.routes.filter(route => route.status === 'A') || [];
 
-        const routeOptions = routeRes?.data?.routes?.map(route => ({
-          value: route.id,
-          label: route.name
-        })) || [];
+        const filteredItems = itemRes?.data?.filter(item => item.type == 'Purchase') || [];
 
-        const itemOptions = itemRes?.data?.map(item => ({
-          value: item.id,
-          label: item.name
-        })) || [];
-
-        setRoutes(routeOptions);
-        setItems(itemOptions);
+        setRoutes(
+          filteredRoutes.map(route => ({
+            value: route.id,
+            label: route.name,
+          }))
+        );
+    
+        setItems(
+          filteredItems?.map(item => ({
+            value: item.id,
+            label: item.name,
+          })) || []
+        );
       } catch (err) {
         console.error('Error loading routes/items:', err);
       }
@@ -63,17 +67,17 @@ function EditPurchase() {
         try {
           const res = await axios.get(`https://accounts-management.onrender.com/common/purchase/purchases/${purchaseId}`);
           const purchase = res.data;
-          console.log('Purchase:', purchase);
 
-          setPurchaseDate(formatDate(purchase.purchase_date) || ''); // Use helper to format
-          setEndDate(formatDate(purchase.end_date) || ''); // Use helper to format
+          setPurchaseDate(formatDate(purchase.purchase_date));
+          setEndDate(formatDate(purchase.end_date));
           setNameUr(purchase.name_ur || '');
           setNote(purchase.note || '');
           setStatus(purchase.status?.toString() || '1');
 
-          const matchedRoute = routes.find(route => route.value === purchase.route_id);
-          const matchedItem = items.find(item => item.value === purchase.item_id);
-          setRouteId(matchedRoute); // Set the route from the response
+          const matchedRoute = routes.find(route => route.value.toString() === purchase.route_id?.toString());
+          const matchedItem = items.find(item => item.value.toString() === purchase.item_id?.toString());
+
+          setRouteId(matchedRoute);
           setItemId(matchedItem);
 
           fetchSuppliers(purchase.route_id);
@@ -84,19 +88,18 @@ function EditPurchase() {
             );
 
             const detail = detailRes.data;
-            console.log('Purchase Detail:', detail);
 
             setSupplierInputs([{
               supplier_id: detail.supplier_id,
               qty_mann: detail.qty,
               rate: detail.rate
             }]);
-            setLoading(false)
           }
-        } catch (err) {
-          setLoading(false)
 
+          setLoading(false);
+        } catch (err) {
           console.error('Error fetching purchase:', err);
+          setLoading(false);
         }
       };
 
@@ -108,7 +111,6 @@ function EditPurchase() {
     try {
       const res = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
       let allSuppliers = res.data?.suppliers || [];
-
       let filtered = allSuppliers.filter(s => s?.route?.id === selectedRouteId);
 
       if (supplier_id) {
@@ -120,14 +122,18 @@ function EditPurchase() {
       console.error('Error loading suppliers:', err);
     }
   };
+  useEffect(()=>{
+    fetchSuppliers()
+  },[])
 
-  const handleRouteChange = (selectedOption) => {
-    console.log('Route change attempt blocked');
+  const handleRouteChange = () => {
+    console.log('Route change is disabled on edit.');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-   setLoading(true)
+    setLoading(true);
+
     const payload = {
       purchase_date: purchaseDate,
       end_date: endDate,
@@ -135,7 +141,7 @@ function EditPurchase() {
       route_id: routeId?.value,
       item_id: itemId?.value,
       note,
-      status: status === '1' ? 1 : 0,
+      status: status === '1' ? '1' : '0',
     };
 
     try {
@@ -148,8 +154,8 @@ function EditPurchase() {
         const detailPayload = {
           purchase_id: purchaseId,
           supplier_id: supplier_id,
-          qty: parseFloat(supplierInputs[0]?.qty_mann ),
-          rate: parseFloat(supplierInputs[0]?.rate ),
+          qty: parseFloat(supplierInputs[0]?.qty_mann),
+          rate: parseFloat(supplierInputs[0]?.rate),
         };
 
         await axios.put(
@@ -157,26 +163,23 @@ function EditPurchase() {
           detailPayload
         );
       }
-        setLoading(false)
+
       toast.success('Purchase and details updated successfully');
-     
     } catch (err) {
       console.error('Update failed', err);
-      setLoading(false)
-
       toast.error('Failed to update purchase');
+    } finally {
+      setLoading(false);
     }
   };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    const formattedDate = date.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM"
-    return formattedDate;
+    return date.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM"
   };
 
-  if (!isClient) return null;
-  if (loading) {
+  if (!isClient || loading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="flex space-x-2">
@@ -189,10 +192,9 @@ function EditPurchase() {
     );
   }
 
-
   return (
     <div className="container mx-auto px-4 py-8">
-      <Toaster position="top-right" reverseOrder={false} />      
+      <Toaster position="top-right" reverseOrder={false} />
 
       <h2 className="text-xl font-semibold text-gray-700 border-b pb-2 mb-6">Edit Purchase</h2>
 
@@ -220,7 +222,6 @@ function EditPurchase() {
           </div>
         </div>
 
-        {/* Name & Route */}
         <div className="flex space-x-4 mb-5">
           <div className="w-1/2">
             <label className="block mb-2 text-sm font-medium text-gray-700">Name in Urdu</label>
@@ -238,15 +239,13 @@ function EditPurchase() {
             <Select
               options={routes}
               value={routeId}
-              onChange={handleRouteChange}
-              isDisabled // Disable route selection
+              isDisabled
               placeholder="Select Route"
               className="w-full"
             />
           </div>
         </div>
 
-        {/* Item */}
         <div className="mb-5">
           <label className="block mb-2 text-sm font-medium text-gray-700">Item</label>
           <Select
@@ -257,7 +256,6 @@ function EditPurchase() {
           />
         </div>
 
-        {/* Status */}
         <div className="mb-5">
           <label className="block mb-2 text-sm font-medium text-gray-700">Status</label>
           <div className="flex gap-4">
@@ -280,14 +278,13 @@ function EditPurchase() {
           </div>
         </div>
 
-        {/* Supplier Table */}
+        {/* Updated Supplier Table */}
         <SupplierTable
           supplier={suppliers}
           supplierInputs={supplierInputs}
           setSupplierInputs={setSupplierInputs}
         />
 
-        {/* Note */}
         <div className="mb-5 mt-5">
           <label className="block mb-2 text-sm font-medium text-gray-700">Note</label>
           <textarea
@@ -297,7 +294,6 @@ function EditPurchase() {
           />
         </div>
 
-        {/* Submit */}
         <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded">
           Update Purchase
         </button>

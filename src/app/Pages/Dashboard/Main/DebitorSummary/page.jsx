@@ -62,35 +62,47 @@ function RouteList() {
   const handleSearch = () => {
     const includedSupplierIds = includedSuppliers.map(s => s.value);
     const excludedSupplierIds = excludedSuppliers.map(s => s.value);
-    const includedRouteIds = includedRoutes.map(r => r.value);
-    const excludedRouteIds = excludedRoutes.map(r => r.value);
-
+    const includedRouteNames = includedRoutes.map(r => r.label); // Use label for route_name comparison
+    const excludedRouteNames = excludedRoutes.map(r => r.label); // Use label for route_name comparison
+  
     const filtered = originalData.filter(entry => {
       const detailsForPurchase = entry.details;
-
+  
       const purchaseDate = new Date(entry.purchase_date);
       const dateOnly = new Date(purchaseDate.toISOString().split('T')[0]);
-
+  
       const isAfterStart = startDate ? dateOnly >= new Date(startDate) : true;
       const isBeforeEnd = endDate ? dateOnly <= new Date(endDate) : true;
       const isWithinDateRange = isAfterStart && isBeforeEnd;
-
+  
       const supplierIncluded =
-        includedSupplierIds.length === 0 || detailsForPurchase.some(d => includedSupplierIds.includes(d.supplier_id));
+        includedSupplierIds.length === 0 ||
+        detailsForPurchase.some(d => includedSupplierIds.includes(d.supplier_id));
+  
       const supplierExcluded =
-        excludedSupplierIds.length === 0 || !detailsForPurchase.some(d => excludedSupplierIds.includes(d.supplier_id));
-
-      const routeIds = detailsForPurchase.map(d => Number(d.route_id));
+        excludedSupplierIds.length === 0 ||
+        detailsForPurchase.every(d => !excludedSupplierIds.includes(d.supplier_id));
+  
       const routeIncluded =
-        includedRouteIds.length === 0 || routeIds.some(routeId => includedRouteIds.includes(routeId));
+        includedRouteNames.length === 0 ||
+        detailsForPurchase.some(d => includedRouteNames.includes(d.route_name));
+  
       const routeExcluded =
-        excludedRouteIds.length === 0 || !routeIds.some(routeId => excludedRouteIds.includes(routeId));
-
-      return isWithinDateRange && supplierIncluded && supplierExcluded && routeIncluded && routeExcluded;
+        excludedRouteNames.length === 0 ||
+        detailsForPurchase.every(d => !excludedRouteNames.includes(d.route_name));
+  
+      return (
+        isWithinDateRange &&
+        supplierIncluded &&
+        supplierExcluded &&
+        routeIncluded &&
+        routeExcluded
+      );
     });
-
+  
     setMergedData(filtered);
   };
+  
 
   const handleReset = () => {
     setStartDate('');

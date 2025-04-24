@@ -218,7 +218,7 @@ function UserTable() {
                       <img
                         src={logoUrl}
                         alt="Logo"
-                        className="w-8 h-8 rounded object-cover border border-gray-300"
+                        className="w-32 h-32 rounded object-cover border border-gray-300"
                       />
                     )}
                   </div>

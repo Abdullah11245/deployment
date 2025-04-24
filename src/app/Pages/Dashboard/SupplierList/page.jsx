@@ -7,16 +7,17 @@ function RouteList() {
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 25;
 
   const router = useRouter();
 
   useEffect(() => {
     const fetchRoutes = async () => {
       try {
-        const response = await axios.get('https://accounts-management.onrender.com/common/routes/getAll');
+        const response = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
+        console.log('Response:', response.data); // Log the response data
         if (response.status === 200) {
-          setRoutes(response.data.routes);
+          setRoutes(response.data.suppliers);
         } else {
           console.error('Failed to fetch routes');
         }
@@ -31,11 +32,11 @@ function RouteList() {
   }, []);
 
   const handleCreateNew = () => {
-    router.push('/Pages/Dashboard/RoutesList/CreateRoutes');
+    router.push('/Pages/Dashboard/SupplierList/CreateSupplier');
   };
 
   const handleEdit = (route) => {
-    router.push(`/Pages/Dashboard/RoutesList/${route.id}`);
+    router.push(`/Pages/Dashboard/SupplierList/${route.id}`);
   };
 
   // Calculate the routes for the current page
@@ -97,12 +98,12 @@ function RouteList() {
                 <td className="px-6 py-4 text-sm">
                   <span
                     className={`${
-                      route.status === '1'
+                      route.status === 1
                         ? 'bg-blue-100 text-blue-800'
                         : 'bg-gray-200 text-gray-800'
                     } px-2 py-1 rounded-md text-xs font-semibold`}
                   >
-                    {route.status === '1' ? 'Active' : 'Inactive'}
+                    {route.status === 1 ? 'Active' : 'Inactive'}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-700">

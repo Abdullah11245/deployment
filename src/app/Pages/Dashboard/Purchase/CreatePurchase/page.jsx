@@ -32,10 +32,10 @@ function CreatePurchase() {
           axios.get('https://accounts-management.onrender.com/common/routes/getAll'),
           axios.get('https://accounts-management.onrender.com/common/items/getAll'),
         ]);
-    
+       console.log(itemResponse.data[0].type);
         // Filter routes based on status being '1' (active)
-        const filteredRoutes = routeResponse?.data?.routes.filter(route => route.status === '1') || [];
-    
+        const filteredRoutes = routeResponse?.data?.routes.filter(route => route.status === 'A') || [];
+        const filteredItems = itemResponse?.data?.filter(item => item.type == 'Purchase') || [];
         setRoutes(
           filteredRoutes.map(route => ({
             value: route.id,
@@ -44,7 +44,7 @@ function CreatePurchase() {
         );
     
         setItems(
-          itemResponse?.data?.map(item => ({
+          filteredItems?.map(item => ({
             value: item.id,
             label: item.name,
           })) || []

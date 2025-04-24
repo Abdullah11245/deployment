@@ -15,6 +15,7 @@ function RouteList() {
     const fetchRoutes = async () => {
       try {
         const response = await axios.get('https://accounts-management.onrender.com/common/routes/getAll');
+        console.log('Response:', response.data); // Log the response data
         if (response.status === 200) {
           setRoutes(response.data.routes);
         } else {
@@ -97,12 +98,12 @@ function RouteList() {
                 <td className="px-6 py-4 text-sm">
                   <span
                     className={`${
-                      route.status === '1'
+                      route.status === 'A'
                         ? 'bg-blue-100 text-blue-800'
                         : 'bg-gray-200 text-gray-800'
                     } px-2 py-1 rounded-md text-xs font-semibold`}
                   >
-                    {route.status === '1' ? 'Active' : 'Inactive'}
+                    {route.status === 'A' ? 'Active' : 'Inactive'}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-700">

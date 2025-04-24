@@ -140,20 +140,24 @@ function CreateItem() {
             </div>
 
             {/* Item Type (Optional) */}
-            <div className="mb-5">
-              <label className="mb-3 block text-base font-medium text-[#07074D]">
-                Item Type
-              </label>
-              <input
-                type="text"
-                name="type"
-                id="type"
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                placeholder="Item Type (Optional)"
-                className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-              />
-            </div>
+<div className="mb-5">
+  <label className="mb-3 block text-base font-medium text-[#07074D]">
+    Item Type
+  </label>
+  <select
+    name="type"
+    id="type"
+    value={type}
+    onChange={(e) => setType(e.target.value)}
+    className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
+    required
+  >
+    <option value="" disabled>Select Type</option>
+    <option value="Sale">Sale</option>
+    <option value="Purchase">Purchase</option>
+  </select>
+</div>
+
 
             {/* Submit Button */}
             <div className="w-full mt-8">

@@ -13,8 +13,8 @@ function RouteList() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [accountCode, setAccountCode] = useState('');
-  const [selectedBankId, setSelectedBankId] = useState('');
-  const [bankOptions, setBankOptions] = useState([]);
+  const [selectedPartyId, setSelectedPartyId] = useState('');
+  const [partyOptions, setPartyOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -27,17 +27,17 @@ function RouteList() {
           voucherRes,
           voucherDetailRes,
           routesRes,
-          banksRes
+          partiesRes
         ] = await Promise.all([
           axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
           axios.get('https://accounts-management.onrender.com/common/voucherDetail/getAll'),
           axios.get('https://accounts-management.onrender.com/common/routes/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/banks/getAll'),
+          axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
         ]);
 
         const vouchers = voucherRes.data || [];
         const voucherDetails = voucherDetailRes.data || [];
-        const banks = banksRes.data || [];
+        const parties = partiesRes.data || [];
 
         const merged = vouchers.map((voucher) => {
           const detailsForVoucher = voucherDetails.filter(
@@ -51,9 +51,9 @@ function RouteList() {
 
         setMergedData(merged);
         setOriginalData(merged);
-        setBankOptions(banks.map(b => ({
-          label: b.account_title,
-          value: b.account_code
+        setPartyOptions(parties.map(p => ({
+          label: p.name,
+          value: p.party_code
         })));
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -86,11 +86,11 @@ function RouteList() {
         ? entry.details.some(detail => String(detail.account_code) === String(accountCode))
         : true;
 
-      const matchesBank = selectedBankId
-        ? entry.details.some(detail => String(detail.bank_account_code) === String(selectedBankId))
+      const matchesParty = selectedPartyId
+        ? entry.details.some(detail => String(detail.account_code) === String(selectedPartyId))
         : true;
 
-      return isAfterStart && isBeforeEnd && matchesCode && matchesBank;
+      return isAfterStart && isBeforeEnd && matchesCode && matchesParty;
     });
 
     setMergedData(filtered);
@@ -101,7 +101,7 @@ function RouteList() {
     setStartDate('');
     setEndDate('');
     setAccountCode('');
-    setSelectedBankId('');
+    setSelectedPartyId('');
     setMergedData(originalData);
     setCurrentPage(1);
   };
@@ -110,10 +110,10 @@ function RouteList() {
     const headerInfo = [
       { 'Ledger of Account': '' },
       { From: startDate || 'dd-mm-yyyy', To: endDate || 'dd-mm-yyyy' },
-      { 'Account Title': bankOptions.find(bank => bank.value === selectedBankId)?.label || '', 'Account Code': selectedBankId || '' },
+      { 'Account Title': partyOptions.find(p => p.value === selectedPartyId)?.label || '', 'Account Code': selectedPartyId || '' },
       {},
     ];
-  
+
     const dataToExport = mergedData.map((voucher, index) => {
       const details = getDetailsForVoucher(voucher.id);
       return {
@@ -126,12 +126,12 @@ function RouteList() {
         'Amount': getTotalDebit(details).toFixed(2),
       };
     });
-  
+
     try {
       const csvHeader = await json2csv(headerInfo, { prependHeader: false });
       const csvData = await json2csv(dataToExport);
       const finalCSV = csvHeader + '\n' + csvData;
-  
+
       const blob = new Blob([finalCSV], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -144,17 +144,16 @@ function RouteList() {
       console.error('Error exporting CSV:', err);
     }
   };
-  
 
   const exportExcel = () => {
     const headerInfo = [
       ['Ledger of Account'],
       [`From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || 'dd-mm-yyyy'}`],
-      [`Account Title: ${bankOptions.find(bank => bank.value === selectedBankId)?.label || ''}`],
-      [`Account Code: ${selectedBankId || ''}`],
-      [], // empty row
+      [`Account Title: ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''}`],
+      [`Account Code: ${selectedPartyId || ''}`],
+      [],
     ];
-  
+
     const dataToExport = mergedData.map((voucher, index) => {
       const details = getDetailsForVoucher(voucher.id);
       return {
@@ -167,31 +166,28 @@ function RouteList() {
         'Amount': getTotalDebit(details).toFixed(2),
       };
     });
-  
+
     const dataArray = XLSX.utils.sheet_add_aoa(XLSX.utils.json_to_sheet(dataToExport, { skipHeader: false }), headerInfo, { origin: 'A1' });
-  
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, dataArray, 'ReceiptReport');
     XLSX.writeFile(workbook, 'receipt_report.xlsx');
   };
-  
 
   const exportPDF = () => {
     const doc = new jsPDF();
-  
-    // Ledger info at the top
-    const titleY = 10;
+
     doc.setFontSize(14);
-    doc.text('Ledger of Account', 14, titleY);
-  
+    doc.text('Ledger of Account', 14, 10);
+
     doc.setFontSize(11);
-    doc.text(`From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || 'dd-mm-yyyy'}`, 14, titleY + 10);
-    doc.text(`Account Title: ${bankOptions.find(bank => bank.value === selectedBankId)?.label || ''}`, 14, titleY + 16);
-    doc.text(`Account Code: ${selectedBankId || ''}`, 14, titleY + 22);
-  
+    doc.text(`From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || 'dd-mm-yyyy'}`, 14, 20);
+    doc.text(`Account Title: ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''}`, 14, 26);
+    doc.text(`Account Code: ${selectedPartyId || ''}`, 14, 32);
+
     const tableColumn = ['#', 'Voucher #', 'Date', 'Party', 'Nature/Mode', 'Particulars', 'Amount'];
     const tableRows = [];
-  
+
     mergedData.forEach((voucher, index) => {
       const details = getDetailsForVoucher(voucher.id);
       tableRows.push([
@@ -204,71 +200,52 @@ function RouteList() {
         getTotalDebit(details).toFixed(2),
       ]);
     });
-  
+
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: titleY + 30,
+      startY: 40,
     });
-  
+
     doc.save('receipt_report.pdf');
   };
-  
 
   const handlePrint = () => {
-    const ledgerHeaderHTML = `
-      <div style="margin-bottom: 20px;">
+    const headerHTML = `
+      <div>
         <h2>Ledger of Account</h2>
         <p>From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || 'dd-mm-yyyy'}</p>
-        <p>Account Title: ${bankOptions.find(bank => bank.value === selectedBankId)?.label || ''}</p>
-        <p>Account Code: ${selectedBankId || ''}</p>
+        <p>Account Title: ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''}</p>
+        <p>Account Code: ${selectedPartyId || ''}</p>
       </div>
     `;
-  
+
     const tableHTML = tableRef.current.innerHTML;
     const printWindow = window.open('', '', 'width=900,height=650');
-  
+
     printWindow.document.write(`
       <html>
         <head>
           <title>Receipt Report</title>
           <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 20px;
-            }
-            h2 {
-              margin-bottom: 0;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 20px;
-            }
-            th, td {
-              padding: 8px 12px;
-              border: 1px solid #ddd;
-              font-size: 14px;
-              text-align: left;
-            }
-            thead {
-              background-color: #f3f4f6;
-            }
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
+            thead { background-color: #f3f4f6; }
           </style>
         </head>
         <body>
-          ${ledgerHeaderHTML}
+          ${headerHTML}
           ${tableHTML}
         </body>
       </html>
     `);
-  
+
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
     printWindow.close();
   };
-  
 
   if (loading) {
     return (
@@ -285,7 +262,6 @@ function RouteList() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* HEADER */}
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-700">Ledger</h2>
       </div>
@@ -293,28 +269,22 @@ function RouteList() {
       <div className='mt-4 mb-8 border-b-2 pb-4'>
         <p>Ledger of Account</p>
         <p>From: {startDate || 'dd-mm-yyyy'} To {endDate || 'dd-mm-yyyy'}</p>
-        <div className='flex gap-x-4 items-center'>
-          <p>Account Title:</p>
-          <p>{selectedBankId ? bankOptions.find(bank => bank.value === selectedBankId)?.label : ''}</p>
-        </div>
-        <div className='flex gap-x-4 items-center'>
-          <p>Account Code:</p>
-          <p>{selectedBankId || ''}</p>
-        </div>
+        <p>Account Title: {partyOptions.find(p => p.value === selectedPartyId)?.label || ''}</p>
+        <p>Account Code: {selectedPartyId || ''}</p>
       </div>
 
-      {/* FILTERS */}
+      {/* Filters */}
       <div className="mb-6 border-b-2 pb-4">
         <div className="flex flex-wrap gap-4 items-center">
           <select
-            value={selectedBankId}
-            onChange={(e) => setSelectedBankId(e.target.value)}
+            value={selectedPartyId}
+            onChange={(e) => setSelectedPartyId(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-md flex-1"
           >
-            <option value="">Select Bank</option>
-            {bankOptions.map((bank) => (
-              <option key={bank.value} value={bank.value}>
-                {bank.label}
+            <option value="">Select Party</option>
+            {partyOptions.map((party) => (
+              <option key={party.value} value={party.value}>
+                {party.label}
               </option>
             ))}
           </select>
@@ -344,7 +314,7 @@ function RouteList() {
         </div>
       </div>
 
-      {/* EXPORT BUTTONS */}
+      {/* Export Buttons */}
       <div className="flex justify-between items-center mt-8 mb-4">
         <div className="flex space-x-1">
           <button onClick={exportCSV} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">CSV</button>
@@ -354,17 +324,17 @@ function RouteList() {
         </div>
       </div>
 
-      {/* TABLE */}
+      {/* Table */}
       <div ref={tableRef} className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
         <table className="min-w-full border-collapse">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Particulars</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Debit</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Credit</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance</th>
+              <th className="px-6 py-3">#</th>
+              <th className="px-6 py-3">Date</th>
+              <th className="px-6 py-3">Particulars</th>
+              <th className="px-6 py-3">Debit</th>
+              <th className="px-6 py-3">Credit</th>
+              <th className="px-6 py-3">Balance</th>
             </tr>
           </thead>
           <tbody>
@@ -372,24 +342,21 @@ function RouteList() {
               .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
               .map((voucher, index) => (
                 <tr key={voucher.id || index} className="border-t">
-                  <td className="px-6 py-4 text-sm text-gray-700">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{new Date(voucher.voucher_date).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
+                  <td className="px-6 py-4">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                  <td className="px-6 py-4">{new Date(voucher.voucher_date).toLocaleDateString()}</td>
+                  <td className="px-6 py-4">
                     {voucher.details.length > 0
                       ? voucher.details.map(d => d.particulars).join(', ')
                       : 'No Details'}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    {voucher.details.reduce((total, detail) => total + (parseFloat(detail.debit) || 0), 0).toFixed(2)}
+                  <td className="px-6 py-4">
+                    {voucher.details.reduce((total, d) => total + (parseFloat(d.debit) || 0), 0).toFixed(2)}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    {voucher.details.reduce((total, detail) => total + (parseFloat(detail.credit) || 0), 0).toFixed(2)}
+                  <td className="px-6 py-4">
+                    {voucher.details.reduce((total, d) => total + (parseFloat(d.credit) || 0), 0).toFixed(2)}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    {voucher.details.reduce(
-                      (total, detail) => total + (parseFloat(detail.debit) || 0) - (parseFloat(detail.credit) || 0),
-                      0
-                    ).toFixed(2)}
+                  <td className="px-6 py-4">
+                    {voucher.details.reduce((total, d) => total + (parseFloat(d.debit) || 0) - (parseFloat(d.credit) || 0), 0).toFixed(2)}
                   </td>
                 </tr>
               ))}
@@ -397,7 +364,7 @@ function RouteList() {
         </table>
       </div>
 
-      {/* PAGINATION */}
+      {/* Pagination */}
       <div className="mt-4 flex justify-between items-center">
         <button
           className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md"

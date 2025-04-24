@@ -18,11 +18,7 @@ function RouteList() {
   const [filteredSales, setFilteredSales] = useState([]);
   const [saleDetails, setSaleDetails] = useState([]);
   const [partyOptions, setPartyOptions] = useState([]);
-  const [itemOptions, setItemOptions] = useState([
-    { value: 'all', label: 'All' },
-    { value: '0', label: 'Oil' },
-    { value: '1', label: 'Protein' },
-  ]);
+  const [itemOptions, setItemOptions] = useState();
 
   const router = useRouter();
 
@@ -32,12 +28,20 @@ function RouteList() {
     setIsClient(true);
     const fetchInitialData = async () => {
       try {
-        const [saleRes, detailRes, partyRes] = await Promise.all([
+        const [saleRes, detailRes, partyRes,itemres] = await Promise.all([
           axios.get('https://accounts-management.onrender.com/common/sale/getAll'),
           axios.get('https://accounts-management.onrender.com/common/saleDetail/getAll'),
           axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
+          axios.get('https://accounts-management.onrender.com/common/items/getAll'),
         ]);
-
+        const filteredItems = itemres?.data?.filter(item => item.type == 'Sale') || [];
+        console.log(saleRes.data);
+        setItemOptions(
+          filteredItems?.map(item => ({
+            value: item.id,
+            label: item.name,
+          })) || []
+        );
         const fetchedSales = saleRes.data || [];
         setSales(fetchedSales);
         setFilteredSales(fetchedSales);
@@ -74,33 +78,40 @@ function RouteList() {
       return sum + (weight * rate + adjustment);
     }, 0);
 
-  const handleSearch = () => {
-    const filtered = sales.filter((sale) => {
-      const saleDateOnly = new Date(sale.sale_date).toISOString().split('T')[0];
-      const saleDetailsForThisSale = getDetailsForSale(sale.id);
-
-      const partyFilter =
-        selectedValue.length === 0 || selectedValue.some(p => p.value === sale.party_id);
-
-      const selectedItemValues = selectedItem.map(i => i.value);
-      const isAllSelected = selectedItemValues.includes('all');
-
-      const itemFilter =
-        selectedItem.length === 0 ||
-        isAllSelected ||
-        selectedItemValues.some(item =>
-          saleDetailsForThisSale.some(detail => String(detail.item_id) === item)
-        );
-
-      const startFilter = !startDate || saleDateOnly >= startDate;
-      const endFilter = !endDate || saleDateOnly <= endDate;
-
-      return partyFilter && itemFilter && startFilter && endFilter;
-    });
-
-    setFilteredSales(filtered);
-    setCurrentPage(1); // Reset to the first page after filtering
-  };
+    const handleSearch = () => {
+      const filtered = sales.filter((sale) => {
+        const saleDateOnly = new Date(sale.sale_date).toISOString().split('T')[0]; // Get only the date part of the sale_date
+        const saleDetailsForThisSale = getDetailsForSale(sale.id); // Get details for the specific sale
+    
+        // Check if the selected party filter matches the sale's party_id
+        const partyFilter =
+          selectedValue.length === 0 || selectedValue.some(p => p.value === sale.party_id); // Match party_id from saleRes with selectedValue
+    
+        // Get the selected item values
+        const selectedItemValues = selectedItem.map(i => i.value);
+        const isAllSelected = selectedItemValues.includes('all');
+    
+        // Check if the selected items filter matches any item_id in the sale's details
+        const itemFilter =
+          selectedItem.length === 0 ||
+          isAllSelected ||
+          selectedItemValues.some(item =>
+            saleDetailsForThisSale.some(detail => String(detail.item_id) === String(item)) // Compare item_id in sale details
+          );
+    
+        // Check if the sale date is within the selected date range (startDate <= saleDate <= endDate)
+        const startFilter = !startDate || saleDateOnly >= startDate;
+        const endFilter = !endDate || saleDateOnly <= endDate;
+    
+        // Return true if all conditions (filters) are met
+        return partyFilter && itemFilter && startFilter && endFilter;
+      });
+    
+      setFilteredSales(filtered);
+      setCurrentPage(1); // Reset to the first page after filtering
+    };
+    
+    
 
   const handlePagination = (pageNumber) => {
     setCurrentPage(pageNumber);

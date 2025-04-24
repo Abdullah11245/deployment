@@ -6,7 +6,7 @@ import toast, { Toaster } from 'react-hot-toast'; // ✅ Toast import
 import './Suppliers.css';
 
 function CreateSupplier() {
-  const [status, setStatus] = useState("1");
+  const [status, setStatus] = useState(1);
   const [routeNo, setRouteNo] = useState([]);
   const [isClient, setIsClient] = useState(false);
   const [partyOptions, setPartyOptions] = useState([]);
@@ -31,7 +31,7 @@ function CreateSupplier() {
   
         if (data?.routes) {
           const routeOptions = data.routes
-            .filter(route => route.status === "1" || route.status === 1)
+            .filter(route => route.status === "A" || route.status === 1)
             .map(route => ({
               value: route.id,
               label: route.name,
@@ -70,7 +70,7 @@ function CreateSupplier() {
       email,
       supplier_code: supplierCode,
       route_no: routeNo?.value,
-      status: status === "1" ? 1 : 0,
+      status: status === 1 ? 1 : 0,
     };
 
     try {
@@ -270,7 +270,7 @@ function CreateSupplier() {
                     name="status"
                     id="active"
                     value="1"
-                    checked={status === "1"}
+                    checked={status === 1}
                     onChange={handleStatusChange}
                     className="h-5 w-5"
                   />
@@ -284,7 +284,7 @@ function CreateSupplier() {
                     name="status"
                     id="inactive"
                     value="0"
-                    checked={status === "0"}
+                    checked={status === 0}
                     onChange={handleStatusChange}
                     className="h-5 w-5"
                   />

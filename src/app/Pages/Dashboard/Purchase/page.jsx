@@ -249,6 +249,65 @@ const Purchase = () => {
           </li>
         </ol>
       </div>
+
+      {/* Modal for editing purchase */}
+      {showModal && selectedPurchase && (
+       <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-6xl overflow-y-auto max-h-[80vh]">
+         <h3 className="text-lg font-semibold mb-4">Select Detail Entry</h3>
+
+         <div className="overflow-x-auto">
+           <table className="min-w-full border-collapse bg-white shadow">
+             <thead className="bg-gray-100">
+               <tr>
+                 <th>#</th>
+                 <th>Qty</th>
+                 <th>Rate</th>
+                 <th>Supplier</th>
+                 <th>Supplier (Urdu)</th>
+                 <th>Address</th>
+                 <th>Contact</th>
+                 <th>Action</th>
+               </tr>
+             </thead>
+             <tbody>
+               {selectedPurchase.details.map((detail, i) => {
+                 const supplier = supplierDetails[detail.supplier_id];
+                 return (
+                   <tr key={i} className="border-t">
+                     <td className="px-6 py-4 text-sm">{i + 1}</td>
+                     <td className="px-6 py-4 text-sm">{detail.qty}</td>
+                     <td className="px-6 py-4 text-sm">{detail.rate}</td>
+                     <td className="px-6 py-4 text-sm">{supplier?.name || 'Loading...'}</td>
+                     <td className="px-6 py-4 text-sm">{supplier?.name_ur || 'Loading...'}</td>
+                     <td className="px-6 py-4 text-sm">{supplier?.address || 'Loading...'}</td>
+                     <td className="px-6 py-4 text-sm">{supplier?.contact_person || 'Loading...'}</td>
+                     <td className="px-6 py-4 text-sm">
+                       <button
+                         onClick={() => handleEditModal(detail.purchase_id, detail.supplier_id)}
+                         className="bg-gray-200 p-2 rounded-full hover:bg-green-200 w-[35px] h-[35px] flex items-center justify-center"
+                       >
+                         <svg viewBox="0 0 24 24" fill="none" width="25px" height="25px">
+                         <path d="M20.1498 7.93997L8.27978 19.81C7.21978 20.88 4.04977 21.3699 3.32977 20.6599C2.60977 19.9499 3.11978 16.78 4.17978 15.71L16.0498 3.84C16.5979 3.31801 17.3283 3.03097 18.0851 3.04019C18.842 3.04942 19.5652 3.35418 20.1004 3.88938C20.6356 4.42457 20.9403 5.14781 20.9496 5.90463C20.9588 6.66146 20.6718 7.39189 20.1498 7.93997Z" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                       </svg>
+                       </button>
+                     </td>
+                   </tr>
+                 );
+               })}
+             </tbody>
+           </table>
+         </div>
+
+         <button
+           onClick={() => setShowModal(false)}
+           className="mt-4 text-sm text-gray-500 bg-gray-300 rounded-lg py-2 px-4 hover:bg-gray-500 hover:text-white"
+         >
+           Cancel
+         </button>
+       </div>
+     </div>
+      )}
     </div>
   );
 };

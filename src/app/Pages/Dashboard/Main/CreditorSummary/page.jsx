@@ -26,7 +26,8 @@ function RouteList() {
           axios.get('https://accounts-management.onrender.com/common/suppliers/getAll'),
           axios.get('https://accounts-management.onrender.com/common/routes/getAll'),
         ]);
-
+     console.log('Details:', detailsRes.data);
+        console.log('Purchases:', purchasesRes.data);
         const details = detailsRes.data || [];
         const purchases = purchasesRes.data || [];
         const suppliers = suppliersRes.data.suppliers || [];
@@ -62,35 +63,51 @@ function RouteList() {
   const handleSearch = () => {
     const includedSupplierIds = includedSuppliers.map(s => s.value);
     const excludedSupplierIds = excludedSuppliers.map(s => s.value);
-    const includedRouteIds = includedRoutes.map(r => r.value);
-    const excludedRouteIds = excludedRoutes.map(r => r.value);
-
+    const includedRouteNames = includedRoutes.map(r => r.label); // match with route_name
+    const excludedRouteNames = excludedRoutes.map(r => r.label); // match with route_name
+  
     const filtered = originalData.filter(entry => {
       const detailsForPurchase = entry.details;
-
+  
       const purchaseDate = new Date(entry.purchase_date);
       const dateOnly = new Date(purchaseDate.toISOString().split('T')[0]);
-
+  
       const isAfterStart = startDate ? dateOnly >= new Date(startDate) : true;
       const isBeforeEnd = endDate ? dateOnly <= new Date(endDate) : true;
       const isWithinDateRange = isAfterStart && isBeforeEnd;
-
+  
+      // ✅ Supplier Inclusion: At least one detail must match includedSupplierIds if specified
       const supplierIncluded =
-        includedSupplierIds.length === 0 || detailsForPurchase.some(d => includedSupplierIds.includes(d.supplier_id));
+        includedSupplierIds.length === 0 ||
+        detailsForPurchase.some(d => includedSupplierIds.includes(d.supplier_id));
+  
+      // ✅ Supplier Exclusion: None of the details should have excludedSupplierIds
       const supplierExcluded =
-        excludedSupplierIds.length === 0 || !detailsForPurchase.some(d => excludedSupplierIds.includes(d.supplier_id));
-
-      const routeIds = detailsForPurchase.map(d => Number(d.route_id));
+        excludedSupplierIds.length === 0 ||
+        detailsForPurchase.every(d => !excludedSupplierIds.includes(d.supplier_id));
+  
+      // ✅ Route Inclusion: At least one detail must have route_name in includedRouteNames
       const routeIncluded =
-        includedRouteIds.length === 0 || routeIds.some(routeId => includedRouteIds.includes(routeId));
+        includedRouteNames.length === 0 ||
+        detailsForPurchase.some(d => includedRouteNames.includes(d.route_name));
+  
+      // ✅ Route Exclusion: None of the details should have route_name in excludedRouteNames
       const routeExcluded =
-        excludedRouteIds.length === 0 || !routeIds.some(routeId => excludedRouteIds.includes(routeId));
-
-      return isWithinDateRange && supplierIncluded && supplierExcluded && routeIncluded && routeExcluded;
+        excludedRouteNames.length === 0 ||
+        detailsForPurchase.every(d => !excludedRouteNames.includes(d.route_name));
+  
+      return (
+        isWithinDateRange &&
+        supplierIncluded &&
+        supplierExcluded &&
+        routeIncluded &&
+        routeExcluded
+      );
     });
-
+  
     setMergedData(filtered);
   };
+  
 
   const handleReset = () => {
     setStartDate('');

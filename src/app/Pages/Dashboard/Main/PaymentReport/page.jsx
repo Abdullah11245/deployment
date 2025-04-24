@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Select from 'react-select';
@@ -5,7 +6,7 @@ import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { json2csv } from 'json-2-csv'; // ✅ Correct import
+import { json2csv } from 'json-2-csv';
 
 function Receiptreport() {
   const [routes, setRoutes] = useState([]);
@@ -17,70 +18,64 @@ function Receiptreport() {
   const [partiesOptions, setPartiesOptions] = useState([]);
   const [banksOptions, setBanksOptions] = useState([]);
   const [originalRoutes, setOriginalRoutes] = useState([]);
-  const [supplierOptions, setSupplierOptions] = useState([]);
-const [selectedSuppliers, setSelectedSuppliers] = useState([]);
-
-const [routeOptions, setRouteOptions] = useState([]);
-const [selectedRoutes, setSelectedRoutes] = useState([]);
-
   const [originalVoucherDetails, setOriginalVoucherDetails] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(200);
   const tableRef = useRef(null);
+  const [partyNameMap, setPartyNameMap] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [
-          voucherRes,
-          detailRes,
-          partiesRes,
-          banksRes,
-          suppliersRes,
-          routesRes
-        ] = await Promise.all([
+        const [voucherRes, detailRes, partiesRes, banksRes] = await Promise.all([
           axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
           axios.get('https://accounts-management.onrender.com/common/voucherDetail/getAll'),
           axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/banks/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/suppliers/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/routes/getAll')
+          axios.get('https://accounts-management.onrender.com/common/banks/getAll')
         ]);
-     console.log('voucherRes', voucherRes.data);
-        console.log('detailRes', detailRes.data);
-        setRoutes(voucherRes.data || []);
-        setOriginalRoutes(voucherRes.data || []);
-        setVoucherDetails(detailRes.data || []);
-        setOriginalVoucherDetails(detailRes.data || []);
+       console.log('Voucher Data:', voucherRes.data);
+        console.log('Detail Data:', detailRes.data);
+        const voucherData = voucherRes.data || [];
+        const detailData = detailRes.data || [];
   
-        setPartiesOptions(partiesRes.data.map(party => ({
-          value: party.id,
-          label: party.name
-        })));
+        // Map account_code to name
+        const uniqueCodes = [...new Set(detailData.map(d => d.account_code))];
+        const partyNameMap = {};
+  
+        await Promise.all(
+          uniqueCodes.map(async (code) => {
+            try {
+              const res = await axios.get(`https://accounts-management.onrender.com/common/parties/partybyCode/${code}`);
+              if (res.data?.name) {
+                partyNameMap[code] = res.data.name;
+              }
+            } catch (err) {
+            }
+          })
+        );
+  
+        setPartyNameMap(partyNameMap);
+        setRoutes(voucherData);
+        setVoucherDetails(detailData);
+        setOriginalRoutes(voucherData);
+        setOriginalVoucherDetails(detailData);
+  
+        const activeParties = partiesRes.data.filter(party => party.status);
+        setPartiesOptions(
+          activeParties.map(party => ({ value: party.party_code, label: party.name }))
+        );
+  
+        const banksData = banksRes.data.map(bank => ({
+          value: bank.account_code,
+          label: bank.account_title
+        }));
   
         setBanksOptions([
           { value: 'All', label: 'All' },
-          ...banksRes.data.map(bank => ({
-            value: bank.account_code,
-            label: bank.account_title
-          })),
+          ...banksData,
           { value: 'Cash', label: 'Cash' }
         ]);
-  
-        // ✅ Fix here for suppliers
-        setSupplierOptions(
-          (suppliersRes.data.suppliers || []).map(s => ({
-            value: s.id,
-            label: s.name
-          }))
-        );
-  
-        // ✅ Fix here for routes
-        setRouteOptions(
-          (routesRes.data.routes || []).map(r => ({
-            value: r.id,
-            label: r.name
-          }))
-        );
       } catch (err) {
         console.error('Error fetching data:', err);
       } finally {
@@ -92,67 +87,70 @@ const [selectedRoutes, setSelectedRoutes] = useState([]);
   }, []);
   
 
-  const getDetailsForVoucher = (voucherId) =>
-    voucherDetails.filter((detail) => detail.main_id === voucherId);
+  const getDetailsForVoucher = (voucherId) => {
+    return voucherDetails.filter(detail => detail.main_id === voucherId);
+  };
 
-  const getTotalDebit = (details) =>
-    details.reduce((sum, d) => sum + parseFloat(d.debit || 0), 0);
+  const getTotalDebit = (details) => {
+    return details.reduce((sum, detail) => sum + (parseFloat(detail.debit) || 0), 0);
+  };
+
+  const getPaginatedData = () => {
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    return routes.slice(indexOfFirstItem, indexOfLastItem);
+  };
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= Math.ceil(routes.length / itemsPerPage)) {
+      setCurrentPage(page);
+    }
+  };
 
   const handleSearch = () => {
     let filteredData = originalRoutes;
-
+  
     if (startDate) {
       filteredData = filteredData.filter(route => {
         const routeDate = new Date(route.voucher_date).toISOString().split('T')[0];
         return routeDate >= startDate;
       });
     }
-
+  
     if (endDate) {
       filteredData = filteredData.filter(route => {
         const routeDate = new Date(route.voucher_date).toISOString().split('T')[0];
         return routeDate <= endDate;
       });
     }
-
+  
     if (selectedParty.length > 0) {
-      filteredData = filteredData.filter(route =>
-        selectedParty.some(party => party.value === route.party_id)
-      );
-    }
+      const selectedPartyCodes = selectedParty.map(p => p.value); // assuming label contains party_code
 
+      filteredData = filteredData.filter(route => {
+        const details = getDetailsForVoucher(route.id);
+        return details.some(detail => selectedPartyCodes.includes(detail.account_code));
+      });
+    }
+  
     if (selectedCashBank.length > 0 && !selectedCashBank.some(item => item.value === 'All')) {
       filteredData = filteredData.filter(route =>
         selectedCashBank.some(bank => bank.value === route.account_code)
       );
-      if (selectedSuppliers.length > 0) {
-        const supplierIds = selectedSuppliers.map(s => s.value);
-        filteredData = filteredData.filter(route =>
-          getDetailsForVoucher(route.id).some(d => supplierIds.includes(d.supplier_id))
-        );
-      }
-      
-      if (selectedRoutes.length > 0) {
-        const routeIds = selectedRoutes.map(r => r.value);
-        filteredData = filteredData.filter(route =>
-          getDetailsForVoucher(route.id).some(d => routeIds.includes(d.route_id))
-        );
-      }
-      
     }
-
+  
     setRoutes(filteredData);
+    setCurrentPage(1);
   };
+  
 
   const handleReset = () => {
     setStartDate('');
     setEndDate('');
     setSelectedParty([]);
     setSelectedCashBank([]);
-    setSelectedSuppliers([]);
-    setSelectedRoutes([]);
-
     setRoutes(originalRoutes);
+    setCurrentPage(1);
   };
 
   const exportCSV = async () => {
@@ -170,7 +168,7 @@ const [selectedRoutes, setSelectedRoutes] = useState([]);
     });
 
     try {
-      const csv = await json2csv(dataToExport); // ✅ Correct usage
+      const csv = await json2csv(dataToExport);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -285,132 +283,181 @@ const [selectedRoutes, setSelectedRoutes] = useState([]);
     );
   }
 
+  const totalPages = Math.ceil(routes.length / itemsPerPage);
+  const indexOfFirstRoute = (currentPage - 1) * itemsPerPage;
+  const indexOfLastRoute = Math.min(indexOfFirstRoute + itemsPerPage, routes.length);
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
-        <h2 className="text-xl font-semibold text-gray-700">Receipt Report</h2>
+    <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
+      <h2 className="text-xl font-semibold text-gray-700">Payment Report</h2>
+    </div>
+
+    {/* Filters */}
+    <div className="flex space-x-4 mt-4">
+      <div className="flex-1">
+        <label className="block text-sm font-medium text-gray-900">Start Date</label>
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="w-full mt-2 px-4 py-2 border rounded-md text-sm text-gray-900"
+        />
       </div>
 
-      {/* Filters */}
-      <div className="flex space-x-4 mt-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-900">Start Date</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full mt-2 px-4 py-2 border rounded-md text-sm text-gray-900"
-          />
-        </div>
-
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-900">End Date</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full mt-2 px-4 py-2 border rounded-md text-sm text-gray-900"
-          />
-        </div>
-
-        <div className="flex-1">
-  <label className="block text-sm font-medium text-gray-900">Suppliers</label>
-  <Select
-    isMulti
-    options={supplierOptions}
-    value={selectedSuppliers}
-    onChange={setSelectedSuppliers}
-    className="mt-2"
-    placeholder="Select Suppliers"
-  />
-</div>
-
-<div className="flex-1">
-  <label className="block text-sm font-medium text-gray-900">Routes</label>
-  <Select
-    isMulti
-    options={routeOptions}
-    value={selectedRoutes}
-    onChange={setSelectedRoutes}
-    className="mt-2"
-    placeholder="Select Routes"
-  />
-</div>
-
-
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-900">Cash or Banks</label>
-          <Select
-            isMulti
-            options={banksOptions}
-            value={selectedCashBank}
-            onChange={setSelectedCashBank}
-            className="mt-2"
-            placeholder="Select Cash or Bank"
-          />
-        </div>
+      <div className="flex-1">
+        <label className="block text-sm font-medium text-gray-900">End Date</label>
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          className="w-full mt-2 px-4 py-2 border rounded-md text-sm text-gray-900"
+        />
       </div>
 
-      <div className="mt-4 flex space-x-4">
-        <button onClick={handleSearch} className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm">Search</button>
-        <button onClick={handleReset} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm">Reset</button>
+      <div className="flex-1">
+        <label className="block text-sm font-medium text-gray-900">Party Name</label>
+        <Select
+          isMulti
+          options={partiesOptions}
+          value={selectedParty}
+          onChange={setSelectedParty}
+          className="mt-2"
+          placeholder="Select Party"
+        />
       </div>
 
-      {/* Export Buttons */}
-      <div className="flex justify-between items-center mt-8 mb-4">
-        <div className="flex space-x-1">
-          <button onClick={exportCSV} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">CSV</button>
-          <button onClick={exportExcel} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">Excel</button>
-          <button onClick={exportPDF} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">PDF</button>
-          <button onClick={handlePrint} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">Print</button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div ref={tableRef} className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
-        <table className="min-w-full border-collapse">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Voucher #</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Parties</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nature/Mode</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Particulars</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {routes.length > 0 ? (
-              routes.map((route, index) => {
-                const details = getDetailsForVoucher(route.id);
-                const totalAmount = getTotalDebit(details).toFixed(2);
-
-                return (
-                  <tr key={route.id} className="border-t">
-                    <td className="px-6 py-4 text-sm text-gray-700">{index + 1}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{route.voucher_id}-{route.voucher_type}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{new Date(route.voucher_date).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{route.party_code || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{route.voucher_type}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{route.note}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">${totalAmount}</td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan="7" className="px-6 py-4 text-sm text-gray-700 text-center">
-                  No data found for the applied filters.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="flex-1">
+        <label className="block text-sm font-medium text-gray-900">Cash or Banks</label>
+        <Select
+          isMulti
+          options={banksOptions}
+          value={selectedCashBank}
+          onChange={setSelectedCashBank}
+          isDisabled={true}
+          className="mt-2"
+          placeholder="Select Cash or Bank"
+        />
       </div>
     </div>
+
+    <div className="mt-4 flex space-x-4">
+      <button onClick={handleSearch} className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm">Search</button>
+      <button onClick={handleReset} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm">Reset</button>
+    </div>
+
+    {/* Export Buttons */}
+    <div className="flex justify-between items-center mt-8 mb-4">
+      <div className="flex space-x-1">
+        <button onClick={exportCSV} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">CSV</button>
+        <button onClick={exportExcel} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">Excel</button>
+        <button onClick={exportPDF} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">PDF</button>
+        <button onClick={handlePrint} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">Print</button>
+      </div>
+    </div>
+
+    {/* Table */}
+    <div ref={tableRef} className="overflow-x-auto bg-white shadow-lg rounded-lg mt-4">
+      <table className="min-w-full table-auto border-collapse">
+        <thead>
+          <tr className="text-sm font-semibold bg-gray-100">
+            <th className="py-3 px-4 text-left">#</th>
+            <th className="py-3 px-4 text-left">Voucher</th>
+            <th className="py-3 px-4 text-left">Date</th>
+            <th className="py-3 px-4 text-left">Party</th>
+            <th className="py-3 px-4 text-left">Nature/Mode</th>
+            <th className="py-3 px-4 text-left">Particulars</th>
+            <th className="py-3 px-4 text-left">Amount</th>
+            <th className="py-3 px-4 text-left">Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          {getPaginatedData().map((route, index) => {
+            const details = getDetailsForVoucher(route.id);
+            return (
+              <tr key={route.id} className="text-sm text-gray-700">
+                <td className="py-3 px-4">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                <td className="py-3 px-4">{route.voucher_type}-{route.voucher_id}</td>
+                <td className="py-3 px-4">{new Date(route.voucher_date).toLocaleDateString()}</td>
+                <td className="py-3 px-4">
+  {(() => {
+    const details = getDetailsForVoucher(route.id);
+    const matchedParty = details.find(detail => partyNameMap[detail.account_code]);
+    return matchedParty ? partyNameMap[matchedParty.account_code] : 'N/A';
+  })()}
+</td>
+
+                <td className="py-3 px-4">{route.voucher_type}</td>
+                <td className="py-3 px-4 ">
+  {getDetailsForVoucher(route.id).map((detail, idx) => (
+    <div key={idx}>{detail.particulars}</div>
+  ))}
+</td>
+
+                <td className="py-3 px-4">{getTotalDebit(details).toFixed(2)}</td>
+                <td className="py-3 px-4">{route.note}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+
+    {/* Pagination Controls */}
+    <div className="flex justify-between items-center mt-8">
+      <span className="text-sm font-semibold text-gray-700">
+        Showing {indexOfFirstRoute + 1} to {Math.min(indexOfLastRoute, routes.length)} of {routes.length} entries
+      </span>
+
+      <ol className="flex gap-1 text-xs font-medium">
+        <li>
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="inline-flex items-center justify-center rounded border w-8 h-8 border-gray-300 bg-white text-gray-900"
+          >
+            <span className="sr-only">Prev Page</span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        </li>
+
+        {Array.from({ length: totalPages }, (_, i) => (
+          <li key={i}>
+            <button
+              onClick={() => handlePageChange(i + 1)}
+              className={`block w-8 h-8 rounded border ${currentPage === i + 1 ? 'bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-900'} text-center leading-8`}
+            >
+              {i + 1}
+            </button>
+          </li>
+        ))}
+
+        <li>
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="inline-flex items-center justify-center rounded border w-8 h-8 border-gray-300 bg-white text-gray-900"
+          >
+            <span className="sr-only">Next Page</span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        </li>
+      </ol>
+    </div>
+  </div>
   );
 }
 
 export default Receiptreport;
-

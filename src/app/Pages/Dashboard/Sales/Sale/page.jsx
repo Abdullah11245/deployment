@@ -7,7 +7,7 @@ const SaleList = () => {
   const [sales, setSales] = useState([]);
   const [saleDetails, setSaleDetails] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10); // Number of items per page
+  const [itemsPerPage] = useState(50); // Number of items per page
   const router = useRouter();
 
   useEffect(() => {

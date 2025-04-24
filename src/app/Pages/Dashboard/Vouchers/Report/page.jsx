@@ -81,7 +81,7 @@ function Receiptreport() {
     );
   }
 
-  const pageSize = 10;
+  const pageSize = 50;
   const paginatedRoutes = routes.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
@@ -138,7 +138,6 @@ function Receiptreport() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Voucher #</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Party</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Note</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
             </tr>
@@ -152,12 +151,11 @@ function Receiptreport() {
                 return (
                   <tr key={route.id} className="border-t">
                     <td className="px-6 py-4 text-sm text-gray-700">{(currentPage - 1) * pageSize + index + 1}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{route.voucher_id}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{route.voucher_type}-{route.voucher_id}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">
                       {new Date(route.voucher_date).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">{route.party_name || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{route.voucher_type}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{route.note}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">${totalAmount}</td>
                   </tr>
