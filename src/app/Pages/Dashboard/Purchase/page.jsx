@@ -22,7 +22,11 @@ const Purchase = () => {
   const handleCreateNew = () => {
     router.push('/Pages/Dashboard/Purchase/CreatePurchase');
   };
-
+  const formatCurrencyPK = (number) => {
+    if (isNaN(number)) return '0';
+    const rounded = Math.round(Number(number));
+    return rounded.toLocaleString('en-IN');
+  };
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -177,9 +181,9 @@ const Purchase = () => {
                     <td className="px-6 py-4 text-sm">{itemNames}</td>
                     <td className="px-6 py-4 text-sm">{routeNames}</td>
                     <td className="px-6 py-4 text-sm">{entry.details.length}</td>
-                    <td className="px-6 py-4 text-sm">{totalQty}</td>
-                    <td className="px-6 py-4 text-sm">{avgRate}</td>
-                    <td className="px-6 py-4 text-sm">{totalAmount.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-sm">{formatCurrencyPK(totalQty)}</td>
+                    <td className="px-6 py-4 text-sm">{formatCurrencyPK(avgRate)}</td>
+                    <td className="px-6 py-4 text-sm">{formatCurrencyPK(totalAmount)}</td>
                     <td className="px-6 py-4 text-sm">
                       <button
                         onClick={() => handleEdit(entry)}

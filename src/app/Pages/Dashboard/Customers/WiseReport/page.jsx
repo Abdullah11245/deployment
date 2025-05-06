@@ -3,7 +3,10 @@ import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { json2csv } from 'json-2-csv';
 function RouteList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [startDate, setStartDate] = useState('');
@@ -17,15 +20,59 @@ function RouteList() {
   const [saleDetails, setSaleDetails] = useState([]);
   const [partyOptions, setPartyOptions] = useState([]);
   const [itemOptions, setItemOptions] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const router = useRouter();
 
   const salesPerPage = 50;
   const indexOfLastSale = currentPage * salesPerPage;
   const indexOfFirstSale = indexOfLastSale - salesPerPage;
   const currentSales = filteredSales.slice(indexOfFirstSale, indexOfLastSale);
   const totalPages = Math.ceil(filteredSales.length / salesPerPage);
-
+  useEffect(() => {
+    const searchLower = searchTerm.toLowerCase();
+  
+    const searched = filteredSales.filter((sale) => {
+      const saleDateOnly = new Date(sale.sale_date).toISOString().split('T')[0];
+      const saleDetailsForThisSale = getDetailsForSale(sale.id);
+      const firstDetail = saleDetailsForThisSale[0] || {};
+  
+      const party = partyOptions.find(p => p.value === sale.party_id);
+      const partyName = party ? party.label : '';
+  
+      const itemName = firstDetail.item_id == 2 ? 'Oil' : 'Protein';
+      const totalWeight = getTotalWeight(saleDetailsForThisSale);
+      const averageRate = getAverageRate(saleDetailsForThisSale);
+      const grossAmount = getTotalAmount(saleDetailsForThisSale);
+      const freight = parseFloat(sale.frieght || firstDetail.frieght || 0);
+      const netAmount = grossAmount - freight;
+  
+      const allFields = [
+        sale.id,
+        saleDateOnly,
+        partyName,
+        firstDetail.vehicle_no,
+        itemName,
+        totalWeight,
+        averageRate,
+        grossAmount,
+        freight,
+        netAmount
+      ];
+  
+      return allFields.some(field =>
+        String(field).toLowerCase().includes(searchLower)
+      );
+    });
+  
+    // If search term is empty, show the filtered results (from filters)
+    setCurrentPage(1);
+    if (searchTerm.trim() === '') {
+      setFilteredSales(sales); // or optionally reset to the last filtered result
+    } else {
+      setFilteredSales(searched);
+    }
+  }, [searchTerm]);
+  
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -37,6 +84,7 @@ function RouteList() {
         ]);
 
         const fetchedSales = saleRes.data || [];
+        
         setSales(fetchedSales);
         setFilteredSales(fetchedSales);
         setSaleDetails(detailRes.data || []);
@@ -81,42 +129,149 @@ function RouteList() {
       const adjustment = parseFloat(d.adjustment) || 0;
       return sum + (weight * rate + adjustment);
     }, 0);
-
-  const handleSearch = () => {
-    const filtered = sales.filter((sale) => {
-      const saleDateOnly = new Date(sale.sale_date).toISOString().split('T')[0];
-      const saleDetailsForThisSale = getDetailsForSale(sale.id);
-
-      const partyFilter =
-        selectedValue.length === 0 ||
-        selectedValue.some(p => p.value === sale.party_id);
-
-      const selectedItemValues = selectedItem.map(i => i.value);
-      const isAllSelected = selectedItemValues.includes('all');
-
-      const itemFilter =
-        selectedItem.length === 0 ||
-        isAllSelected ||
-        selectedItemValues.some(item =>
-          saleDetailsForThisSale.some(detail => String(detail.item_id) === item)
+    const formatPKR = (amount) => {
+      const rounded = Math.round(amount); // round to nearest integer
+      return new Intl.NumberFormat('en-PK', {
+        style: 'currency',
+        currency: 'PKR',
+        minimumFractionDigits: 0, // no .00
+        maximumFractionDigits: 0,
+      }).format(rounded);
+    };
+    
+    const handleSearch = () => {
+      const searchLower = searchTerm.toLowerCase();
+    
+      const filtered = sales.filter((sale) => {
+        const saleDateOnly = new Date(sale.sale_date).toISOString().split('T')[0];
+        const saleDetailsForThisSale = getDetailsForSale(sale.id);
+        const firstDetail = saleDetailsForThisSale[0] || {};
+    
+        // Get party name from options
+        const party = partyOptions.find(p => p.value === sale.party_id);
+        const partyName = party ? party.label : '';
+    
+        // Get item name (simplified example)
+        const itemName = firstDetail.item_id == 2 ? 'Oil' : 'Protein';
+    
+        const totalWeight = getTotalWeight(saleDetailsForThisSale);
+        const averageRate = getAverageRate(saleDetailsForThisSale);
+        const grossAmount = getTotalAmount(saleDetailsForThisSale);
+        const freight = parseFloat(sale.frieght || firstDetail.frieght || 0);
+        const netAmount = grossAmount - freight;
+    
+        const allFields = [
+          sale.id,
+          saleDateOnly,
+          partyName,
+          firstDetail.vehicle_no,
+          itemName,
+          totalWeight,
+          averageRate,
+          grossAmount,
+          freight,
+          netAmount
+        ];
+    
+        const matchesSearch = allFields.some(field =>
+          String(field).toLowerCase().includes(searchLower)
         );
-
-      const startFilter = !startDate || saleDateOnly >= startDate;
-      const endFilter = !endDate || saleDateOnly <= endDate;
-
-      return partyFilter && itemFilter && startFilter && endFilter;
-    });
-
-    setFilteredSales(filtered);
-    setCurrentPage(1);
-  };
+    
+        // Apply party, item, and date filters
+        const partyFilter =
+          selectedValue.length === 0 ||
+          selectedValue.some(p => p.value === sale.party_id);
+    
+        const selectedItemValues = selectedItem.map(i => i.value);
+        const isAllSelected = selectedItemValues.includes('all');
+    
+        const itemFilter =
+          selectedItem.length === 0 ||
+          isAllSelected ||
+          selectedItemValues.some(item =>
+            saleDetailsForThisSale.some(detail => String(detail.item_id) === item)
+          );
+    
+        const startFilter = !startDate || saleDateOnly >= startDate;
+        const endFilter = !endDate || saleDateOnly <= endDate;
+    
+        return partyFilter && itemFilter && startFilter && endFilter && matchesSearch;
+      });
+    
+      setFilteredSales(filtered);
+      setCurrentPage(1);
+    };
+    
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
-
+  const exportToCSV = async () => {
+    try {
+      const csv = await json2csv(filteredSales);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'sales.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('CSV export error:', err);
+    }
+  };
+  
+  
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(filteredSales);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sales');
+    XLSX.writeFile(workbook, 'sales.xlsx');
+  };
+  
+  
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    doc.text('Sales Report', 14, 15);
+    autoTable(doc, {
+      startY: 20,
+      head: [['Date', 'Vr#', 'Item Name', 'Weight', 'Rate', 'Gross', 'Freight', 'Net']],
+      body: filteredSales.map(sale => {
+        const details = getDetailsForSale(sale.id);
+        const first = details[0] || {};
+        const weight = getTotalWeight(details);
+        const rate = getAverageRate(details);
+        const gross = getTotalAmount(details);
+        const freight = parseFloat(sale.frieght || first.frieght || 0);
+        const net = gross - freight;
+        return [
+          new Date(sale.sale_date).toISOString().split('T')[0],
+          first.vehicle_no || '-',
+          first.item_id == 2 ? 'Oil' : 'Protein',
+          weight,
+          rate,
+          formatPKR(gross),
+          formatPKR(freight),
+          formatPKR(net),
+        ];
+      }),
+    });
+    doc.save('sales.pdf');
+  };
+  
+  
+  const handlePrint = () => {
+    const printWindow = window.open('', '', 'width=800,height=600');
+    const content = document.querySelector('table').outerHTML;
+    printWindow.document.write(`<html><head><title>Print</title></head><body>${content}</body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-white">
@@ -133,6 +288,24 @@ function RouteList() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h2 className="text-xl font-semibold text-gray-700 border-b pb-4 mb-4">Customers Wise Report</h2>
+      <div className="mt-6 flex justify-between items-center flex-wrap gap-4">
+  <div className="flex gap-2 mb-6">
+    <button onClick={exportToCSV} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">CSV</button>
+    <button onClick={exportToExcel} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">Excel</button>
+    <button onClick={exportToPDF} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">PDF</button>
+    <button onClick={handlePrint} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">Print</button>
+  </div>
+  <input
+    type="text"
+    placeholder="Search..."
+    value={searchTerm}
+    onChange={(e) => {
+      setSearchTerm(e.target.value);
+      setCurrentPage(1); // Reset pagination
+    }}
+    className="px-4 py-2 border rounded-md text-sm w-full max-w-[300px]"
+  />
+</div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
@@ -198,20 +371,26 @@ function RouteList() {
                 const firstDetail = details[0] || {};
                 const totalWeight = getTotalWeight(details);
                 const averageRate = getAverageRate(details);
-                const grossAmount = getTotalAmount(details).toFixed(2);
+                const grossRaw = getTotalAmount(details);
                 const freight = parseFloat(sale.frieght || firstDetail.frieght || 0);
-                const netAmount = (parseFloat(grossAmount) - freight).toFixed(2);
+                const netRaw = grossRaw - freight;
+                
+                const grossAmount = formatPKR(grossRaw);
+
+                const freightFormatted = formatPKR(freight);
+                const netAmount = formatPKR(netRaw);
+                const rate =formatPKR(averageRate)
 
                 return (
                   <tr key={sale.id} className="border-t">
                     <td className="px-6 py-4 text-sm">{indexOfFirstSale + index + 1}</td>
                     <td className="px-6 py-4 text-sm">{new Date(sale.sale_date).toISOString().split('T')[0]}</td>
                     <td className="px-6 py-4 text-sm">{firstDetail.vehicle_no || '-'}</td>
-                    <td className="px-6 py-4 text-sm">{firstDetail.item_id ?? '-'}</td>
+                    <td className="px-6 py-4 text-sm">{firstDetail.item_id == 2?'Oil':'Protien' ?? '-'}</td>
                     <td className="px-6 py-4 text-sm">{totalWeight}</td>
-                    <td className="px-6 py-4 text-sm">{averageRate}</td>
+                    <td className="px-6 py-4 text-sm">{rate}</td>
                     <td className="px-6 py-4 text-sm">{grossAmount}</td>
-                    <td className="px-6 py-4 text-sm">{freight || '-'}</td>
+                    <td className="px-6 py-4 text-sm">{freightFormatted || '-'}</td>
                     <td className="px-6 py-4 text-sm">{netAmount}</td>
                   </tr>
                 );

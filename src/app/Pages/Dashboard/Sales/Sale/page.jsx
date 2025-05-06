@@ -2,6 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { json2csv } from 'json-2-csv';
 
 const SaleList = () => {
   const [sales, setSales] = useState([]);
@@ -9,6 +13,39 @@ const SaleList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(50); // Number of items per page
   const router = useRouter();
+  const [partyNames, setPartyNames] = useState({});
+  const [itemNames, setItemNames] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const fetchPartyName = async (partyId) => {
+    if (!partyId) return '';
+    if (partyNames[partyId]) return partyNames[partyId]; // Return from cache
+  
+    try {
+      const response = await axios.get(`https://accounts-management.onrender.com/common/parties/parties/${partyId}`);
+      const name = response.data?.name || 'Unknown';
+      setPartyNames(prev => ({ ...prev, [partyId]: name }));
+      return name;
+    } catch (error) {
+      console.error(`Error fetching party ${partyId}:`, error);
+      return 'Unknown';
+    }
+  };
+
+  const fetchItemName = async (itemId) => {
+    if (!itemId) return '';
+    if (itemNames[itemId]) return itemNames[itemId]; // Return from cache
+  
+    try {
+      const response = await axios.get(`https://accounts-management.onrender.com/common/items/items/${itemId}`);
+      const name = response.data?.name || 'Unknown';
+      setItemNames(prev => ({ ...prev, [itemId]: name }));
+      return name;
+    } catch (error) {
+      console.error(`Error fetching item ${itemId}:`, error);
+      return 'Unknown';
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -17,15 +54,99 @@ const SaleList = () => {
           axios.get('https://accounts-management.onrender.com/common/sale/getAll'),
           axios.get('https://accounts-management.onrender.com/common/saleDetail/getAll'),
         ]);
-        setSales(saleRes.data || []);
-        setSaleDetails(detailRes.data || []);
+    
+        const saleData = saleRes.data || [];
+        const detailData = detailRes.data || [];
+    
+        // Fetch party names
+        const uniquePartyIds = [...new Set(saleData.map(s => s.party_id))];
+        const partyNameResults = await Promise.all(uniquePartyIds.map(id => fetchPartyName(id)));
+        const newPartyCache = {};
+        uniquePartyIds.forEach((id, idx) => {
+          newPartyCache[id] = partyNameResults[idx];
+        });
+        setPartyNames(newPartyCache);
+    
+        // Fetch item names
+        const uniqueItemIds = [...new Set(detailData.map(d => d.item_id))];
+        const itemNameResults = await Promise.all(uniqueItemIds.map(id => fetchItemName(id)));
+        const newItemCache = {};
+        uniqueItemIds.forEach((id, idx) => {
+          newItemCache[id] = itemNameResults[idx];
+        });
+        setItemNames(newItemCache);
+    
+        setSales(saleData);
+        setSaleDetails(detailData);
       } catch (err) {
         console.error('Error fetching sales data:', err);
       }
     };
-
-    fetchData();
+    fetchData();  
   }, []);
+
+  const formatCurrencyPK = (number) => {
+    if (isNaN(number)) return '0';
+    const rounded = Math.round(Number(number));
+    return rounded.toLocaleString('en-IN');
+  };
+
+  const exportCSV = async () => {
+    try {
+      const csv = await json2csv(filteredSales);
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'sales.csv');
+      document.body.appendChild(link);
+      link.click();
+    } catch (error) {
+      console.error('CSV Export Error:', error);
+    }
+  };
+
+  const exportExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(filteredSales);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sales');
+    XLSX.writeFile(workbook, 'sales.xlsx');
+  };
+
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    const tableData = filteredSales.map(sale => {
+      const details = getDetailsForSale(sale.id);
+      const totalWeight = getTotalWeight(details);
+      const averageRate = getAverageRate(details);
+      const totalAmount = getTotalAmount(details).toFixed(2);
+      const itemList = details.map(d => itemNames[d.item_id] || d.item_id).join(', ');
+      return [
+        new Date(sale.sale_date).toLocaleDateString(),
+        partyNames[sale.party_id] || sale.party_id,
+        sale.tax_percentage,
+        itemList,
+        totalWeight,
+        averageRate,
+        totalAmount
+      ];
+    });
+
+    autoTable(doc, {
+      head: [['Date', 'Party', 'Tax (%)', 'Items', 'Weight', 'Rate', 'Total']],
+      body: tableData,
+    });
+
+    doc.save('sales.pdf');
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleUniversalSearch = (value) => {
+    setSearchQuery(value);
+  };
 
   const getDetailsForSale = (saleId) => {
     return saleDetails.filter((detail) => detail.sale_id === saleId);
@@ -66,6 +187,17 @@ const SaleList = () => {
     }
   };
 
+  // Filter the sales based on the search query
+  const filteredSales = currentSales.filter(sale => {
+    const details = getDetailsForSale(sale.id);
+    const itemNamesList = details.map(d => itemNames[d.item_id] || '').join(' ');
+    const partyName = partyNames[sale.party_id] || '';
+    const totalAmount = getTotalAmount(details);
+
+    const searchContent = `${sale.id} ${sale.party_id} ${partyName} ${itemNamesList} ${totalAmount}`;
+    return searchContent.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
@@ -76,6 +208,22 @@ const SaleList = () => {
         >
           Create New
         </button>
+      </div>
+      <div className="flex justify-between items-center mt-8 mb-4">
+        <div className="flex space-x-1">
+          <button onClick={exportCSV} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">CSV</button>
+          <button onClick={exportExcel} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">Excel</button>
+          <button onClick={exportPDF} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">PDF</button>
+          <button onClick={handlePrint} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">Print</button>
+        </div>
+        <div>
+          <input
+            type="text"
+            placeholder="Search..."
+            onChange={(e) => handleUniversalSearch(e.target.value)}
+            className="px-3 py-2 border rounded-md text-sm w-64"
+          />
+        </div>
       </div>
 
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-2">
@@ -94,8 +242,8 @@ const SaleList = () => {
             </tr>
           </thead>
           <tbody>
-            {currentSales.length > 0 ? (
-              currentSales.map((sale, index) => {
+            {filteredSales.length > 0 ? (
+              filteredSales.map((sale, index) => {
                 const details = getDetailsForSale(sale.id);
                 const totalWeight = getTotalWeight(details);
                 const averageRate = getAverageRate(details);
@@ -107,12 +255,16 @@ const SaleList = () => {
                     <td className="px-6 py-4 text-sm text-gray-700">
                       {new Date(sale.sale_date).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{sale.party_id}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {partyNames[sale.party_id] || sale.party_id}
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-700">{sale.tax_percentage}%</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{details.length}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{totalWeight}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{averageRate}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{totalAmount.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {details.map(d => itemNames[d.item_id] || d.item_id).join(', ')}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{formatCurrencyPK(totalWeight)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{formatCurrencyPK(averageRate)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{formatCurrencyPK(totalAmount.toFixed(2))}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">
                       <div className="relative">
                         <button
@@ -120,8 +272,14 @@ const SaleList = () => {
                           className="bg-gray-200 text-white p-2 rounded-full hover:bg-green-200 w-[35px] h-[35px] flex items-center justify-center"
                         >
                           <svg viewBox="0 0 24 24" fill="none" width="25px" height="25px">
-                            <path d="M20.1498 7.93997L8.27978 19.81C7.21978 20.88 4.04977 21.3699 3.32977 20.6599C2.60977 19.9499 3.11978 16.78 4.17978 15.71L16.0498 3.84C16.5979 3.31801 17.3283 3.03097 18.0851 3.04019C18.842 3.04942 19.5652 3.35418 20.1004 3.88938C20.6356 4.42457 20.9403 5.14781 20.9496 5.90463C20.9588 6.66146 20.6718 7.39189 20.1498 7.93997Z" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
+            <path
+              d="M20.1498 7.93997L8.27978 19.81C7.21978 20.88 4.04977 21.3699 3.32977 20.6599C2.60977 19.9499 3.11978 16.78 4.17978 15.71L16.0498 3.84C16.5979 3.31801 17.3283 3.03097 18.0851 3.04019C18.842 3.04942 19.5652 3.35418 20.1004 3.88938C20.6356 4.42457 20.9403 5.14781 20.9496 5.90463C20.9588 6.66146 20.6718 7.39189 20.1498 7.93997Z"
+              stroke="#000000"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
                         </button>
                       </div>
                     </td>
@@ -130,59 +288,30 @@ const SaleList = () => {
               })
             ) : (
               <tr>
-                <td colSpan="9" className="text-center px-6 py-4 text-sm text-gray-700">
-                  No sales data available.
-                </td>
+                <td colSpan="9" className="px-6 py-4 text-center text-gray-500">No sales found</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-
-      {/* Pagination */}
-      <div className="flex justify-between items-center mt-4">
-        <span className="text-sm font-semibold text-gray-700">
-          Showing {sales.length === 0 ? 0 : indexOfFirstItem + 1} to {Math.min(indexOfLastItem, sales.length)} of {sales.length} entries
-        </span>
-
-        <ol className="flex gap-1 text-xs font-medium">
-          <li>
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 bg-white text-gray-900"
-            >
-              <span className="sr-only">Prev Page</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
-              </svg>
-            </button>
-          </li>
-
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <li key={page}>
-              <button
-                onClick={() => handlePageChange(page)}
-                className={`inline-flex items-center justify-center w-8 h-8 rounded border ${currentPage === page ? 'bg-blue-500 text-white' : 'bg-white text-gray-900'}`}
-              >
-                {page}
-              </button>
-            </li>
-          ))}
-
-          <li>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 bg-white text-gray-900"
-            >
-              <span className="sr-only">Next Page</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
-              </svg>
-            </button>
-          </li>
-        </ol>
+      <div className="mt-4 flex justify-between">
+        <button
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="bg-gray-500 text-white px-4 py-2 rounded-md"
+        >
+          Previous
+        </button>
+        <div>
+          Page {currentPage} of {totalPages}
+        </div>
+        <button
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="bg-gray-500 text-white px-4 py-2 rounded-md"
+        >
+          Next
+        </button>
       </div>
     </div>
   );

@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
 import axios from 'axios';
-import { useRouter } from 'next/navigation';
 
 function RouteList() {
   const [activeRow, setActiveRow] = useState(null);
@@ -18,30 +17,38 @@ function RouteList() {
   const [filteredSales, setFilteredSales] = useState([]);
   const [saleDetails, setSaleDetails] = useState([]);
   const [partyOptions, setPartyOptions] = useState([]);
-  const [itemOptions, setItemOptions] = useState();
+  const [itemOptions, setItemOptions] = useState([]);
+  const [itemNameMap, setItemNameMap] = useState({});
 
-  const router = useRouter();
-
-  const salesPerPage = 10; // Define how many sales you want to display per page
+  const salesPerPage = 10;
 
   useEffect(() => {
     setIsClient(true);
     const fetchInitialData = async () => {
       try {
-        const [saleRes, detailRes, partyRes,itemres] = await Promise.all([
+        const [saleRes, detailRes, partyRes, itemRes] = await Promise.all([
           axios.get('https://accounts-management.onrender.com/common/sale/getAll'),
           axios.get('https://accounts-management.onrender.com/common/saleDetail/getAll'),
           axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
           axios.get('https://accounts-management.onrender.com/common/items/getAll'),
         ]);
-        const filteredItems = itemres?.data?.filter(item => item.type == 'Sale') || [];
-        console.log(saleRes.data);
+
+        const filteredItems = itemRes?.data?.filter(item => item.type === 'Sale') || [];
+
+        // Create lookup map
+        const itemIdToNameMap = {};
+        filteredItems.forEach(item => {
+          itemIdToNameMap[item.id] = item.name;
+        });
+
         setItemOptions(
-          filteredItems?.map(item => ({
+          filteredItems.map(item => ({
             value: item.id,
             label: item.name,
-          })) || []
+          }))
         );
+        setItemNameMap(itemIdToNameMap);
+
         const fetchedSales = saleRes.data || [];
         setSales(fetchedSales);
         setFilteredSales(fetchedSales);
@@ -62,14 +69,23 @@ function RouteList() {
     fetchInitialData();
   }, []);
 
+  const formatCurrencyPK = (number) => {
+    if (isNaN(number)) return '0';
+    const rounded = Math.round(Number(number));
+    return rounded.toLocaleString('en-IN');
+  };
+
   const getDetailsForSale = (saleId) => saleDetails.filter((detail) => detail.sale_id === saleId);
+
   const getTotalWeight = (details) => details.reduce((sum, d) => sum + Number(d.weight || 0), 0);
+
   const getAverageRate = (details) => {
     const validRates = details.map((d) => Number(d.rate || 0));
     return validRates.length > 0
       ? (validRates.reduce((sum, r) => sum + r, 0) / validRates.length).toFixed(2)
       : '0';
   };
+
   const getTotalAmount = (details) =>
     details.reduce((sum, d) => {
       const weight = parseFloat(d.weight) || 0;
@@ -78,40 +94,33 @@ function RouteList() {
       return sum + (weight * rate + adjustment);
     }, 0);
 
-    const handleSearch = () => {
-      const filtered = sales.filter((sale) => {
-        const saleDateOnly = new Date(sale.sale_date).toISOString().split('T')[0]; // Get only the date part of the sale_date
-        const saleDetailsForThisSale = getDetailsForSale(sale.id); // Get details for the specific sale
-    
-        // Check if the selected party filter matches the sale's party_id
-        const partyFilter =
-          selectedValue.length === 0 || selectedValue.some(p => p.value === sale.party_id); // Match party_id from saleRes with selectedValue
-    
-        // Get the selected item values
-        const selectedItemValues = selectedItem.map(i => i.value);
-        const isAllSelected = selectedItemValues.includes('all');
-    
-        // Check if the selected items filter matches any item_id in the sale's details
-        const itemFilter =
-          selectedItem.length === 0 ||
-          isAllSelected ||
-          selectedItemValues.some(item =>
-            saleDetailsForThisSale.some(detail => String(detail.item_id) === String(item)) // Compare item_id in sale details
-          );
-    
-        // Check if the sale date is within the selected date range (startDate <= saleDate <= endDate)
-        const startFilter = !startDate || saleDateOnly >= startDate;
-        const endFilter = !endDate || saleDateOnly <= endDate;
-    
-        // Return true if all conditions (filters) are met
-        return partyFilter && itemFilter && startFilter && endFilter;
-      });
-    
-      setFilteredSales(filtered);
-      setCurrentPage(1); // Reset to the first page after filtering
-    };
-    
-    
+  const handleSearch = () => {
+    const filtered = sales.filter((sale) => {
+      const saleDateOnly = new Date(sale.sale_date).toISOString().split('T')[0];
+      const saleDetailsForThisSale = getDetailsForSale(sale.id);
+
+      const partyFilter =
+        selectedValue.length === 0 || selectedValue.some(p => p.value === sale.party_id);
+
+      const selectedItemValues = selectedItem.map(i => i.value);
+      const isAllSelected = selectedItemValues.includes('all');
+
+      const itemFilter =
+        selectedItem.length === 0 ||
+        isAllSelected ||
+        selectedItemValues.some(item =>
+          saleDetailsForThisSale.some(detail => String(detail.item_id) === String(item))
+        );
+
+      const startFilter = !startDate || saleDateOnly >= startDate;
+      const endFilter = !endDate || saleDateOnly <= endDate;
+
+      return partyFilter && itemFilter && startFilter && endFilter;
+    });
+
+    setFilteredSales(filtered);
+    setCurrentPage(1);
+  };
 
   const handlePagination = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -145,7 +154,6 @@ function RouteList() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mt-4">
-        {/* Party Name */}
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium text-gray-900">Party Name</label>
           <Select
@@ -158,7 +166,6 @@ function RouteList() {
           />
         </div>
 
-        {/* Start Date */}
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium text-gray-900">Start Date</label>
           <input
@@ -169,7 +176,6 @@ function RouteList() {
           />
         </div>
 
-        {/* End Date */}
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium text-gray-900">End Date</label>
           <input
@@ -180,7 +186,6 @@ function RouteList() {
           />
         </div>
 
-        {/* Item Name */}
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium text-gray-900">Item Name</label>
           <Select
@@ -200,7 +205,6 @@ function RouteList() {
         </div>
       </div>
 
-      {/* Search & Reset */}
       <div className="mt-4 flex gap-2">
         <button
           className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md"
@@ -216,14 +220,13 @@ function RouteList() {
             setSelectedItem([]);
             setStartDate('');
             setEndDate('');
-            setCurrentPage(1); // Reset to the first page
+            setCurrentPage(1);
           }}
         >
           Reset
         </button>
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
         <table className="min-w-full border-collapse">
           <thead className="bg-gray-100">
@@ -253,12 +256,14 @@ function RouteList() {
                       {new Date(sale.sale_date).toISOString().split('T')[0]}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">{firstDetail.vehicle_no || '-'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{firstDetail.item_id ?? '-'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{totalWeight}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{averageRate}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{grossAmount}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{freight || '-'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{netAmount}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {itemNameMap[firstDetail.item_id] ?? '-'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{formatCurrencyPK(totalWeight)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{formatCurrencyPK(averageRate)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{formatCurrencyPK(grossAmount)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{formatCurrencyPK(freight) || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{formatCurrencyPK(netAmount)}</td>
                   </tr>
                 );
               })
@@ -273,17 +278,17 @@ function RouteList() {
         </table>
       </div>
 
-      {/* Pagination Controls */}
       <div className="flex justify-end mt-4">
         <button
           onClick={() => handlePagination(currentPage - 1)}
           disabled={currentPage === 1}
           className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md"
         >
- <span className="sr-only">Prev Page</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
-              </svg>        </button>
+          <span className="sr-only">Prev Page</span>
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
+          </svg>
+        </button>
         <span className="px-4 py-2 text-sm font-medium text-gray-700">
           Page {currentPage} of {totalPages}
         </span>
@@ -292,10 +297,11 @@ function RouteList() {
           disabled={currentPage === totalPages}
           className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md"
         >
-<span className="sr-only">Next Page</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
-              </svg>        </button>
+          <span className="sr-only">Next Page</span>
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
+          </svg>
+        </button>
       </div>
     </div>
   );

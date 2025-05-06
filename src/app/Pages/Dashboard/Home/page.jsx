@@ -351,7 +351,7 @@ const Dashboard = () => {
             <span className="text-xl font-bold">{suppliersCount}</span>
             <div className="flex items-center justify-between">
               <span className="text-gray-500">Total Suppliers</span>
-              <span className="text-green-500 text-sm font-semibold ml-2">+12.6%</span>
+              <span className="text-green-500 text-sm font-semibold ml-2">0%</span>
             </div>
           </div>
         </div>
@@ -376,7 +376,7 @@ const Dashboard = () => {
             <span className="text-xl font-bold">{itemsCount}</span>
             <div className="flex items-center justify-between">
               <span className="text-gray-500">Total Items</span>
-              <span className="text-red-500 text-sm font-semibold ml-2">-8.1%</span>
+              <span className="text-red-500 text-sm font-semibold ml-2">0%</span>
             </div>
           </div>
         </div>
@@ -398,10 +398,10 @@ const Dashboard = () => {
             </svg>
           </div>
           <div className="flex-grow flex flex-col ml-4">
-            <span className="text-xl font-bold">140</span>
+            <span className="text-xl font-bold">0</span>
             <div className="flex items-center justify-between">
               <span className="text-gray-500">Approve P.O.</span>
-              <span className="text-green-500 text-sm font-semibold ml-2">+28.4%</span>
+              <span className="text-green-500 text-sm font-semibold ml-2">0%</span>
             </div>
           </div>
         </div>
@@ -421,10 +421,10 @@ const Dashboard = () => {
             </svg>
           </div>
           <div className="flex-grow flex flex-col ml-4">
-            <span className="text-xl font-bold">211</span>
+            <span className="text-xl font-bold">0</span>
             <div className="flex items-center justify-between">
               <span className="text-gray-500">Denied PO</span>
-              <span className="text-red-500 text-sm font-semibold ml-2">-8.1%</span>
+              <span className="text-red-500 text-sm font-semibold ml-2">0%</span>
             </div>
           </div>
         </div>

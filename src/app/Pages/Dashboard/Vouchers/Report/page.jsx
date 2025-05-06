@@ -11,7 +11,12 @@ function Receiptreport() {
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
-
+  const [partyNames, setPartyNames] = useState({});
+  const formatCurrencyPK = (number) => {
+    if (isNaN(number)) return '0';
+    const rounded = Math.round(Number(number));
+    return rounded.toLocaleString('en-IN');
+  };
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -33,7 +38,62 @@ function Receiptreport() {
 
     fetchData();
   }, []);
-
+  useEffect(() => {
+    const fetchAccountNames = async () => {
+      if (!voucherDetails.length) return;
+  
+      const uniqueCodes = [
+        ...new Set(voucherDetails.map((detail) => detail.account_code).filter(Boolean)),
+      ];
+  
+      const nameMap = {};
+      setLoading(true)
+      await Promise.all(
+       
+        uniqueCodes.map(async (code) => {
+        
+          try {
+            const supplierRes = await axios.get(
+              `https://accounts-management.onrender.com/common/suppliers/supplier/${code}`
+            );
+            if (supplierRes.data.suppliers.name) {
+              nameMap[code] = supplierRes.data.suppliers.name;
+              return;
+            }
+          } catch {}
+  
+          try {
+            const partyRes = await axios.get(
+              `https://accounts-management.onrender.com/common/parties/partybyCode/${code}`
+            );
+            if (partyRes.data?.name) {
+              nameMap[code] = partyRes.data.name;
+              return;
+            }
+          } catch {}
+  
+          try {
+            const bankRes = await axios.get(
+              `https://accounts-management.onrender.com/common/banks/bank/${code}`
+            );
+            if (bankRes.data?.account_title) {
+              nameMap[code] = bankRes.data.account_title;
+              return;
+            }
+          } catch {}
+  
+          nameMap[code] = 'Unknown';
+        })
+      );
+  
+      setPartyNames(nameMap);
+     
+    };
+    fetchAccountNames();
+    setLoading(false)
+  }, [voucherDetails.length]);
+  
+  
   const getDetailsForVoucher = (voucherId) =>
     voucherDetails.filter((detail) => detail.main_id === voucherId);
 
@@ -155,9 +215,16 @@ function Receiptreport() {
                     <td className="px-6 py-4 text-sm text-gray-700">
                       {new Date(route.voucher_date).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{route.party_name || 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+  {(() => {
+    const details = getDetailsForVoucher(route.id);
+    const accountCode = details[0]?.account_code;
+    return partyNames[accountCode] || 'N/A';
+  })()}
+</td>
+
                     <td className="px-6 py-4 text-sm text-gray-700">{route.note}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">${totalAmount}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{formatCurrencyPK(totalAmount)}</td>
                   </tr>
                 );
               })

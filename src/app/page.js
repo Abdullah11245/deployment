@@ -2,56 +2,53 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Dashboard from './Pages/Dashboard/Home/page';
-import ProtectedRoute from './RouteProtection'; // Adjust path as needed
-
+import ProtectedRoute from './RouteProtection'; 
+import { useRouter } from 'next/navigation';
 export default function Home() {
-  const [isTokenValid, setIsTokenValid] = useState(true); // State to store token validity
-  const [loading, setLoading] = useState(true); // Loading state while checking the token
-
+  const [isTokenValid, setIsTokenValid] = useState(true); 
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
   useEffect(() => {
     const checkTokenExpiry = async () => {
       try {
-        // Retrieve the user data from localStorage
-        const userData = localStorage.getItem('user'); // Assuming 'user' is the key where the token is stored
+        const userData = localStorage.getItem('user'); 
         if (!userData) {
           console.error('No user data found in localStorage');
-          setIsTokenValid(false); // If no user data, the token is not valid
+          setIsTokenValid(false); 
           return;
         }
 
-        // Parse the user data
         const parsedUserData = JSON.parse(userData);
-        // Retrieve the token from parsed user data
         const token = parsedUserData?.token;
         console.log(token)
         if (!token) {
           console.error('No token found in user data');
-          setIsTokenValid(false); // If no token, the token is not valid
+          setIsTokenValid(false); 
           return;
         }
 
-        // Make a POST request to check the token expiry
         const response = await axios.post('https://accounts-management.onrender.com/common/user/expiryCheck', {
-          token: token, // Send the token in the request body
+          token: token, 
         });
-        // Handle the response accordingly
         if (response.data) {
-          console.log('Token has expired');
-          setIsTokenValid(false); // Token expired, mark as invalid
+        
+          setIsTokenValid(false); 
         } else {
           console.log('Token is valid');
-          setIsTokenValid(true); // Token is valid
+          setIsTokenValid(true);
         }
       } catch (error) {
         console.error('Error while checking token expiry:', error);
-        setIsTokenValid(false); // In case of an error, assume the token is invalid
+        localStorage.removeItem('user');
+        router.push('/login'); 
+        setIsTokenValid(false); 
       } finally {
-        setLoading(false); // Done with the request
+        setLoading(false);
       }
     };
 
     checkTokenExpiry();
-  }, []); // Empty dependency array, runs once on component mount
+  }, []); 
 
   if (loading) {
     return (

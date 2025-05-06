@@ -14,30 +14,38 @@ function CreateSale() {
   const [parties, setParties] = useState([]);
   const [saleDetails, setSaleDetails] = useState([]);
   const [isFormValid, setIsFormValid] = useState(true); // Form validity state
+  const [latestSaleId, setLatestSaleId] = useState(null);
+  const [partyCode, setPartyCode] = useState('');
+  const [partyName, setPartyName] = useState('');
+  const [grandTotal, setGrandTotal] = useState(0);
 
   // Fetch Party List
   useEffect(() => {
-    const fetchParties = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get('https://accounts-management.onrender.com/common/parties/getAll');
-        
-        // Filter only active parties (status: 1)
-        const activeParties = response.data.filter(party => party.status === 1);
+        // Fetch parties
+        const partiesResponse = await axios.get('https://accounts-management.onrender.com/common/parties/getAll');
+        const activeParties = partiesResponse.data.filter(party => party.status === 1);
         const partyOptions = activeParties.map(party => ({
           value: party.id,
           label: party.name,
+          party_code: party.party_code,
         }));
-        
         setParties(partyOptions);
+
+        // Fetch latest sale ID
+        const saleIdResponse = await axios.get('https://accounts-management.onrender.com/common/sale/latest-id');
+
+        setLatestSaleId(saleIdResponse.data.latest_sale_id +1); // Adjust if the response is nested
       } catch (error) {
-        console.error('Error fetching parties:', error);
+        console.error('Error fetching data:', error);
       }
     };
 
-    fetchParties();
+    fetchData();
   }, []);
 
-  // Auto-calculate taxAmount
+
   useEffect(() => {
     const total = saleDetails.reduce((acc, detail) => {
       const weight = parseFloat(detail.weight) || 0;
@@ -53,35 +61,80 @@ function CreateSale() {
   // Handle Form Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate that all required fields in the SaleDetailTable are filled
+  
     const allFieldsFilled = saleDetails.every(detail =>
       detail.weight && detail.rate && detail.adjustment && detail.uom && detail.itemId && detail.vehicleNo
     );
+  
 
-    // Add console logs to debug
-    console.log("Sale Details: ", saleDetails);
-    console.log("Is All Fields Filled: ", allFieldsFilled);
-
+  
     if (!saleDate || !partyId || !taxPercentage || !allFieldsFilled) {
       console.log("Form validation failed");
-      setIsFormValid(false); // Disable submission if validation fails
-      return; // Prevent form submission
+      setIsFormValid(false);
+      return;
     }
-
+  
     const payload = {
       sale_date: saleDate,
-      party_id: partyId?.value,
+      party_id: partyId,
       tax_percentage: parseFloat(taxPercentage),
       tax_amount: parseFloat(taxAmount),
       notes: notes,
     };
-
+  
     try {
       const response = await axios.post('https://accounts-management.onrender.com/common/sale/create', payload);
-
+  
       if (response.data?.message === 'Sale created successfully') {
         const saleId = response.data?.result?.insertId;
+       
+        const voucherPayload = {
+          voucher_id: saleId, 
+          voucher_type: "SV", 
+          voucher_date: saleDate,
+          note: notes, 
+        };
+      console.log("Voucher Payload:", voucherPayload); // Debugging line
+        const voucherResponse = await axios.post(
+          'https://accounts-management.onrender.com/common/voucher/create',
+          voucherPayload
+        );
+        const voucherId = voucherResponse.data?.id;
+        for (const detail of saleDetails) {
+          const particulars = `${detail.vehicleNo}: ${detail.itemLabel} ${detail.weight}KG@${detail.rate}`;
+           
+          const debitEntry = {
+            main_id: voucherId,
+            account_code: partyCode,
+            particulars,
+            debit: grandTotal,
+            credit: 0,
+          };
+         console.log("Debit Entry:", debitEntry); // Debugging line
+          const creditEntry = {
+            main_id: voucherId,
+            account_code: "1140001",
+            particulars: `Sale of ${detail.itemLabel} to ${partyName}`,
+            debit: 0,
+            credit: grandTotal,
+            
+          };
+        console.log("Credit Entry:", creditEntry); // Debugging line
+          try {
+            await axios.post(
+              'https://accounts-management.onrender.com/common/voucherDetail/create',
+              debitEntry
+            );
+        
+            await axios.post(
+              'https://accounts-management.onrender.com/common/voucherDetail/create',
+              creditEntry
+            );
+          } catch (error) {
+            console.error("Error creating voucher detail for item:", detail, error);
+          }
+        }
+        
 
         const saleDetailRequests = saleDetails.map(detail => {
           const detailPayload = {
@@ -96,18 +149,19 @@ function CreateSale() {
           };
           return axios.post('https://accounts-management.onrender.com/common/saleDetail/create', detailPayload);
         });
-
-        await Promise.all(saleDetailRequests);
-
-        // Reset form
+  
+      const res=  await Promise.all(saleDetailRequests);
+      res.forEach((r, i) => {
+        console.log(`Sale Detail ${i + 1}:`, r.data);
+      });
         setSaleDate('');
         setPartyId(null);
         setTaxPercentage('');
         setTaxAmount('');
         setNotes('');
         setSaleDetails([]);
-
-        alert('Sale and details saved successfully');
+  
+        alert('Sale, voucher, and details saved successfully');
       } else {
         alert('Failed to create sale');
       }
@@ -116,6 +170,7 @@ function CreateSale() {
       alert('Error while submitting the form');
     }
   };
+  
 
   // Check validity of form (SaleDate, Party, TaxPercentage, and SaleDetails)
   const checkFormValidity = () => {
@@ -134,32 +189,46 @@ function CreateSale() {
       </div>
 
       <div className="flex items-center justify-center p-12">
+      
         <div className="mx-auto w-full bg-white">
           <form onSubmit={handleSubmit}>
+            {/* <div>
+              <label className="mb-3 block text-base font-medium text-[#07074D]">Sale ID</label>
+              <div className='w-36 h-12 bg-gray-200 rounded-md flex items-center justify-center mb-6'>
+                <h2 className="text-xl  text-gray-700">{latestSaleId }</h2>
+              </div>
+            </div> */}
+
+          
             <div className="flex items-center space-x-4 mb-5">
               {/* Sale Date */}
               <div className="mb-5 w-full">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Sale Date</label>
                 <input
-                  type="datetime-local"
+                  type="date"
                   value={saleDate}
                   onChange={(e) => setSaleDate(e.target.value)}
                   required
-                  className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
+                  className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-blue-300 focus:shadow-md"
                 />
               </div>
 
               {/* Party Dropdown */}
               <div className="mb-5 w-full">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Party</label>
-                <Select
+                  <Select
                   options={parties}
-                  value={partyId}
-                  onChange={setPartyId}
+                  value={parties.find(p => p.value === partyId)}
+                  onChange={(selectedOption) => {
+                    setPartyId(selectedOption.value);
+                    setPartyCode(selectedOption.party_code);
+                    setPartyName(selectedOption.label);
+                  }}
                   placeholder="Select Party"
                   className="w-full rounded-md"
                   required
                 />
+
               </div>
             </div>
             <div className="flex items-center space-x-4 mb-5">
@@ -191,6 +260,7 @@ function CreateSale() {
                 setSaleDetails={setSaleDetails}
                 taxPercentage={taxPercentage}
                 taxAmount={taxAmount}
+                setGrandTotal={setGrandTotal}
               />
             </div>
 

@@ -4,6 +4,7 @@ import axios from 'axios';
 import VoucherDetailTable from './BP_BRtable';
 import Select from 'react-select';
 import './Sale.css';
+import toast, { Toaster } from 'react-hot-toast';
 
 const voucherTypeOptions = [
   { value: 'BP', label: 'BP' },
@@ -16,6 +17,7 @@ const CreateVoucher = () => {
   const [note, setNote] = useState('');
   const [voucherDetails, setVoucherDetails] = useState([]);
   const [customVoucherId, setCustomVoucherId] = useState('');
+  const [loading, setLoading] = useState(true);
 
   // Fetch vouchers and calculate ID
   const fetchAndSetCustomVoucherId = async (selectedType) => {
@@ -23,13 +25,18 @@ const CreateVoucher = () => {
       const res = await axios.get('https://accounts-management.onrender.com/common/voucher/getAll');
       const allVouchers = res?.data || [];
       const filtered = allVouchers.filter(v => v.voucher_type === selectedType);
-      const newId = filtered.length + 1;
-      setCustomVoucherId(newId);
+  
+      const maxId = filtered.reduce((max, v) => Math.max(max, parseInt(v.voucher_id) || 0), 0);
+      setCustomVoucherId(maxId + 1);
+      setLoading(false)
     } catch (err) {
       console.error('Error fetching vouchers:', err);
       setCustomVoucherId('');
+      setLoading(false)
+
     }
   };
+  
 
   useEffect(() => {
     fetchAndSetCustomVoucherId('BP');
@@ -45,12 +52,10 @@ const CreateVoucher = () => {
   };
 
   const handleSubmit = async (e) => {
+    setLoading(true)
     e.preventDefault();
 
-    if (!voucherType || !voucherDate || voucherDetails.length === 0) {
-      alert('Please fill in all required fields and add at least one detail entry.');
-      return;
-    }
+  
 
     const voucherPayload = {
       voucher_id: customVoucherId, // 👈 Include custom ID
@@ -62,24 +67,47 @@ const CreateVoucher = () => {
     try {
       const res = await axios.post('https://accounts-management.onrender.com/common/voucher/create', voucherPayload);
       const voucherId = res?.data?.id;
-
+      
       if (!voucherId) throw new Error('Voucher creation failed.');
 
-      const detailRequests = voucherDetails.map(detail => {
-        return axios.post('https://accounts-management.onrender.com/common/voucherDetail/create', {
+      for (const detail of voucherDetails) {
+        const debitEntry = {
           main_id: voucherId,
           account_code: detail.account_code,
-          particulars: detail.particulars,
-          debit: parseFloat(detail.debit || 0),
-          credit: parseFloat(detail.credit || 0),
-        });
-      });
+          particulars:`${detail.particulars} from ${detail.party_name}`, 
+          debit: detail.debit,
+          credit: 0,
+        };
+      
+        const creditEntry = {
+          main_id: voucherId,
+          account_code: detail.bank_account_code, 
+          particulars: ` ${detail.particulars} into ${detail.bank_name}`,
+          debit: 0,
+          credit: detail.credit,
+        };
+      
+        try {
+          await axios.post(
+            'https://accounts-management.onrender.com/common/voucherDetail/create',
+            debitEntry
+          );
+      
+          await axios.post(
+            'https://accounts-management.onrender.com/common/voucherDetail/create',
+            creditEntry
+          );
+          setLoading(false)
+        } catch (error) {
+          setLoading(false)
+          console.error("Error creating voucher detail for item:", detail, error);
+        }
+      }
+      
 
-      await Promise.all(detailRequests);
 
-      alert('Voucher and details created successfully!');
+      toast.success('Voucher and details created successfully!');
 
-      // Reset form to default "BP"
       setVoucherType(voucherTypeOptions[0]);
       setVoucherDate('');
       setNote('');
@@ -87,12 +115,27 @@ const CreateVoucher = () => {
       fetchAndSetCustomVoucherId('BP');
     } catch (err) {
       console.error(err);
-      alert('An error occurred while creating the voucher.');
+      setLoading(false)
+      toast.error('An error occurred while creating the voucher.');
     }
   };
-
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="flex space-x-2">
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:0.15s]"></span>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
+            <Toaster position="top-right" reverseOrder={false} />
+      
       <h2 className="text-2xl font-semibold mb-4 text-gray-700">Create New Voucher</h2>
 
       <form onSubmit={handleSubmit}>
@@ -112,7 +155,7 @@ const CreateVoucher = () => {
           <div>
             <label className="block text-gray-700 font-medium mb-2">Voucher Date</label>
             <input
-              type="datetime-local"
+              type="date"
               value={voucherDate}
               onChange={(e) => setVoucherDate(e.target.value)}
               required
@@ -144,6 +187,7 @@ const CreateVoucher = () => {
         <VoucherDetailTable
           voucherDetails={voucherDetails}
           setVoucherDetails={setVoucherDetails}
+          voucherType={voucherType.value}
         />
 
         <div className="mt-8">

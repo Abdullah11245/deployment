@@ -21,8 +21,12 @@ const LoginPage = () => {
       const response = await axios.post('https://accounts-management.onrender.com/common/user/login', {
         email,
         password,
-      });
-  
+      },
+      {headers: {
+      'allow-origin': '*',
+      }}
+    
+    );
       if (response.data) {
         toast.success('Login successful!');
       

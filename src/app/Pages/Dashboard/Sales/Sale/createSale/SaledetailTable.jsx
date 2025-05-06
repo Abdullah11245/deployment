@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
 
 const SaleDetailTable = ({
@@ -7,19 +7,40 @@ const SaleDetailTable = ({
   setSaleDetails,
   taxPercentage = 0,
   taxAmount = 0,
+  setGrandTotal, // ✅ NEW
 }) => {
-  // Hardcoded item options: Protein and Oil
-  const items = [
-    { value: 0, label: 'Protein' },
-    { value: 1, label: 'Oil' },
-  ];
+  const [items, setItems] = useState([]);
+
+  // Fetch items from API
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const response = await fetch('https://accounts-management.onrender.com/common/items/getAll');
+        const data = await response.json();
+
+        // Filter only items with type "Sale" and map to Select-compatible format
+        const saleItems = data
+          .filter(item => item.type === 'Sale')
+          .map(item => ({
+            value: item.id,
+            label: item.name,
+          }));
+
+        setItems(saleItems);
+      } catch (error) {
+        console.error('Error fetching items:', error);
+      }
+    };
+
+    fetchItems();
+  }, []);
 
   const handleInputChange = (index, field, value) => {
     const updated = [...saleDetails];
     updated[index] = {
       ...updated[index],
       [field]: field === 'itemId' ? value.value : value,
-      itemLabel: field === 'itemId' ? value.label : updated[index]?.itemLabel
+      itemLabel: field === 'itemId' ? value.label : updated[index]?.itemLabel,
     };
     setSaleDetails(updated);
   };
@@ -32,32 +53,37 @@ const SaleDetailTable = ({
   };
 
   const subtotal = saleDetails.reduce((acc, detail) => acc + calculateTotal(detail), 0);
-  const grandTotal = subtotal + parseFloat(taxAmount || 0);
+  const grandTotal = subtotal + (parseFloat(taxAmount) || 0);
+
+  // ✅ NEW: Update grandTotal to parent when saleDetails or taxAmount changes
+  useEffect(() => {
+    if (setGrandTotal) {
+      setGrandTotal(grandTotal);
+    }
+  }, [saleDetails, taxAmount]);
 
   const addRow = () => {
-    // Check if there are already rows, if not, allow adding one row
-    if (saleDetails.length === 0) {
-      setSaleDetails([
-        ...saleDetails,
-        {
-          itemId: '',
-          vehicleNo: '',
-          frieght: '',
-          uom: '',
-          weight: '',
-          rate: '',
-          adjustment: ''
-        }
-      ]);
-    }
+    setSaleDetails([
+      ...saleDetails,
+      {
+        itemId: '',
+        itemLabel: '',
+        vehicleNo: '',
+        frieght: '',
+        uom: '',
+        weight: '',
+        rate: '',
+        adjustment: '',
+        total: 0,
+      },
+    ]);
   };
-
+   
   const removeRow = (index) => {
     const updated = [...saleDetails];
     updated.splice(index, 1);
     setSaleDetails(updated);
-  };
-
+  };console.log('Sale Details:', saleDetails);
   return (
     <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
       <table className="min-w-full border-collapse">
@@ -80,7 +106,6 @@ const SaleDetailTable = ({
             <tr key={index} className="border-t">
               <td className="px-4 py-2">{index + 1}</td>
 
-              {/* Item Dropdown */}
               <td className="px-4 py-2 w-48">
                 <Select
                   options={items}
@@ -90,7 +115,6 @@ const SaleDetailTable = ({
                 />
               </td>
 
-              {/* Vehicle No */}
               <td className="px-4 py-2">
                 <input
                   type="text"
@@ -100,7 +124,6 @@ const SaleDetailTable = ({
                 />
               </td>
 
-              {/* Freight */}
               <td className="px-4 py-2">
                 <input
                   type="number"
@@ -110,7 +133,6 @@ const SaleDetailTable = ({
                 />
               </td>
 
-              {/* UOM */}
               <td className="px-4 py-2">
                 <input
                   type="number"
@@ -120,7 +142,6 @@ const SaleDetailTable = ({
                 />
               </td>
 
-              {/* Weight */}
               <td className="px-4 py-2">
                 <input
                   type="number"
@@ -130,7 +151,6 @@ const SaleDetailTable = ({
                 />
               </td>
 
-              {/* Rate */}
               <td className="px-4 py-2">
                 <input
                   type="number"
@@ -140,7 +160,6 @@ const SaleDetailTable = ({
                 />
               </td>
 
-              {/* Adjustment */}
               <td className="px-4 py-2">
                 <input
                   type="number"
@@ -150,12 +169,10 @@ const SaleDetailTable = ({
                 />
               </td>
 
-              {/* Total */}
               <td className="px-4 py-2 text-right font-semibold">
                 {calculateTotal(detail).toFixed(2)}
               </td>
 
-              {/* Remove Button */}
               <td className="px-4 py-2 text-center">
                 <button
                   type="button"
@@ -182,7 +199,7 @@ const SaleDetailTable = ({
             <td />
           </tr>
           <tr className="bg-gray-200 border-t">
-            <td colSpan="8" className="text-right px-4 py-2 font-semibold">Grand Total</td>
+            <td colSpan="8" className="text-right px-4 py-2 font-semibold"> Total</td>
             <td className="text-right px-4 py-2 font-bold text-blue-600">{grandTotal.toFixed(2)}</td>
             <td />
           </tr>
@@ -195,7 +212,6 @@ const SaleDetailTable = ({
           type="button"
           onClick={addRow}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          disabled={saleDetails.length >= 1}  
         >
           Add row
         </button>

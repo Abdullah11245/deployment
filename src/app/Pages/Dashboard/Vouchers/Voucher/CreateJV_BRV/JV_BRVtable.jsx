@@ -1,29 +1,60 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import Select from 'react-select';
 
 const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
-  const [banks, setBanks] = useState([]);
+  const [accountOptions, setAccountOptions] = useState([]);
 
-  // Fetch the list of banks when the component mounts
   useEffect(() => {
-    const fetchBanks = async () => {
+    const fetchAllData = async () => {
       try {
-        const response = await fetch('https://accounts-management.onrender.com/common/parties/getAll');
-        const data = await response.json();
-        setBanks(data); // Assuming the response is an array of bank objects
+        const [suppliersRes, banksRes, partiesRes] = await Promise.all([
+          fetch('https://accounts-management.onrender.com/common/suppliers/getAll'),
+          fetch('https://accounts-management.onrender.com/common/banks/getAll'),
+          fetch('https://accounts-management.onrender.com/common/parties/getAll'),
+        ]);
+
+        const [suppliersData, banksData, partiesData] = await Promise.all([
+          suppliersRes.json(),
+          banksRes.json(),
+          partiesRes.json(),
+        ]);
+     console.log(suppliersData.suppliers[0].supplier_code);
+        const suppliers = suppliersData.suppliers.map(item => ({
+          value: item.supplier_code,
+          label: `Supplier - ${item.name}`,
+          title: item.name,
+          type: 'Supplier',
+        }));
+
+        const banks = banksData.map(item => ({
+          value: item.account_code,
+          label: `Bank - ${item.account_title}`,
+          title: item.account_title,
+          type: 'Bank',
+        }));
+
+        const parties = partiesData.map(item => ({
+          value: item.party_code,
+          label: `Party - ${item.name}`,
+          title: item.name,
+          type: 'Party',
+        }));
+
+        setAccountOptions([...suppliers, ...banks, ...parties]);
       } catch (error) {
-        console.error('Error fetching banks:', error);
+        console.error('Error fetching data:', error);
       }
     };
 
-    fetchBanks();
+    fetchAllData();
   }, []);
-
-  const handleInputChange = (index, field, value) => {
+  const handleInputChange = (index, field, value,field2,value2) => {
     const updated = [...voucherDetails];
     updated[index] = {
       ...updated[index],
       [field]: value,
+      [field2]: value2,
     };
     setVoucherDetails(updated);
   };
@@ -33,6 +64,14 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
       ...voucherDetails,
       {
         account_code: '',
+        title: '',
+        particulars: '',
+        debit: '',
+        credit: '',
+      },
+      {
+        account_code: '',
+        title: '',
         particulars: '',
         debit: '',
         credit: '',
@@ -75,18 +114,17 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
               <td className="px-4 py-2">{index + 1}</td>
 
               <td className="px-4 py-2">
-                <select
-                  value={row.account_code}
-                  onChange={(e) => handleInputChange(index, 'account_code', e.target.value)}
-                  className="w-full border rounded px-2 py-2"
-                >
-                  <option value="">Select Account</option>
-                  {banks.map((bank) => (
-                    <option key={bank.party_code} value={bank.party_code}>
-                      {bank.name}
-                    </option>
-                  ))}
-                </select>
+                <Select
+value={accountOptions.find(opt => opt.value === row.account_code) || null}
+
+     onChange={(selected) => handleInputChange(index, 'account_code', selected?.value ,'title',selected.title|| '')}
+
+                  options={accountOptions}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select Account"
+                  isClearable
+                />
               </td>
 
               <td className="px-4 py-2">
@@ -133,7 +171,6 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
             </tr>
           ))}
 
-          {/* Summary row */}
           <tr className="bg-gray-50 border-t font-semibold">
             <td colSpan="3" className="px-4 py-2 text-right">Totals</td>
             <td className="px-4 py-2 text-right">{totalDebit.toFixed(2)}</td>
@@ -143,7 +180,6 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
         </tbody>
       </table>
 
-      {/* Add Row Button */}
       <div className="p-4 flex justify-end">
         <button
           type="button"

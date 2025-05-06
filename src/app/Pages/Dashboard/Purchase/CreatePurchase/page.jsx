@@ -21,7 +21,8 @@ function CreatePurchase() {
   const [supplierInputs, setSupplierInputs] = useState([]);
   const [loading, setLoading] = useState(true); // ✅ Loading state
   const [hasSuppliers, setHasSuppliers] = useState(false); // New state to check if suppliers exist
-  
+  const [selectedItem, setSelectedItem] = useState({ id: '', label: '' });
+
   useEffect(() => {
     setIsClient(true); // Set to true once the component is mounted on the client
     
@@ -91,28 +92,32 @@ function CreatePurchase() {
   };
 
   const handleSubmit = async (e) => {
-    setLoading(true); // Set loading to true when the form is submitted
+    setLoading(true);
     e.preventDefault();
   
-    const payload = {
+  
+    const purchasePayload = {
       purchase_date: purchaseDate,
       end_date: endDate,
       name_ur: nameUr,
       route_id: routeId?.value,
-      item_id: itemId?.value,
+      item_id: selectedItem.id,
       note: note,
       status: status === '1' ? 1 : 0,
     };
   
     try {
-      const response = await axios.post('https://accounts-management.onrender.com/common/purchase/create', payload);
+      // 1. Create Purchase
+      const purchaseResponse = await axios.post('https://accounts-management.onrender.com/common/purchase/create', purchasePayload);
   
-      if (response.data?.message === 'Purchase created successfully') {
-        const purchaseId = response.data?.result?.insertId || response.data?.id; // Adjust based on response structure         
+      if (purchaseResponse.data?.message === 'Purchase created successfully') {
+        const purchaseId = purchaseResponse.data?.result?.insertId || purchaseResponse.data?.id;
+  
+        // 2. Create Purchase Details
         const purchaseDetailRequests = supplierInputs.map((input, index) => {
           const detailPayload = {
             purchase_id: purchaseId,
-            supplier_id: suppliers[index]?.id,  // Make sure suppliers and supplierInputs align
+            supplier_id: suppliers[index]?.id,
             qty: parseFloat(input.qty_mann || 0),
             rate: parseFloat(input.rate || 0),
           };
@@ -121,26 +126,91 @@ function CreatePurchase() {
   
         await Promise.all(purchaseDetailRequests);
   
-        // Reset form after submission
-        setPurchaseDate('');
-        setEndDate('');
-        setNameUr('');
-        setRouteId(null);
-        setItemId(null);
-        setNote('');
-        setStatus('1');
-        setSupplierInputs([]);
-        setLoading(false);
-        toast.success('Purchase created successfully!');
+        const totalCredit = supplierInputs.reduce((acc, input) => {
+          return acc + (parseFloat(input.qty_mann || 0) * parseFloat(input.rate || 0));
+        }, 0);
+  
+        const debitVoucherPayload = {
+          voucher_id: purchaseId,
+          voucher_type: 'PV',
+          voucher_date: purchaseDate,
+          note: note,
+        };
+    
+        const debitVoucherResponse = await axios.post('https://accounts-management.onrender.com/common/voucher/create', debitVoucherPayload);
+        if (debitVoucherResponse.data?.message === 'Voucher created successfully') {
+          const voucher = debitVoucherResponse.data?.id;
+           console.log('Voucher created successfully:', voucher);
+          const allVoucherDetails = supplierInputs.map((input, index) => {
+            const supplier = suppliers[index];
+            const creditAmount = parseFloat(input.qty_mann || 0) * parseFloat(input.rate || 0);
+            const hasValidData = input.qty_mann && input.rate;
+            const formattedParticulars = hasValidData
+              ? `${selectedItem.label}: ${input.qty_mann}@${input.rate}/- (${purchaseDate ? new Date(purchaseDate).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' }) : 'N/A'})`
+              : '';
+        
+            return {
+              main_id: voucher,
+              account_code: supplier?.supplier_code || "",
+              particulars: formattedParticulars,
+              debit: 0,
+              credit: creditAmount,
+            };
+          });
+        
+          const responses = [];
+        
+          // STEP 2: Post all credit entries
+          for (const detail of allVoucherDetails) {
+            try {
+              const res = await axios.post(
+                'https://accounts-management.onrender.com/common/voucherDetail/create',
+                detail
+              );
+              responses.push(res.data);
+            } catch (error) {
+              console.error(error.response?.data || error.message);
+              responses.push(null);
+            }
+          }
+        
+          const debitEntry = {
+            main_id: voucher,
+            account_code: "1140001",
+            particulars: `Purchase of ${selectedItem.label}`,
+            debit: totalCredit,
+            credit: 0,
+          };
+        
+          try {
+            const debitRes = await axios.post(
+              'https://accounts-management.onrender.com/common/voucherDetail/create',
+              debitEntry
+            );
+            setLoading(false);
+            console.log('Debit entry response:', debitRes.data);
+          } catch (error) {
+            setLoading(false);
+            console.error('Error posting debit entry:', error.response?.data || error.message);
+          }
+        }
+        else {
+          setLoading(false);
+          toast.error('Failed to create voucher');
+        }
       } else {
-        setLoading(false); // Set loading to false if there's an error
+        setLoading(false);
         toast.error('Failed to create purchase');
       }
     } catch (error) {
-      setLoading(false); // Set loading to false if there's an error
+      setLoading(false);
       toast.error('Error while submitting the form');
+      console.error(error);
     }
   };
+  
+  
+  
 
   if (!isClient) {
     return null; 
@@ -164,7 +234,7 @@ function CreatePurchase() {
       <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
         <h2 className="text-xl font-semibold text-gray-700">Create New Purchase</h2>
       </div>
-
+<Toaster position="top-center" reverseOrder={false} />
       <div className="flex items-center justify-center p-12">
         <div className="mx-auto w-full bg-white">
           <form onSubmit={handleSubmit}>
@@ -173,7 +243,7 @@ function CreatePurchase() {
               <div className="w-1/2">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Purchase Date</label>
                 <input
-                  type="datetime-local"
+                  type="date"
                   name="purchase_date"
                   id="purchase_date"
                   value={purchaseDate}
@@ -186,7 +256,7 @@ function CreatePurchase() {
               <div className="w-1/2">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">End Date</label>
                 <input
-                  type="datetime-local"
+                  type="date"
                   name="end_date"
                   id="end_date"
                   value={endDate}
@@ -231,12 +301,12 @@ function CreatePurchase() {
               <div className="w-1/2">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Item</label>
                 <Select
-                  options={items}
-                  value={itemId}
-                  onChange={setItemId}
-                  placeholder="Select Item"
-                  className="w-full rounded-md"
-                />
+  options={items}
+  value={selectedItem?.label ? { label: selectedItem.label, value: selectedItem.id } : null} // Using both id and label
+  onChange={(selectedOption) => setSelectedItem({ id: selectedOption?.value, label: selectedOption?.label })}  // Set both id and label
+  placeholder="Select Item"
+  className="w-full rounded-md"
+/>
               </div>
             </div>
 

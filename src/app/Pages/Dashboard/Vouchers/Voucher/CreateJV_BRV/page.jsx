@@ -4,6 +4,7 @@ import axios from 'axios';
 import VoucherDetailTable from './JV_BRVtable';
 import Select from 'react-select';
 import './Sale.css';
+import toast, { Toaster } from 'react-hot-toast';
 
 const voucherTypeOptions = [
   { value: 'JV', label: 'JV' },
@@ -11,12 +12,13 @@ const voucherTypeOptions = [
 ];
 
 const CreateVoucher = () => {
-  const [voucherType, setVoucherType] = useState(voucherTypeOptions[0]); // 👈 Default to "BP"
+  const [voucherType, setVoucherType] = useState(voucherTypeOptions[0]); // Default to "JV"
   const [voucherDate, setVoucherDate] = useState('');
   const [note, setNote] = useState('');
-  const [voucherDetails, setVoucherDetails] = useState([]);
+  const [voucherDetails, setVoucherDetails] = useState([]); // Stores voucher details
   const [customVoucherId, setCustomVoucherId] = useState('');
-
+   const [loading, setLoading] = useState(true);
+ 
   // Fetch vouchers and calculate ID
   const fetchAndSetCustomVoucherId = async (selectedType) => {
     try {
@@ -25,8 +27,10 @@ const CreateVoucher = () => {
       const filtered = allVouchers.filter(v => v.voucher_type === selectedType);
       const newId = filtered.length + 1;
       setCustomVoucherId(newId);
+      setLoading(false)
     } catch (err) {
       console.error('Error fetching vouchers:', err);
+      setLoading(false)
       setCustomVoucherId('');
     }
   };
@@ -46,14 +50,10 @@ const CreateVoucher = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!voucherType || !voucherDate || voucherDetails.length === 0) {
-      alert('Please fill in all required fields and add at least one detail entry.');
-      return;
-    }
+setLoading(true)
 
     const voucherPayload = {
-      voucher_id: customVoucherId, // 👈 Include custom ID
+      voucher_id: customVoucherId, // Include custom ID
       voucher_type: voucherType.value,
       voucher_date: voucherDate,
       note,
@@ -65,34 +65,104 @@ const CreateVoucher = () => {
 
       if (!voucherId) throw new Error('Voucher creation failed.');
 
-      const detailRequests = voucherDetails.map(detail => {
-        return axios.post('https://accounts-management.onrender.com/common/voucherDetail/create', {
-          main_id: voucherId,
-          account_code: detail.account_code,
-          particulars: detail.particulars,
-          debit: parseFloat(detail.debit || 0),
-          credit: parseFloat(detail.credit || 0),
-        });
-      });
+      const processVoucherDetails = async (voucherDetails, voucherId) => {
+        let totalDebit = 0;
+        let totalCredit = 0;
+      
+        const processedEntries = [];
+      
+        // Process entries in pairs
+        for (let i = 0; i < voucherDetails.length; i += 2) {
+          const first = { ...voucherDetails[i] };
+          const second = { ...voucherDetails[i + 1] };
+      
+          // Defaulting values to 0 if undefined
+          first.debit = parseFloat(first?.debit || 0);
+          first.credit = parseFloat(first?.credit || 0);
+          second.debit = parseFloat(second?.debit || 0);
+          second.credit = parseFloat(second?.credit || 0);
+      
+          // Adjust debit/credit as per new rules
+          first.debit += second.debit;
+          second.debit = 0;
+      
+          second.credit += first.credit;
+          first.credit = 0;
+      
+          // Push processed entries
+          processedEntries.push({
+            main_id: voucherId,
+            account_code: first.account_code || '',
+            particulars: first.particulars || '',
+            debit: first.debit,
+            credit: 0,
+          });
+      
+          if (voucherDetails[i + 1]) {
+            processedEntries.push({
+              main_id: voucherId,
+              account_code: second.account_code || '',
+              particulars: second.particulars || '',
+              debit: 0,
+              credit: second.credit,
+            });
+          }
+      
+          totalDebit += first.debit;
+          totalCredit += second.credit;
+        }
+      
+        console.log('Processed Entries:', processedEntries);
+        console.log('Total Debit:', totalDebit);
+        console.log('Total Credit:', totalCredit);
+      
+        // Send to API
+        try {
+          for (const entry of processedEntries) {
+            if (entry.debit > 0 || entry.credit > 0) {
+              await axios.post('https://accounts-management.onrender.com/common/voucherDetail/create', entry);
+            }
+          }
+        } catch (error) {
+          console.error('Error creating voucher details:', error);
+        }
+      };
+      
+      
 
-      await Promise.all(detailRequests);
+      // Process voucher details after voucher is created
+      await processVoucherDetails(voucherDetails, voucherId);
+      setLoading(false)
+      toast.success('Voucher and details created successfully!');
 
-      alert('Voucher and details created successfully!');
-
-      // Reset form to default "BP"
+      // Reset the form after successful submission
       setVoucherType(voucherTypeOptions[0]);
       setVoucherDate('');
       setNote('');
       setVoucherDetails([]);
-      fetchAndSetCustomVoucherId('BP');
+      fetchAndSetCustomVoucherId('JV');
     } catch (err) {
       console.error(err);
-      alert('An error occurred while creating the voucher.');
+      setLoading(false)
+      toast.error('An error occurred while creating the voucher.');
     }
   };
-
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="flex space-x-2">
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></span>
+          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:0.15s]"></span>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
+            <Toaster position="top-right" reverseOrder={false} />
+
       <h2 className="text-2xl font-semibold mb-4 text-gray-700">Create New Voucher</h2>
 
       <form onSubmit={handleSubmit}>
@@ -112,7 +182,7 @@ const CreateVoucher = () => {
           <div>
             <label className="block text-gray-700 font-medium mb-2">Voucher Date</label>
             <input
-              type="datetime-local"
+              type="date"
               value={voucherDate}
               onChange={(e) => setVoucherDate(e.target.value)}
               required

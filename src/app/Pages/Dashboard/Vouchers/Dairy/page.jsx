@@ -27,22 +27,23 @@ function Diary() {
     fetchData();
   }, []);
 
-  // Logic to handle paginated data
   const totalItems = data.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  // Get the data for the current page
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
 
-  // Handle previous and next page changes
   const handlePageChange = (page) => {
     if (page > 0 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
-
+  const formatCurrencyPK = (number) => {
+    if (isNaN(number)) return '0';
+    const rounded = Math.round(Number(number));
+    return rounded.toLocaleString('en-IN');
+  };
   if (loading) return <div className="flex justify-center items-center h-screen">
   <div className="flex space-x-2">
     <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
@@ -87,7 +88,7 @@ function Diary() {
                 <td className="px-4 py-2 text-sm text-gray-700">{entry.issue_date?.split('T')[0]}</td>
                 <td className="px-4 py-2 text-sm text-gray-700">{entry.cheque_date?.split('T')[0]}</td>
                 <td className="px-4 py-2 text-sm text-gray-700">{entry.cheque_no}</td>
-                <td className="px-4 py-2 text-sm text-gray-700">{entry.cheque_amount}</td>
+                <td className="px-4 py-2 text-sm text-gray-700">{formatCurrencyPK(entry.cheque_amount)}</td>
                 <td className="px-4 py-2 text-sm text-gray-700">{entry.bank_code}</td>
                 <td className="px-4 py-2 text-sm text-gray-700">{entry.supplier_code}</td>
                 <td className="px-4 py-2 text-sm text-gray-700">{entry.particulars}</td>

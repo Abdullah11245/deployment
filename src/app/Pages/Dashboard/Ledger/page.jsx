@@ -19,7 +19,11 @@ function RouteList() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const tableRef = useRef(null);
-
+  const formatCurrencyPK = (number) => {
+    if (isNaN(number)) return '0';
+    const rounded = Math.round(Number(number));
+    return rounded.toLocaleString('en-IN');
+  };
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -330,6 +334,7 @@ function RouteList() {
           <thead className="bg-gray-100">
             <tr>
               <th className="px-6 py-3">#</th>
+              <th className='px-6 py-3'>Type</th>
               <th className="px-6 py-3">Date</th>
               <th className="px-6 py-3">Particulars</th>
               <th className="px-6 py-3">Debit</th>
@@ -343,20 +348,21 @@ function RouteList() {
               .map((voucher, index) => (
                 <tr key={voucher.id || index} className="border-t">
                   <td className="px-6 py-4">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                  <td className='px-6 py-4'>{voucher.voucher_type}-{voucher.voucher_id}</td>
                   <td className="px-6 py-4">{new Date(voucher.voucher_date).toLocaleDateString()}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 w-80">
                     {voucher.details.length > 0
-                      ? voucher.details.map(d => d.particulars).join(', ')
+                      ? voucher.details.map(d => d.particulars).join(' ')
                       : 'No Details'}
                   </td>
                   <td className="px-6 py-4">
-                    {voucher.details.reduce((total, d) => total + (parseFloat(d.debit) || 0), 0).toFixed(2)}
+                    {formatCurrencyPK(voucher.details.reduce((total, d) => total + (parseFloat(d.debit) || 0), 0).toFixed(2))}
                   </td>
                   <td className="px-6 py-4">
-                    {voucher.details.reduce((total, d) => total + (parseFloat(d.credit) || 0), 0).toFixed(2)}
+                    {formatCurrencyPK(voucher.details.reduce((total, d) => total + (parseFloat(d.credit) || 0), 0).toFixed(2))}
                   </td>
                   <td className="px-6 py-4">
-                    {voucher.details.reduce((total, d) => total + (parseFloat(d.debit) || 0) - (parseFloat(d.credit) || 0), 0).toFixed(2)}
+                    {formatCurrencyPK(voucher.details.reduce((total, d) => total + (parseFloat(d.debit) || 0) - (parseFloat(d.credit) || 0), 0).toFixed(2))}
                   </td>
                 </tr>
               ))}

@@ -10,8 +10,8 @@ const Navbar = () => {
     
     if (userData) {
       const parsedUser = JSON.parse(userData);
-      setRole(parsedUser?.user?.role)// adjust this key to match your API response
-      setUserName(parsedUser?.user?.firstname)// adjust this key to match your API response
+      setRole(parsedUser?.user?.role)
+      setUserName(parsedUser?.user?.firstname)
     }
   }, []);
   const toggleMobileMenu = () => {
@@ -21,7 +21,7 @@ const Navbar = () => {
   return (
   <>
   
-  <div className="flex flex-col flex-1  py-4 px-2 rounded ml-72 fixed w-4/6">
+  <div className="flex flex-col flex-1  py-4 px-2 rounded ml-72 fixed w-4/6 z-40">
         <div className="flex items-center justify-between h-16 bg-gray-50  p-2 w-[121%]" >
           <div className="flex items-center px-4 space-x-2">
             <button className="text-gray-500 focus:outline-none focus:text-gray-700">

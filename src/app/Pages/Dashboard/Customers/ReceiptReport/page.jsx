@@ -24,6 +24,7 @@ function Receiptreport() {
   const [itemsPerPage] = useState(200);
   const tableRef = useRef(null);
   const [partyNameMap, setPartyNameMap] = useState({});
+  const [resolvedBanks, setResolvedBanks] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,55 +32,69 @@ function Receiptreport() {
         const [voucherRes, detailRes, partiesRes, banksRes] = await Promise.all([
           axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
           axios.get('https://accounts-management.onrender.com/common/voucherDetail/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
+          axios.get('https://accounts-management.onrender.com/common/suppliers/getAll'),
           axios.get('https://accounts-management.onrender.com/common/banks/getAll')
         ]);
-       console.log('Voucher Data:', voucherRes.data);
-        console.log('Detail Data:', detailRes.data);
-        console.log('Parties Data:', partiesRes.data);
+  
         const voucherData = voucherRes.data || [];
         const detailData = detailRes.data || [];
-  
-        // Map account_code to name
         const uniqueCodes = [...new Set(detailData.map(d => d.account_code))];
         const partyNameMap = {};
   
         await Promise.all(
           uniqueCodes.map(async (code) => {
             try {
-              const res = await axios.get(`https://accounts-management.onrender.com/common/parties/partybyCode/${code}`);
-              if (res.data?.name) {
-                partyNameMap[code] = res.data.name;
+              // Try fetching supplier first
+              const supplierRes = await axios.get(`https://accounts-management.onrender.com/common/suppliers/supplier/${code}`);
+              if (supplierRes.data?.name) {
+                partyNameMap[code] = supplierRes.data.name;
               }
             } catch (err) {
-              console.error(`Error fetching party for code ${code}:`, err);
+              // Supplier not found, try fetching party instead
+              try {
+                const partyRes = await axios.get(`https://accounts-management.onrender.com/common/parties/partybyCode/${code}`);
+                if (partyRes.data?.name) {
+                  partyNameMap[code] = partyRes.data.name;
+                }
+              } catch (partyErr) {
+                // Log error or handle the case when neither supplier nor party is found
+              }
             }
           })
         );
-  
+        const brVouchers = voucherData.filter(v => v.voucher_type === 'BR');
+        setRoutes(brVouchers);
+        setOriginalRoutes(brVouchers);
         setPartyNameMap(partyNameMap);
-        setRoutes(voucherData);
         setVoucherDetails(detailData);
-        setOriginalRoutes(voucherData);
         setOriginalVoucherDetails(detailData);
   
-        const activeParties = partiesRes.data.filter(party => party.status);
+        // Party Options
+        const activeParties = partiesRes.data.suppliers.filter(party => party.status);
         setPartiesOptions(
-          activeParties.map(party => ({ value: party.party_code, label: party.name }))
+          activeParties.map(party => ({ value: party.supplier_code, label: party.name }))
         );
   
-        const banksData = banksRes.data.map(bank => ({
-          value: bank.account_code,
-          label: bank.account_title
-        }));
-  
-        setBanksOptions([
+        // Bank Options
+        const banksData = banksRes.data;
+        const banksOptions = [
           { value: 'All', label: 'All' },
-          ...banksData,
+          ...banksData.map(bank => ({
+            value: bank.account_code,
+            label: bank.account_title
+          })),
           { value: 'Cash', label: 'Cash' }
-        ]);
+        ];
+        setBanksOptions(banksOptions);
+  
+        const bankNameMap = {};
+        banksData.forEach(bank => {
+          bankNameMap[bank.account_title.toLowerCase()] = bank.account_title;
+        });
+        setResolvedBanks(bankNameMap);
+  
       } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -88,6 +103,14 @@ function Receiptreport() {
     fetchData();
   }, []);
   
+  
+
+
+  const formatCurrencyPK = (number) => {
+    if (isNaN(number)) return '0';
+    const rounded = Math.round(Number(number));
+    return rounded.toLocaleString('en-IN');
+  };
 
   const getDetailsForVoucher = (voucherId) => {
     return voucherDetails.filter(detail => detail.main_id === voucherId);
@@ -96,7 +119,38 @@ function Receiptreport() {
   const getTotalDebit = (details) => {
     return details.reduce((sum, detail) => sum + (parseFloat(detail.debit) || 0), 0);
   };
-
+ 
+  const processParticulars = (text) => {
+    if (typeof text !== 'string' || !text.trim()) {
+      return { nature: '' };
+    }
+  
+    const lowerText = text.toLowerCase();
+    let nature = '';
+  
+    // Handle "from" keyword
+    const fromIndex = lowerText.indexOf('from');
+    if (fromIndex !== -1) {
+      nature = text.substring(fromIndex + 5).trim(); // Text after "from"
+    }
+  
+    // Handle "into" keyword
+    const intoIndex = lowerText.indexOf('into');
+    if (intoIndex !== -1) {
+      nature = text.substring(intoIndex + 5).trim(); // Text after "into"
+    }
+  
+    // Handle ":" (colon) keyword
+    const colonIndex = lowerText.indexOf(':');
+    if (colonIndex !== -1) {
+      nature = text.substring(colonIndex + 1).trim(); // Text after ":"
+    }
+  
+    return { nature };
+  };
+  
+  
+  
   const getPaginatedData = () => {
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -127,8 +181,8 @@ function Receiptreport() {
     }
   
     if (selectedParty.length > 0) {
-      const selectedPartyCodes = selectedParty.map(p => p.value); // assuming label contains party_code
-
+      const selectedPartyCodes = selectedParty.map(p => p.value); // assuming label contains supplier_code
+  
       filteredData = filteredData.filter(route => {
         const details = getDetailsForVoucher(route.id);
         return details.some(detail => selectedPartyCodes.includes(detail.account_code));
@@ -137,13 +191,23 @@ function Receiptreport() {
   
     if (selectedCashBank.length > 0 && !selectedCashBank.some(item => item.value === 'All')) {
       filteredData = filteredData.filter(route =>
-        selectedCashBank.some(bank => bank.value === route.account_code)
+        selectedCashBank.some(bank => {
+          const details = getDetailsForVoucher(route.id);
+          const bankTitles = details.map(detail => processParticulars(detail?.particulars).nature);
+          return bankTitles.some(nature => {
+            return selectedCashBank.some(bankOption => {
+              const bankTitle = bankOption.label.toLowerCase();
+              return nature.toLowerCase().includes(bankTitle); // Match if the bank title is part of the nature
+            });
+          });
+        })
       );
     }
   
     setRoutes(filteredData);
     setCurrentPage(1);
   };
+  
   
 
   const handleReset = () => {
@@ -162,7 +226,7 @@ function Receiptreport() {
         '#': index + 1,
         'Voucher #': route.voucher_id,
         'Date': new Date(route.voucher_date).toLocaleDateString(),
-        'Party': route.party_code || 'N/A',
+        'Party': route.supplier_code || 'N/A',
         'Nature/Mode': route.voucher_type,
         'Particulars': route.note,
         'Amount': getTotalDebit(details).toFixed(2),
@@ -180,7 +244,7 @@ function Receiptreport() {
       link.click();
       document.body.removeChild(link);
     } catch (err) {
-      console.error('Error exporting CSV:', err);
+     
     }
   };
 
@@ -191,7 +255,7 @@ function Receiptreport() {
         '#': index + 1,
         'Voucher #': route.voucher_id,
         'Date': new Date(route.voucher_date).toLocaleDateString(),
-        'Party': route.party_code || 'N/A',
+        'Party': route.supplier_code || 'N/A',
         'Nature/Mode': route.voucher_type,
         'Particulars': route.note,
         'Amount': getTotalDebit(details).toFixed(2),
@@ -215,7 +279,7 @@ function Receiptreport() {
         index + 1,
         route.voucher_id,
         new Date(route.voucher_date).toLocaleDateString(),
-        route.party_code || 'N/A',
+        route.supplier_code || 'N/A',
         route.voucher_type,
         route.note,
         getTotalDebit(details).toFixed(2),
@@ -288,7 +352,41 @@ function Receiptreport() {
   const totalPages = Math.ceil(routes.length / itemsPerPage);
   const indexOfFirstRoute = (currentPage - 1) * itemsPerPage;
   const indexOfLastRoute = Math.min(indexOfFirstRoute + itemsPerPage, routes.length);
-
+  const handleUniversalSearch = (searchTerm) => {
+    if (!searchTerm.trim()) {
+      setRoutes(originalRoutes);
+      setCurrentPage(1);
+      return;
+    }
+  
+    const lowerSearch = searchTerm.toLowerCase();
+  
+    const filtered = originalRoutes.filter(route => {
+      const voucherId = route.voucher_id?.toString().toLowerCase() || '';
+      const voucherDate = new Date(route.voucher_date).toLocaleDateString().toLowerCase();
+      const note = route.note?.toLowerCase() || '';
+  
+      const details = getDetailsForVoucher(route.id);
+      const particularsMatch = details.some(detail =>
+        (detail.particulars || '').toLowerCase().includes(lowerSearch)
+      );
+  
+      const partyMatch = details.some(detail => {
+        const partyName = partyNameMap[detail.account_code]?.toLowerCase() || '';
+        return partyName.includes(lowerSearch);
+      });
+  
+      return voucherId.includes(lowerSearch) ||
+             voucherDate.includes(lowerSearch) ||
+             note.includes(lowerSearch) ||
+             particularsMatch ||
+             partyMatch;
+    });
+  
+    setRoutes(filtered);
+    setCurrentPage(1);
+  };
+  
   return (
     <div className="container mx-auto px-4 py-8">
     <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
@@ -336,7 +434,6 @@ function Receiptreport() {
           options={banksOptions}
           value={selectedCashBank}
           onChange={setSelectedCashBank}
-          isDisabled={true}
           className="mt-2"
           placeholder="Select Cash or Bank"
         />
@@ -356,6 +453,16 @@ function Receiptreport() {
         <button onClick={exportPDF} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">PDF</button>
         <button onClick={handlePrint} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">Print</button>
       </div>
+      <div className=''>
+
+      <input
+  type="text"
+  placeholder="Search..."
+  onChange={(e) => handleUniversalSearch(e.target.value)}
+  className="px-3 py-2 border rounded-md text-sm w-64"
+/>
+      </div>
+
     </div>
 
     {/* Table */}
@@ -370,7 +477,6 @@ function Receiptreport() {
             <th className="py-3 px-4 text-left">Nature/Mode</th>
             <th className="py-3 px-4 text-left">Particulars</th>
             <th className="py-3 px-4 text-left">Amount</th>
-            <th className="py-3 px-4 text-left">Note</th>
           </tr>
         </thead>
         <tbody>
@@ -385,19 +491,34 @@ function Receiptreport() {
   {(() => {
     const details = getDetailsForVoucher(route.id);
     const matchedParty = details.find(detail => partyNameMap[detail.account_code]);
-    return matchedParty ? partyNameMap[matchedParty.account_code] : 'N/A';
+  
+    return matchedParty ? partyNameMap[matchedParty.account_code] : <div className='text-center'>N/A</div>;
   })()}
 </td>
 
-                <td className="py-3 px-4">{route.voucher_type}</td>
+<td className="py-3 px-4">
+  {
+    getDetailsForVoucher(route.id).map((detail, idx) => {
+      const { nature } = processParticulars(detail?.particulars);
+      const matchedBank = Object.keys(resolvedBanks).find(bankKey =>
+        nature.toLowerCase().includes(bankKey)
+      );
+      return (
+        matchedBank ? <div key={idx}>{resolvedBanks[matchedBank]}</div> : null
+      );
+    })
+  }
+</td>
+
+
+
                 <td className="py-3 px-4 ">
   {getDetailsForVoucher(route.id).map((detail, idx) => (
     <div key={idx}>{detail.particulars}</div>
   ))}
 </td>
 
-                <td className="py-3 px-4">{getTotalDebit(details).toFixed(2)}</td>
-                <td className="py-3 px-4">{route.note}</td>
+                <td className="py-3 px-4">{formatCurrencyPK(getTotalDebit(details).toFixed(2))}</td>
               </tr>
             );
           })}

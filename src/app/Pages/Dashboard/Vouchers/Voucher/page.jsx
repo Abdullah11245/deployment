@@ -2,14 +2,20 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { json2csv } from 'json-2-csv';
+
 
 const VoucherList = () => {
   const [vouchers, setVouchers] = useState([]);
   const [voucherDetails, setVoucherDetails] = useState([]);
-  const [activeRow, setActiveRow] = useState(null);
-  const [loading, setLoading] = useState(true); // Track loading state
-  const [currentPage, setCurrentPage] = useState(1); // Current page state
-  const itemsPerPage = 200; // Items per page
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState(''); // State for search query
+  const itemsPerPage = 200;
   const router = useRouter();
 
   useEffect(() => {
@@ -17,48 +23,233 @@ const VoucherList = () => {
       try {
         const [voucherRes, detailRes] = await Promise.all([
           axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/voucherDetail/getAll'),
+          axios.get('https://accounts-management.onrender.com/common/voucherDetail/getAll', { headers: { 'Access-Control-Allow-Origin': '*' } })
         ]);
-
         setVouchers(voucherRes.data || []);
         setVoucherDetails(detailRes.data || []);
       } catch (err) {
         console.error('Error fetching vouchers:', err);
       } finally {
-        setLoading(false); // Stop loading
+        setLoading(false);
       }
     };
 
     fetchData();
   }, []);
 
-  const handleEdit = (voucher) => {
-    router.push(`/Pages/Dashboard/Vouchers/Voucher/${voucher.id}`);
-  };
-
   const handleCreateNew = (route) => {
     router.push(`/Pages/Dashboard/Vouchers/Voucher/Create${route}`);
   };
 
-  const getDetailsForVoucher = (voucherId) =>
+  const getDetailsForVoucher = (voucherId) => 
     voucherDetails.filter((detail) => detail.main_id === voucherId);
 
-  const getTotalDebit = (details) =>
+  const getTotalDebit = (details) => 
     details.reduce((sum, d) => sum + parseFloat(d.debit || 0), 0);
 
-  const getTotalCredit = (details) =>
+  const getTotalCredit = (details) => 
     details.reduce((sum, d) => sum + parseFloat(d.credit || 0), 0);
 
-  // Calculate the indexes for the current page of data
+  // Handle pagination logic after filtering
+  const filteredVouchers = vouchers.filter((voucher) => {
+    const details = getDetailsForVoucher(voucher.id);
+
+    // Check if voucher ID, voucher type, or particulars match the search query
+    const voucherIdMatch = voucher.voucher_id.toString().toLowerCase().includes(searchQuery.toLowerCase());
+    const voucherTypeMatch = voucher.voucher_type.toLowerCase().includes(searchQuery.toLowerCase());
+    const particularsMatch = details.some((detail) =>
+      detail.particulars && detail.particulars.toString().toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    return voucherIdMatch || voucherTypeMatch || particularsMatch;
+  });
+
+  // Paginate filtered vouchers
   const indexOfLastVoucher = currentPage * itemsPerPage;
   const indexOfFirstVoucher = indexOfLastVoucher - itemsPerPage;
-  const currentVouchers = vouchers.slice(indexOfFirstVoucher, indexOfLastVoucher);
+  const currentVouchers = filteredVouchers.slice(indexOfFirstVoucher, indexOfLastVoucher);
 
-  // Handle pagination page change
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
 
+  const formatCurrencyPK = (number) => {
+    if (isNaN(number)) return '0';
+    const rounded = Math.round(Number(number));
+    return rounded.toLocaleString('en-IN');
+  };
+
+  const getVoucherLink = (voucher) => {
+    const { voucher_type, id, voucher_id } = voucher;
+
+    if (voucher_type === 'PV') {
+      return `/Pages/Dashboard/Vouchers/Voucher/PV/${voucher_id}/${id}`;
+    } else if (voucher_type === 'BP' || voucher_type === 'BR') {
+      return `/Pages/Dashboard/Vouchers/Voucher/BP_BR/${id}/${voucher_id}`;
+    } else if (voucher_type === 'CP' || voucher_type === 'CR') {
+      return `/Pages/Dashboard/Vouchers/Voucher/CP_CR/${id}/${voucher_id}`;
+    } else if (voucher_type === 'JV' || voucher_type === 'BRV') {
+      return `/Pages/Dashboard/Vouchers/Voucher/JV_BRV/${id}/${voucher_id}`;
+    }
+    else if(voucher_type == 'DV'){
+      return `/Pages/Dashboard/Vouchers/Voucher`
+    }
+    else {
+      return `/Pages/Dashboard/Vouchers/Voucher/${voucher_type}/${id}/${voucher_id}`;
+    }
+  };
+
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+  const exportToPDF = () => {
+    const filteredVoucherData = currentVouchers.map((voucher, index) => {
+      const details = getDetailsForVoucher(voucher.id);
+      const totalDebit = getTotalDebit(details);
+      const totalCredit = getTotalCredit(details);
+      return {
+        '#': index + 1,
+        'Voucher Type': `${voucher.voucher_type}-${voucher.voucher_id}`,
+        'Voucher Date': new Date(voucher.voucher_date).toLocaleDateString(),
+        'Particulars': details.map(d => d.particulars).join(', '),
+        'Total Debit': formatCurrencyPK(totalDebit),
+        'Total Credit': formatCurrencyPK(totalCredit),
+      };
+    });
+
+    const doc = new jsPDF();
+    doc.autoTable({
+      head: [['#', 'Voucher Type', 'Voucher Date', 'Particulars', 'Total Debit', 'Total Credit']],
+      body: filteredVoucherData.map(item => [
+        item['#'],
+        item['Voucher Type'],
+        item['Voucher Date'],
+        item['Particulars'],
+        item['Total Debit'],
+        item['Total Credit'],
+      ]),
+    });
+    doc.save('Voucher_List.pdf');
+  };
+
+  const exportFilteredCSV = () => {
+    const filteredVoucherData = currentVouchers.map((voucher, index) => {
+      const details = getDetailsForVoucher(voucher.id);
+      const totalDebit = getTotalDebit(details);
+      const totalCredit = getTotalCredit(details);
+      return {
+        '#': index + 1,
+        'Voucher Type': `${voucher.voucher_type}-${voucher.voucher_id}`,
+        'Voucher Date': new Date(voucher.voucher_date).toLocaleDateString(),
+        'Particulars': details.map(d => d.particulars).join(', '),
+        'Total Debit': formatCurrencyPK(totalDebit),
+        'Total Credit': formatCurrencyPK(totalCredit),
+      };
+    });
+
+    json2csv(filteredVoucherData, (err, csv) => {
+      if (err) {
+        console.error('Error converting to CSV:', err);
+      } else {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.setAttribute('href', URL.createObjectURL(blob));
+        link.setAttribute('download', 'Voucher_List.csv');
+        link.click();
+      }
+    });
+  };
+
+  const exportVoucherData = () => {
+    const filteredVoucherData = currentVouchers.map((voucher, index) => {
+      const details = getDetailsForVoucher(voucher.id);
+      const totalDebit = getTotalDebit(details);
+      const totalCredit = getTotalCredit(details);
+      return {
+        '#': index + 1,
+        'Voucher Type': `${voucher.voucher_type}-${voucher.voucher_id}`,
+        'Voucher Date': new Date(voucher.voucher_date).toLocaleDateString(),
+        'Particulars': details.map(d => d.particulars).join(', '),
+        'Total Debit': formatCurrencyPK(totalDebit),
+        'Total Credit': formatCurrencyPK(totalCredit),
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(filteredVoucherData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Voucher List');
+    XLSX.writeFile(wb, 'Voucher_List.xlsx');
+  };
+
+  const printVoucherList = () => {
+    const filteredVoucherData = currentVouchers.map((voucher, index) => {
+      const details = getDetailsForVoucher(voucher.id);
+      const totalDebit = getTotalDebit(details);
+      const totalCredit = getTotalCredit(details);
+      return {
+        '#': index + 1,
+        'Voucher Type': `${voucher.voucher_type}-${voucher.voucher_id}`,
+        'Voucher Date': new Date(voucher.voucher_date).toLocaleDateString(),
+        'Particulars': details.map(d => d.particulars).join(', '),
+        'Total Debit': formatCurrencyPK(totalDebit),
+        'Total Credit': formatCurrencyPK(totalCredit),
+      };
+    });
+
+    const printWindow = window.open('', '', 'height=600,width=800');
+    const documentContent = `
+      <html>
+        <head>
+          <title>Voucher List</title>
+          <style>
+            body { font-family: Arial, sans-serif; }
+            table { width: 100%; border-collapse: collapse; }
+            table, th, td { border: 1px solid black; }
+            th, td { padding: 8px; text-align: left; }
+          </style>
+        </head>
+        <body>
+          <h2>Voucher List</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Voucher Type</th>
+                <th>Voucher Date</th>
+                <th>Particulars</th>
+                <th>Total Debit</th>
+                <th>Total Credit</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredVoucherData
+                .map(item => {
+                  return `
+                    <tr>
+                      <td>${item['#']}</td>
+                      <td>${item['Voucher Type']}</td>
+                      <td>${item['Voucher Date']}</td>
+                      <td>${item['Particulars']}</td>
+                      <td>${item['Total Debit']}</td>
+                      <td>${item['Total Credit']}</td>
+                    </tr>
+                  `;
+                })
+                .join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(documentContent);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+ 
+  
+  
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -97,30 +288,21 @@ const VoucherList = () => {
           </button>
         </div>
       </div>
-{/* <div className='flex justify-between items-center'>
-        <div className=" flex justify-between items-center space-x-1 mt-8 mb-4">
-          <button className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
-            Archive
-          </button>
 
-          <button className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
-            Delete
-          </button>
-
-          <button className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
-            Restore
-          </button>
-
-          <button className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-md">
-            Add
-          </button>
-        </div>
-
+      <div className="flex justify-between items-center mt-8 mb-4">
+      <div className="flex gap-2 mb-6">
+    <button onClick={exportFilteredCSV} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">CSV</button>
+    <button onClick={exportVoucherData} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">Excel</button>
+    <button onClick={exportToPDF} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">PDF</button>
+    <button onClick={printVoucherList} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">Print</button>
+  </div>
         <div className="relative text-gray-600 border-2 rounded-full">
           <input
             type="search"
             name="search"
-            placeholder="Search"
+            placeholder="Search by Voucher ID, Type, or Particulars"
+            value={searchQuery}
+            onChange={handleSearchChange}
             className="bg-white h-10 px-5 pr-10 rounded-full text-sm focus:outline-none"
           />
           <button type="submit" className="absolute right-0 top-0 mt-3 mr-4">
@@ -144,7 +326,8 @@ const VoucherList = () => {
             </svg>
           </button>
         </div>
-      </div> */}
+      </div>
+
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-2">
         <table className="min-w-full border-collapse">
           <thead className="bg-gray-100">
@@ -152,8 +335,7 @@ const VoucherList = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Voucher Type</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Voucher Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Note</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entries</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Particulars</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Debit</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Credit</th>
             </tr>
@@ -168,20 +350,28 @@ const VoucherList = () => {
                 return (
                   <tr key={voucher.id} className="border-t">
                     <td className="px-6 py-4 text-sm text-gray-700">{index + 1}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{voucher.voucher_type}-{voucher.voucher_id}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">
-                      {new Date(voucher.voucher_date).toLocaleString()}
+                      <Link
+                        className='hover:bg-gray-100 px-6 py-3'
+                        href={getVoucherLink(voucher)}
+                      >
+                        {voucher.voucher_type}-{voucher.voucher_id}
+                      </Link>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{voucher.note}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{details.length}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{totalDebit.toFixed(2)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{totalCredit.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {new Date(voucher.voucher_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {details.map((d, i) => (<p key={i}>{d.particulars}</p>))}
+                    </td>
+                    <td className="px-6 py-4 text-base text-gray-700">{formatCurrencyPK(totalDebit)}</td>
+                    <td className="px-6 py-4 text-base text-gray-700">{formatCurrencyPK(totalCredit)}</td>
                   </tr>
                 );
               })
             ) : (
               <tr>
-                <td colSpan="8" className="text-center px-6 py-4 text-sm text-gray-700">
+                <td colSpan="6" className="text-center px-6 py-4 text-sm text-gray-700">
                   No voucher data available.
                 </td>
               </tr>
@@ -190,10 +380,9 @@ const VoucherList = () => {
         </table>
       </div>
 
-      {/* Pagination */}
       <div className="flex justify-between items-center mt-4">
         <span className="text-sm font-semibold text-gray-700">
-          Showing {indexOfFirstVoucher + 1} to {Math.min(indexOfLastVoucher, vouchers.length)} of {vouchers.length} entries
+          Showing {indexOfFirstVoucher + 1} to {Math.min(indexOfLastVoucher, filteredVouchers.length)} of {filteredVouchers.length} entries
         </span>
 
         <div className="flex gap-2 text-xs font-medium">
@@ -203,13 +392,12 @@ const VoucherList = () => {
             className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 bg-white text-gray-900"
           >
             <span className="sr-only">Previous</span>
-            
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
               <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
             </svg>
           </button>
 
-          {[...Array(Math.ceil(vouchers.length / itemsPerPage))].map((_, idx) => (
+          {[...Array(Math.ceil(filteredVouchers.length / itemsPerPage))].map((_, idx) => (
             <button
               key={idx + 1}
               onClick={() => handlePageChange(idx + 1)}
@@ -221,7 +409,7 @@ const VoucherList = () => {
 
           <button
             onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === Math.ceil(vouchers.length / itemsPerPage)}
+            disabled={currentPage === Math.ceil(filteredVouchers.length / itemsPerPage)}
             className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 bg-white text-gray-900"
           >
             <span className="sr-only">Next</span>

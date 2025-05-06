@@ -46,35 +46,68 @@ const CreateDiaryVoucher = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading
+    setLoading(true);
+  
     try {
-      const res = await axios.post(
+      // 1. Create Diary Voucher
+      const diaryRes = await axios.post(
         'https://accounts-management.onrender.com/common/diaryVoucher/create',
         formData
       );
-      if (res?.data) {
-        setLoading(false);
-        toast.success('Diary Voucher created successfully!');
-        setFormData({
-          issue_date: '',
-          cheque_date: '',
-          cheque_no: '',
-          cheque_amount: '',
-          bank_code: '',
-          supplier_code: '',
-          particulars: '',
-          notes: '',
-          dv_status: 'A',
-        });
-        
-      } else {
-        throw new Error('Failed to create diary voucher');
-      }
+  
+      const diaryId = diaryRes?.data?.id;
+    console.log(diaryId)
+      if (!diaryId) throw new Error('Failed to get diary voucher ID.');
+  
+      // 2. Create Voucher
+      const voucherPayload = {
+        voucher_id: diaryId,
+        voucher_type: 'DV',
+        voucher_date: formData.issue_date,
+        note: formData.notes,
+      };
+  
+      const vocuherRes=   await axios.post('https://accounts-management.onrender.com/common/voucher/create', voucherPayload);
+      const voucherId = vocuherRes.data?.id;
+
+      // 3. Get bank name for Voucher Detail
+      const bank = banks.find(b => b.account_code === formData.bank_code);
+      const bankName = bank?.account_title || 'Unknown Bank';
+  
+      const chequeInfo = `${formData.issue_date?.split('T')[0]} ${formData.cheque_no || ''}`.trim();
+  
+      // 4. Create Voucher Detail
+      const voucherDetailPayload = {
+        main_id: voucherId,
+        account_code: formData.bank_code,
+        particulars: `${bankName} ${chequeInfo}`,
+        debit: Number(formData.cheque_amount || 0),
+        credit: Number(formData.cheque_amount || 0),
+      };
+  
+      await axios.post('https://accounts-management.onrender.com/common/voucherDetail/create', voucherDetailPayload);
+  
+      // Success
+      setLoading(false);
+      toast.success('Diary Voucher & Voucher created successfully!');
+      setFormData({
+        issue_date: '',
+        cheque_date: '',
+        cheque_no: '',
+        cheque_amount: '',
+        bank_code: '',
+        supplier_code: '',
+        particulars: '',
+        notes: '',
+        dv_status: 'A',
+      });
     } catch (err) {
-      console.error(err);
-      alert('An error occurred while creating the diary voucher.');
+      console.error('Error during voucher creation:', err);
+      toast.error('Failed to create voucher. Please try again.');
+      setLoading(false);
     }
   };
+  
   if (loading) return <div className="flex justify-center items-center h-screen">
   <div className="flex space-x-2">
     <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
@@ -93,7 +126,7 @@ const CreateDiaryVoucher = () => {
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">Issue Date</label>
             <input
-              type="datetime-local"
+              type="date"
               name="issue_date"
               value={formData.issue_date}
               onChange={handleChange}
@@ -105,7 +138,7 @@ const CreateDiaryVoucher = () => {
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">Cheque Date</label>
             <input
-              type="datetime-local"
+              type="date"
               name="cheque_date"
               value={formData.cheque_date}
               onChange={handleChange}

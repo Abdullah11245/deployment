@@ -19,7 +19,7 @@ export default function ProtectedRoute({ children }) {
 
   if (isChecking) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-screen w-screen">
         <div className="flex justify-center items-center  h-screen w-screen flex-col fixed bg-white z-10">
           <p className='text-lg mb-2'>Authenticating</p>
           <div className="flex space-x-2">

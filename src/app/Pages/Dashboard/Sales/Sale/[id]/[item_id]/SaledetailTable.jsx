@@ -53,6 +53,7 @@ const SaleDetailTable = ({
       ...saleDetails,
       {
         itemId: '',
+        itemLabel: '',
         vehicleNo: '',
         frieght: '',
         uom: '',

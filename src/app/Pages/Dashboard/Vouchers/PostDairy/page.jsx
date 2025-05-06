@@ -36,7 +36,11 @@ function PostDairy() {
     fetchRoutes();
   }, []);
 
-
+  const formatCurrencyPK = (number) => {
+    if (isNaN(number)) return '0';
+    const rounded = Math.round(Number(number));
+    return rounded.toLocaleString('en-IN');
+  };
   const toggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'A' ? 'P' : 'A';
     try {
@@ -100,7 +104,7 @@ function PostDairy() {
                 <td className="px-6 py-4 text-sm text-gray-700">{route.issue_date}</td>
                 <td className="px-6 py-4 text-sm text-gray-700">{route.cheque_date}</td>
                 <td className="px-6 py-4 text-sm text-gray-700">{route.cheque_no}</td>
-                <td className="px-6 py-4 text-sm text-gray-700">{route.cheque_amount}</td>
+                <td className="px-6 py-4 text-sm text-gray-700">{formatCurrencyPK(route.cheque_amount)}</td>
                 <td className="px-6 py-4 text-sm text-gray-700">{route.particulars}</td>
                 <td className="px-6 py-4 text-sm text-gray-700">{route.supplier_code}</td>
                 <td className="px-6 py-4 text-sm text-gray-700">
