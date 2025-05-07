@@ -84,11 +84,11 @@ function RouteList() {
 
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-2">
         <table className="min-w-full border-collapse">
-          <thead className="bg-gray-100">
+          <thead className="bg-gray-500 text-white">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Route Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Route Name</th>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Status</th>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Action</th>
             </tr>
           </thead>
           <tbody>

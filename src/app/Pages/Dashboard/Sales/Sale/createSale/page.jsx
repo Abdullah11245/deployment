@@ -19,11 +19,9 @@ function CreateSale() {
   const [partyName, setPartyName] = useState('');
   const [grandTotal, setGrandTotal] = useState(0);
 
-  // Fetch Party List
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch parties
         const partiesResponse = await axios.get('https://accounts-management.onrender.com/common/parties/getAll');
         const activeParties = partiesResponse.data.filter(party => party.status === 1);
         const partyOptions = activeParties.map(party => ({
@@ -33,10 +31,9 @@ function CreateSale() {
         }));
         setParties(partyOptions);
 
-        // Fetch latest sale ID
         const saleIdResponse = await axios.get('https://accounts-management.onrender.com/common/sale/latest-id');
-
-        setLatestSaleId(saleIdResponse.data.latest_sale_id +1); // Adjust if the response is nested
+       console.log(saleIdResponse)
+        setLatestSaleId(saleIdResponse.data.latest_sale_id +1); 
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -51,17 +48,19 @@ function CreateSale() {
       const weight = parseFloat(detail.weight) || 0;
       const rate = parseFloat(detail.rate) || 0;
       const adjustment = parseFloat(detail.adjustment) || 0;
-      return acc + (weight * rate + adjustment);
+      const freight = parseFloat(detail.frieght || detail.freight) || 0;
+      return acc + (weight * rate + adjustment - freight);
     }, 0);
-
+  
     const tax = (parseFloat(taxPercentage) || 0) * total / 100;
     setTaxAmount(tax.toFixed(2));
-  }, [saleDetails, taxPercentage]);
+  }, [saleDetails, taxPercentage]); // ✅ Added taxPercentage
+  
 
   // Handle Form Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+  console.log(taxPercentage)
     const allFieldsFilled = saleDetails.every(detail =>
       detail.weight && detail.rate && detail.adjustment && detail.uom && detail.itemId && detail.vehicleNo
     );
@@ -69,7 +68,6 @@ function CreateSale() {
 
   
     if (!saleDate || !partyId || !taxPercentage || !allFieldsFilled) {
-      console.log("Form validation failed");
       setIsFormValid(false);
       return;
     }
@@ -110,7 +108,6 @@ function CreateSale() {
             debit: grandTotal,
             credit: 0,
           };
-         console.log("Debit Entry:", debitEntry); // Debugging line
           const creditEntry = {
             main_id: voucherId,
             account_code: "1140001",
@@ -119,7 +116,6 @@ function CreateSale() {
             credit: grandTotal,
             
           };
-        console.log("Credit Entry:", creditEntry); // Debugging line
           try {
             await axios.post(
               'https://accounts-management.onrender.com/common/voucherDetail/create',
@@ -183,21 +179,21 @@ function CreateSale() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
+    <div className="container mx-auto px-2 py-8">
+      <div className="flex justify-between items-center mb-0 border-b-2 pb-4 px-4">
         <h2 className="text-xl font-semibold text-gray-700">Create New Sale</h2>
       </div>
 
-      <div className="flex items-center justify-center p-12">
+      <div className="flex items-center justify-center p-4">
       
         <div className="mx-auto w-full bg-white">
           <form onSubmit={handleSubmit}>
-            {/* <div>
+            <div>
               <label className="mb-3 block text-base font-medium text-[#07074D]">Sale ID</label>
               <div className='w-36 h-12 bg-gray-200 rounded-md flex items-center justify-center mb-6'>
                 <h2 className="text-xl  text-gray-700">{latestSaleId }</h2>
               </div>
-            </div> */}
+            </div>
 
           
             <div className="flex items-center space-x-4 mb-5">
@@ -231,8 +227,8 @@ function CreateSale() {
 
               </div>
             </div>
-            <div className="flex items-center space-x-4 mb-5">
-              <div className="w-full">
+            {/* <div className="flex items-center space-x-4 mb-5"> */}
+              {/* <div className="w-full">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Tax Percentage (%)</label>
                 <input
                   type="number"
@@ -241,9 +237,9 @@ function CreateSale() {
                   required
                   className="w-full rounded-md border border-[#e0e0e0] py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                 />
-              </div>
+              </div> */}
 
-              <div className="w-full">
+              {/* <div className="w-full">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Tax Amount</label>
                 <input
                   type="number"
@@ -252,26 +248,28 @@ function CreateSale() {
                   required
                   className="w-full bg-gray-100 cursor-not-allowed rounded-md border border-[#e0e0e0] py-3 px-6 text-base font-medium text-[#6B7280]"
                 />
-              </div>
-            </div>
+              </div> */}
+            {/* </div> */}
             <div className="mb-5 w-full">
               <SaleDetailTable
                 saleDetails={saleDetails}
                 setSaleDetails={setSaleDetails}
                 taxPercentage={taxPercentage}
+                setTaxPercentage={setTaxPercentage} // ✅ Add this
                 taxAmount={taxAmount}
                 setGrandTotal={setGrandTotal}
               />
             </div>
 
             {/* Notes */}
-            <div className="mb-5">
+            <div className="mb-5 mt-10">
               <label className="mb-3 block text-base font-medium text-[#07074D]">Notes</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                placeholder='Notes'
                 required
-                className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
+                className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-3 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md  min-h-36 max-w-1/2"
               />
             </div>
 

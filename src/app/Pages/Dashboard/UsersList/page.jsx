@@ -108,14 +108,14 @@ function UserTable() {
           <p className="text-center py-6 text-gray-500">No users found.</p>
         ) : (
           <table className="min-w-full table-auto border-collapse">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avatar</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">First Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+            <thead className="bg-gray-500">
+              <tr className='text-white '>
+                <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Avatar</th>
+                <th className="px-6 py-3 text-left text-sm font-medium  uppercase">First Name</th>
+                <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Last Name</th>
+                <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Email</th>
+                <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Role</th>
+                <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Action</th>
               </tr>
             </thead>
             <tbody>

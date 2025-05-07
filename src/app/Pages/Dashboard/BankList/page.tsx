@@ -75,16 +75,15 @@ const BankList = () => {
         </button>
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-2">
         <table className="min-w-full border-collapse">
-          <thead className="bg-gray-100">
+          <thead className="bg-gray-500">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Account Title</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Address</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase">#</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase">Account Title</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase">Address</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase">Status</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -124,7 +123,6 @@ const BankList = () => {
         </table>
       </div>
 
-      {/* Pagination */}
       <div className="flex justify-between items-center mt-4">
         <span className="text-sm font-semibold text-gray-700">
           Showing {banks.length === 0 ? 0 : indexOfFirstBank + 1} to {Math.min(indexOfLastBank, banks.length)} of {banks.length} entries

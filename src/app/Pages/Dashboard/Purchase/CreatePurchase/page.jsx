@@ -22,21 +22,23 @@ function CreatePurchase() {
   const [loading, setLoading] = useState(true); // ✅ Loading state
   const [hasSuppliers, setHasSuppliers] = useState(false); // New state to check if suppliers exist
   const [selectedItem, setSelectedItem] = useState({ id: '', label: '' });
-
+  const [purchaseid,setPurchaseId]=useState('')
   useEffect(() => {
     setIsClient(true); // Set to true once the component is mounted on the client
     
     // Fetch available routes and items from the API
     const fetchRoutesAndItems = async () => {
       try {
-        const [routeResponse, itemResponse] = await Promise.all([
+        const [routeResponse, itemResponse,purchaseRes] = await Promise.all([
           axios.get('https://accounts-management.onrender.com/common/routes/getAll'),
           axios.get('https://accounts-management.onrender.com/common/items/getAll'),
+          axios.get('https://accounts-management.onrender.com/common/purchase/getAll')
         ]);
-       console.log(itemResponse.data[0].type);
-        // Filter routes based on status being '1' (active)
+        console.log(purchaseRes.data.length)
+     setPurchaseId(purchaseRes.data.length)
         const filteredRoutes = routeResponse?.data?.routes.filter(route => route.status === 'A') || [];
         const filteredItems = itemResponse?.data?.filter(item => item.type == 'Purchase') || [];
+
         setRoutes(
           filteredRoutes.map(route => ({
             value: route.id,
@@ -236,7 +238,17 @@ function CreatePurchase() {
       </div>
 <Toaster position="top-center" reverseOrder={false} />
       <div className="flex items-center justify-center p-12">
+    
         <div className="mx-auto w-full bg-white">
+        <div className='mb-6 w-32'>
+            <label className="block text-gray-700 font-medium mb-2">Purchase ID</label>
+            <input
+              type="text"
+              value={purchaseid+1}
+              readOnly
+              className="w-full bg-gray-100 border border-gray-300 rounded-md px-4 py-2 cursor-not-allowed text-gray-600"
+            />
+          </div>
           <form onSubmit={handleSubmit}>
             {/* Purchase Date and End Date */}
             <div className="flex space-x-4 mb-5">
@@ -348,7 +360,7 @@ function CreatePurchase() {
              handleQuantityChange={handleQuantityChange} // Pass handleQuantityChange to SupplierTable
             />
 
-            <div className="w-1/2">
+            <div className="w-1/2 mt-5">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Note</label>
                 <textarea
                   name="note"

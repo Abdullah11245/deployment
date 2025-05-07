@@ -5,6 +5,11 @@ import Select from 'react-select';
 const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) => {
   const [mainOptions, setMainOptions] = useState([]);
   const [bankOptions, setBankOptions] = useState([]);
+  const formatCurrencyPK = (number) => {
+    if (isNaN(number)) return '0';
+    const rounded = Math.round(Number(number));
+    return rounded.toLocaleString('en-IN');
+  };
   useEffect(() => {
     const fetchOptions = async () => {
       try {
@@ -113,7 +118,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
   return (
     <div className="overflow-x-auto bg-white shadow-md rounded-md mt-8">
       <table className="min-w-full border border-gray-200 ">
-        <thead className="bg-gray-100 text-gray-600">
+        <thead className="bg-gray-500 text-white">
           <tr>
             <th className="px-4 py-2 text-left">#</th>
             <th className="px-4 py-2 text-left">
@@ -163,29 +168,27 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                   type="text"
                   value={row.particulars}
                   onChange={(e) => handleInputChange(index, 'particulars', e.target.value)}
-                  className="w-full border rounded px-2 py-1"
+                  className="w-full border rounded px-2 py-3"
                   placeholder="e.g. Payment for..."
                 />
               </td>
 
               <td className="px-4 py-2 text-right">
                 <input
-                  type="number"
-                  step="0.01"
+                  type="text"
                   value={row.debit}
                   onChange={(e) => handleInputChange(index, 'debit', e.target.value)}
-                  className="w-24 border rounded px-2 py-1 text-right"
+                  className="w-28 border rounded px-2 py-3 text-right"
                   placeholder="0"
                 />
               </td>
 
               <td className="px-4 py-2 text-right">
                 <input
-                  type="number"
-                  step="0.01"
+                  type="text"
                   value={row.credit}
                   onChange={(e) => handleInputChange(index, 'credit', e.target.value)}
-                  className="w-24 border rounded px-2 py-1 text-right"
+                  className="w-28 border rounded px-2 py-3 text-right"
                   placeholder="0"
                 />
               </td>
@@ -203,8 +206,8 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
           ))}
           <tr className="bg-gray-50 border-t font-semibold">
             <td colSpan="4" className="px-4 py-2 text-right">Totals</td>
-            <td className="px-4 py-2 text-right">{totalDebit.toFixed(2)}</td>
-            <td className="px-4 py-2 text-right">{totalCredit.toFixed(2)}</td>
+            <td className="px-4 py-2 text-right">{formatCurrencyPK(totalDebit.toFixed(2))}</td>
+            <td className="px-4 py-2 text-right">{formatCurrencyPK(totalCredit.toFixed(2))}</td>
             <td />
           </tr>
         </tbody>

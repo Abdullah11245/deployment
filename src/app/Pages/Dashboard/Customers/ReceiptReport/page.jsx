@@ -469,7 +469,7 @@ function Receiptreport() {
     <div ref={tableRef} className="overflow-x-auto bg-white shadow-lg rounded-lg mt-4">
       <table className="min-w-full table-auto border-collapse">
         <thead>
-          <tr className="text-sm font-semibold bg-gray-100">
+          <tr className="text-sm font-semibold bg-gray-500 text-white ">
             <th className="py-3 px-4 text-left">#</th>
             <th className="py-3 px-4 text-left">Voucher</th>
             <th className="py-3 px-4 text-left">Date</th>

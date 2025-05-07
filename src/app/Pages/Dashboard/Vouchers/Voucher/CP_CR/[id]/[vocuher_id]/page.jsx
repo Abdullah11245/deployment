@@ -30,7 +30,7 @@ const EditVoucher = () => {
         const details = detailRes.data || [];
 
         setVoucherType({ value: voucher.voucher_type, label: voucher.voucher_type });
-        setVoucherDate(voucher.voucher_date);
+        setVoucherDate(voucher.voucher_date?.split('T')[0]);
         setNote(voucher.note);
         setCustomVoucherId(voucher.voucher_id);
 
@@ -153,8 +153,8 @@ setLoading(false)
           <div>
             <label className="block text-gray-700 font-medium mb-2">Voucher Date</label>
             <input
-              type="date-time-local"
-              value={voucherDate}
+              type="date"
+              value={voucherDate || ''}
               onChange={(e) => setVoucherDate(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-4 py-2"
               required

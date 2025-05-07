@@ -7,7 +7,7 @@ function Diary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5); // Number of items per page (you can adjust this)
+  const [itemsPerPage] = useState(20); // Number of items per page (you can adjust this)
   const router = useRouter();
 
   // Fetch data on component mount
@@ -69,16 +69,16 @@ function Diary() {
       {/* Table */}
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg">
         <table className="min-w-full border-collapse">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">#</th>
-              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Issue Date</th>
-              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Cheque Date</th>
-              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Cheque No.</th>
-              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
-              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Bank</th>
-              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Supplier</th>
-              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Particulars</th>
+          <thead className="bg-gray-500 text-white">
+            <tr className=''>
+              <th className="px-4 py-2 text-left text-xs font-semibold  uppercase">#</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold  uppercase">Issue Date</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold  uppercase">Cheque Date</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold  uppercase">Cheque No.</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase">Amount</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold  uppercase">Bank</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold  uppercase">Supplier</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold  uppercase">Particulars</th>
             </tr>
           </thead>
           <tbody>

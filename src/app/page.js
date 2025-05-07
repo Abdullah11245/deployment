@@ -2,55 +2,56 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Dashboard from './Pages/Dashboard/Home/page';
-import ProtectedRoute from './RouteProtection'; 
+import ProtectedRoute from './RouteProtection';
 import { useRouter } from 'next/navigation';
+
 export default function Home() {
-  const [isTokenValid, setIsTokenValid] = useState(true); 
+  const [isTokenValid, setIsTokenValid] = useState(null); // default to null
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
   useEffect(() => {
     const checkTokenExpiry = async () => {
       try {
-        const userData = localStorage.getItem('user'); 
+        const userData = localStorage.getItem('user');
         if (!userData) {
-          console.error('No user data found in localStorage');
-          setIsTokenValid(false); 
+          setIsTokenValid(false);
           return;
         }
 
         const parsedUserData = JSON.parse(userData);
         const token = parsedUserData?.token;
-        console.log(token)
+
         if (!token) {
-          console.error('No token found in user data');
-          setIsTokenValid(false); 
+          setIsTokenValid(false);
           return;
         }
 
         const response = await axios.post('https://accounts-management.onrender.com/common/user/expiryCheck', {
-          token: token, 
+          token: token,
         });
-        if (response.data) {
-        
-          setIsTokenValid(false); 
+
+        if (response.data?.expired) {
+          setIsTokenValid(false);
+          localStorage.removeItem('user');
+          router.push('/login');
         } else {
-          console.log('Token is valid');
           setIsTokenValid(true);
         }
       } catch (error) {
         console.error('Error while checking token expiry:', error);
         localStorage.removeItem('user');
-        router.push('/login'); 
-        setIsTokenValid(false); 
+        setIsTokenValid(false);
+        router.push('/login');
       } finally {
         setLoading(false);
       }
     };
 
     checkTokenExpiry();
-  }, []); 
+  }, [router]);
 
-  if (loading) {
+  if (loading || isTokenValid === null) {
     return (
       <div className="flex justify-center items-center h-screen bg-white">
         <div className="flex space-x-2">
@@ -61,6 +62,10 @@ export default function Home() {
         </div>
       </div>
     );
+  }
+
+  if (!isTokenValid) {
+    return null; 
   }
 
   return (

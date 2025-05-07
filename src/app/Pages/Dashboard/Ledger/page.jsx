@@ -331,8 +331,8 @@ function RouteList() {
       {/* Table */}
       <div ref={tableRef} className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
         <table className="min-w-full border-collapse">
-          <thead className="bg-gray-100">
-            <tr>
+          <thead className="bg-gray-500">
+            <tr className='text-white'>
               <th className="px-6 py-3">#</th>
               <th className='px-6 py-3'>Type</th>
               <th className="px-6 py-3">Date</th>

@@ -50,9 +50,9 @@ function CreatePurchase() {
             label: item.name,
           })) || []
         );
-        setLoading(false); // Set loading to false after fetching data
+        setLoading(false); 
       } catch (error) {
-        setLoading(false); // Set loading to false even if there's an error
+        setLoading(false); 
         console.error('Error fetching routes or items:', error);
       }
     };
@@ -66,8 +66,8 @@ function CreatePurchase() {
         const data = response.data;
         setPurchaseData(data); 
   
-        setPurchaseDate(data.purchase_date);
-        setEndDate(data.end_date);
+        setPurchaseDate(data.purchase_date?.split('T')[0]);
+        setEndDate(data.end_date?.split('T')[0]);
         setNameUr(data.name_ur);
         setNote(data.note);
         setStatus(data.status ? '1' : '0');
@@ -312,10 +312,10 @@ try {
               <div className="w-1/2">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Purchase Date</label>
                 <input
-                  type="date-time-local"
+                  type="date"
                   name="purchase_date"
                   id="purchase_date"
-                  value={purchaseDate}
+                  value={purchaseDate || ''}
                   onChange={(e) => setPurchaseDate(e.target.value)}
                   placeholder="Purchase Date"
                   className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
@@ -325,10 +325,10 @@ try {
               <div className="w-1/2">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">End Date</label>
                 <input
-                  type="date-time-local"
+                  type="date"
                   name="end_date"
                   id="end_date"
-                  value={endDate}
+                  value={endDate || ''}
                   onChange={(e) => setEndDate(e.target.value)}
                   placeholder="End Date"
                   className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
@@ -419,7 +419,7 @@ try {
              handleQuantityChange={handleQuantityChange} // Pass handleQuantityChange to SupplierTable
             />
 
-            <div className="w-1/2">
+            <div className="w-1/2 mt-5">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Note</label>
                 <textarea
                   name="note"

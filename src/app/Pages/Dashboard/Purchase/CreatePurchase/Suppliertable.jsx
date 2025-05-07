@@ -15,7 +15,11 @@ const SupplierTable = ({ supplier = [], supplierInputs = [], setSupplierInputs }
       setSupplierInputs(initialInputs);
     }
   }, [supplier]);
-
+  const formatCurrencyPK = (number) => {
+    if (isNaN(number)) return '0';
+    const rounded = Math.round(Number(number));
+    return rounded.toLocaleString('en-IN');
+  };
   const handleInputChange = (index, field, value) => {
     const updated = [...supplierInputs];
     updated[index][field] = value;
@@ -35,7 +39,7 @@ const SupplierTable = ({ supplier = [], supplierInputs = [], setSupplierInputs }
   return (
     <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
       <table className="min-w-full border-collapse">
-        <thead className="bg-gray-100">
+        <thead className="bg-gray-500 text-white">
           <tr>
             <th className="px-4 py-2">#</th>
             <th className="px-4 py-2">Party Name & Address</th>
@@ -56,7 +60,7 @@ const SupplierTable = ({ supplier = [], supplierInputs = [], setSupplierInputs }
                 <td className="px-4 py-2">{s?.name} - {s?.address}</td>
                 <td className="px-4 py-2">
                   <input
-                    type="number"
+                    type="text"
                     className="border rounded px-2 py-1 w-24"
                     value={input.qty_kg || ''}
                     onChange={(e) => handleInputChange(index, 'qty_kg', e?.target?.value)}
@@ -64,7 +68,7 @@ const SupplierTable = ({ supplier = [], supplierInputs = [], setSupplierInputs }
                 </td>
                 <td className="px-4 py-2">
                   <input
-                    type="number"
+                    type="text"
                     className="border rounded px-2 py-1 w-24"
                     value={input.qty_mann || ''}
                     onChange={(e) => handleInputChange(index, 'qty_mann', e?.target?.value)}
@@ -72,13 +76,13 @@ const SupplierTable = ({ supplier = [], supplierInputs = [], setSupplierInputs }
                 </td>
                 <td className="px-4 py-2">
                   <input
-                    type="number"
+                    type="text"
                     className="border rounded px-2 py-1 w-24"
                     value={input.rate || ''}
                     onChange={(e) => handleInputChange(index, 'rate', e?.target?.value)}
                   />
                 </td>
-                <td className="px-4 py-2">{input.amount || 0}</td>
+                <td className="px-4 py-2">{formatCurrencyPK(input.amount) || 0}</td>
                 <td className="px-4 py-2">
                   <input
                     type="text"
@@ -94,7 +98,7 @@ const SupplierTable = ({ supplier = [], supplierInputs = [], setSupplierInputs }
         <tfoot>
           <tr className="bg-gray-100 font-bold">
             <td colSpan="5" className="text-right px-4 py-2">Total:</td>
-            <td className="px-4 py-2">{totalAmount}</td>
+            <td className="px-4 py-2">{formatCurrencyPK(totalAmount)}</td>
             <td></td>
           </tr>
         </tfoot>

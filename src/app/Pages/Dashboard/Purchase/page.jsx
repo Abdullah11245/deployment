@@ -133,9 +133,9 @@ const Purchase = () => {
 
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-2">
         <table className="min-w-full border-collapse">
-          <thead className="bg-gray-100">
-            <tr>
-              <th>#</th>
+          <thead className="bg-gray-500 text-white">
+            <tr >
+              <th className=' py-2'>#</th>
               <th>To Date</th>
               <th>Items</th>
               <th>Routes</th>

@@ -17,7 +17,6 @@ const Sidebar = () => {
       try {
         // Fetch data from the API
         const response = await axios.get('https://accounts-management.onrender.com/common/system/get');
-        console.log(response.data); // Check the structure of the response data
           setSystemData(response.data.name); // Set the first item in the state
         
       } catch (error) {

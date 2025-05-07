@@ -2,8 +2,11 @@
 import React, { useEffect } from 'react';
 
 const SupplierTable = ({ supplier = [], supplierInputs = [], setSupplierInputs }) => {
-  // Ensure supplierInputs is initialized when supplier changes
-  useEffect(() => {
+  const formatCurrencyPK = (number) => {
+    if (isNaN(number)) return '0';
+    const rounded = Math.round(Number(number));
+    return rounded.toLocaleString('en-IN');
+  };  useEffect(() => {
     if (supplier.length > 0 && supplierInputs.length !== supplier.length) {
       const initialInputs = supplier.map(() => ({
         qty_kg: '',
@@ -40,8 +43,8 @@ const SupplierTable = ({ supplier = [], supplierInputs = [], setSupplierInputs }
   return (
     <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
       <table className="min-w-full border-collapse">
-        <thead className="bg-gray-100">
-          <tr>
+        <thead className="bg-gray-500">
+          <tr className='text-white'>
             <th className="px-4 py-2">#</th>
             <th className="px-4 py-2">Party Name & Address</th>
             <th className="px-4 py-2">Qty (کلو)</th>
@@ -84,7 +87,7 @@ const SupplierTable = ({ supplier = [], supplierInputs = [], setSupplierInputs }
                   />
                 </td>
                 <td className="px-4 py-2">
-  {(parseFloat(input.qty_mann || 0) * parseFloat(input.rate || 0)).toFixed(2)}
+  {(parseFloat(input.qty_mann || 0) * parseFloat(formatCurrencyPK(input.rate )|| 0)).toFixed(2)}
 </td>                <td className="px-4 py-2">
                   <input
                     type="text"
@@ -100,7 +103,7 @@ const SupplierTable = ({ supplier = [], supplierInputs = [], setSupplierInputs }
         <tfoot>
           <tr className="bg-gray-100 font-bold">
             <td colSpan="5" className="text-right px-4 py-2">Total:</td>
-            <td className="px-4 py-2">{totalAmount}</td>
+            <td className="px-4 py-2">{formatCurrencyPK(totalAmount)}</td>
             <td></td>
           </tr>
         </tfoot>

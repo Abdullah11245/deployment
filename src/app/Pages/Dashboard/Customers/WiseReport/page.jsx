@@ -357,10 +357,10 @@ function RouteList() {
 
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
         <table className="min-w-full border-collapse">
-          <thead className="bg-gray-100">
+          <thead className="bg-gray-500">
             <tr>
               {['#', 'Date', 'Vr#', 'Item Name', 'Weight', 'Rate', 'Gross Amount', 'Freight', 'Net Amount'].map((header) => (
-                <th key={header} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{header}</th>
+                <th key={header} className="px-6 py-3 text-left text-sm font-medium text-white uppercase">{header}</th>
               ))}
             </tr>
           </thead>

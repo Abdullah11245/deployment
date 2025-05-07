@@ -38,7 +38,7 @@ const EditVoucher = () => {
   
         if (voucherData) {
           setVoucherType({ value: voucherData.voucher_type, label: voucherData.voucher_type });
-          setVoucherDate(voucherData.voucher_date);
+          setVoucherDate(voucherData.voucher_date?.split('T')[0]);
           setNote(voucherData.note);
           setCustomVoucherId(voucherData.voucher_id);
         }
@@ -101,7 +101,7 @@ const EditVoucher = () => {
     const totalCredit = voucherDetails.reduce((acc, detail) => acc + Number(detail.credit || 0), 0);
   
     if (totalDebit !== totalCredit) {
-      toast.warning("Voucher debit and credit totals must be equal. Please adjust the entries.");
+      toast.error("Voucher debit and credit totals must be equal. Please adjust the entries.");
       return; // prevent form submission
     }
   setLoading(true)
@@ -188,7 +188,7 @@ for (const detail of voucherDetails) {
             <label className="block text-gray-700 font-medium mb-2">Voucher Date</label>
             <input
               type="date-time-local"
-              value={voucherDate}
+              value={voucherDate || ''}
               onChange={(e) => setVoucherDate(e.target.value)}
               required
               className="w-full border border-gray-300 rounded-md px-4 py-2"

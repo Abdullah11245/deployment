@@ -112,9 +112,6 @@ setLoading(true)
           totalCredit += second.credit;
         }
       
-        console.log('Processed Entries:', processedEntries);
-        console.log('Total Debit:', totalDebit);
-        console.log('Total Credit:', totalCredit);
       
         // Send to API
         try {
@@ -166,7 +163,16 @@ setLoading(true)
       <h2 className="text-2xl font-semibold mb-4 text-gray-700">Create New Voucher</h2>
 
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-3 gap-6 mb-6">
+      <div className='mb-6 w-32'>
+            <label className="block text-gray-700 font-medium mb-2">Voucher ID</label>
+            <input
+              type="text"
+              value={customVoucherId}
+              readOnly
+              className="w-full bg-gray-100 border border-gray-300 rounded-md px-4 py-2 cursor-not-allowed text-gray-600"
+            />
+          </div>
+        <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block text-gray-700 font-medium mb-2">Voucher Type</label>
             <Select
@@ -190,15 +196,7 @@ setLoading(true)
             />
           </div>
 
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">Custom Voucher ID</label>
-            <input
-              type="text"
-              value={customVoucherId}
-              readOnly
-              className="w-full bg-gray-100 border border-gray-300 rounded-md px-4 py-2 cursor-not-allowed text-gray-600"
-            />
-          </div>
+       
         </div>
 
         <div className="mb-6">

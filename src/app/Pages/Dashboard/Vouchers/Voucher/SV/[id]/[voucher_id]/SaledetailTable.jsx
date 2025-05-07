@@ -8,13 +8,16 @@ const SaleDetailTable = ({
   taxPercentage = 0,
   taxAmount = 0,
   setGrandTotal,
+  setTaxPercentage,
 }) => {
   const [items, setItems] = useState([]);
 
-  // Normalize saleDetails to ensure it's always an array
   const normalizedDetails = Array.isArray(saleDetails) ? saleDetails : [saleDetails];
-
-  // Fetch items from API
+  const formatCurrencyPK = (number) => {
+    if (isNaN(number)) return '0';
+    const rounded = Math.round(Number(number));
+    return rounded.toLocaleString('en-IN');
+  };
   useEffect(() => {
     const fetchItems = async () => {
       try {
@@ -41,24 +44,23 @@ const SaleDetailTable = ({
     const updated = [...normalizedDetails];
     const updatedItem = {
       ...updated[index],
-      [field]: field === 'item_id' ? value.value : value,
+      [field]: field === 'itemId' ? value.value : value,
     };
-  
-    if (field === 'item_id') {
+
+    if (field === 'itemId') {
       updatedItem.itemLabel = value.label;
     }
-  
+
     updated[index] = updatedItem;
     setSaleDetails(updated);
   };
-  
-  
 
   const calculateTotal = (detail) => {
     const weight = parseFloat(detail.weight) || 0;
     const rate = parseFloat(detail.rate) || 0;
     const adjustment = parseFloat(detail.adjustment) || 0;
-    return weight * rate + adjustment;
+    const freight = parseFloat(detail.frieght) || 0;
+    return weight * rate + adjustment - freight;
   };
 
   const subtotal = normalizedDetails.reduce((acc, detail) => acc + calculateTotal(detail), 0);
@@ -70,35 +72,11 @@ const SaleDetailTable = ({
     }
   }, [normalizedDetails, taxAmount]);
 
-  const addRow = () => {
-    setSaleDetails([
-      ...normalizedDetails,
-      {
-        item_id: '',
-        itemLabel: '',
-        vehicle_no: '',
-        frieght: '',
-        uom: '',
-        weight: '',
-        rate: '',
-        adjustment: '',
-        total: 0,
-      },
-    ]);
-  };
-
-  const removeRow = (index) => {
-    const updated = [...normalizedDetails];
-    updated.splice(index, 1);
-    setSaleDetails(updated);
-  };
-
-
   return (
     <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
       <table className="min-w-full border-collapse">
-        <thead className="bg-gray-100">
-          <tr>
+        <thead className="bg-gray-500">
+          <tr className='text-white'>
             <th className="px-4 py-2">#</th>
             <th className="px-4 py-2">Item</th>
             <th className="px-4 py-2">Vehicle No</th>
@@ -108,7 +86,6 @@ const SaleDetailTable = ({
             <th className="px-4 py-2">Rate</th>
             <th className="px-4 py-2">Adjustment</th>
             <th className="px-4 py-2">Total</th>
-            <th className="px-4 py-2">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -119,7 +96,7 @@ const SaleDetailTable = ({
               <td className="px-4 py-2 w-48">
                 <Select
                   options={items}
-                  value={items.find(item => item.value === detail.item_id) || null}
+                  value={items.find(item => item.value === detail.itemId) || null}
                   onChange={(val) => handleInputChange(index, 'itemId', val)}
                   placeholder="Select Item"
                 />
@@ -128,16 +105,18 @@ const SaleDetailTable = ({
               <td className="px-4 py-2">
                 <input
                   type="text"
-                  className="border rounded px-2 py-1 w-24"
-                  value={detail?.vehicle_no}
+                  className="border rounded px-2 py-2 w-24"
+                  placeholder='Vehicle'
+                  value={detail?.vehicleNo}
                   onChange={(e) => handleInputChange(index, 'vehicleNo', e.target.value)}
                 />
               </td>
 
               <td className="px-4 py-2">
                 <input
-                  type="number"
-                  className="border rounded px-2 py-1 w-20"
+                  type="text"
+                  className="border rounded px-2 py-2 w-24"
+                  placeholder='Frieght'
                   value={detail?.frieght}
                   onChange={(e) => handleInputChange(index, 'frieght', e.target.value)}
                 />
@@ -145,8 +124,9 @@ const SaleDetailTable = ({
 
               <td className="px-4 py-2">
                 <input
-                  type="number"
-                  className="border rounded px-2 py-1 w-20"
+                  type="text"
+                  className="border rounded px-2 py-2 w-24"
+                  placeholder='UOM'
                   value={detail?.uom}
                   onChange={(e) => handleInputChange(index, 'uom', e.target.value)}
                 />
@@ -154,8 +134,9 @@ const SaleDetailTable = ({
 
               <td className="px-4 py-2">
                 <input
-                  type="number"
-                  className="border rounded px-2 py-1 w-20"
+                  type="text"
+                  className="border rounded px-2 py-2 w-24"
+                  placeholder='Weight'
                   value={detail?.weight}
                   onChange={(e) => handleInputChange(index, 'weight', e.target.value)}
                 />
@@ -163,8 +144,9 @@ const SaleDetailTable = ({
 
               <td className="px-4 py-2">
                 <input
-                  type="number"
-                  className="border rounded px-2 py-1 w-20"
+                  type="text"
+                  className="border rounded px-2 py-2 w-24"
+                  placeholder='Rate'
                   value={detail?.rate}
                   onChange={(e) => handleInputChange(index, 'rate', e.target.value)}
                 />
@@ -172,60 +154,46 @@ const SaleDetailTable = ({
 
               <td className="px-4 py-2">
                 <input
-                  type="number"
-                  className="border rounded px-2 py-1 w-20"
+                  type="text"
+                  className="border rounded px-2 py-2 w-28"
                   value={detail?.adjustment}
+                  placeholder='Adjustment'
                   onChange={(e) => handleInputChange(index, 'adjustment', e.target.value)}
                 />
               </td>
 
               <td className="px-4 py-2 text-right font-semibold">
-                {calculateTotal(detail).toFixed(2)}
-              </td>
-
-              <td className="px-4 py-2 text-center">
-                <button
-                  type="button"
-                  onClick={() => removeRow(index)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  ✕
-                </button>
+                {formatCurrencyPK(calculateTotal(detail).toFixed(2))}
               </td>
             </tr>
           ))}
 
-          {/* Summary Rows */}
           <tr className="bg-gray-50 border-t">
             <td colSpan="8" className="text-right px-4 py-2 font-semibold">Subtotal</td>
-            <td className="text-right px-4 py-2 font-bold">{subtotal.toFixed(2)}</td>
-            <td />
+            <td className="text-right px-4 py-2 font-bold">{formatCurrencyPK(subtotal.toFixed(2))}</td>
           </tr>
+
           <tr className="bg-gray-50 border-t">
             <td colSpan="8" className="text-right px-4 py-2 font-semibold">
               Tax ({parseFloat(taxPercentage) || 0}%)
             </td>
-            <td className="text-right px-4 py-2 font-bold">{parseFloat(taxAmount || 0).toFixed(2)}</td>
-            <td />
+            <td className="text-right px-4 py-2">
+              <input
+                type="text"
+                value={taxPercentage}
+                onChange={(e) => setTaxPercentage(e.target.value)}
+                className="w-20 border rounded px-2 py-1 text-right"
+                placeholder="0"
+              />
+            </td>
           </tr>
+
           <tr className="bg-gray-200 border-t">
             <td colSpan="8" className="text-right px-4 py-2 font-semibold">Total</td>
-            <td className="text-right px-4 py-2 font-bold text-blue-600">{grandTotal.toFixed(2)}</td>
-            <td />
+            <td className="text-right px-4 py-2 font-bold text-blue-600">{formatCurrencyPK(grandTotal.toFixed(2))}</td>
           </tr>
         </tbody>
       </table>
-
-      {/* Add Row Button */}
-      <div className="mt-4 px-4 mb-4 flex justify-end">
-        <button
-          type="button"
-          onClick={addRow}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Add row
-        </button>
-      </div>
     </div>
   );
 };

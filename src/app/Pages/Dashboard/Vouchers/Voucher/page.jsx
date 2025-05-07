@@ -330,14 +330,14 @@ const VoucherList = () => {
 
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-2">
         <table className="min-w-full border-collapse">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Voucher Type</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Voucher Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Particulars</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Debit</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Credit</th>
+          <thead className="bg-gray-500">
+            <tr className='text-white '>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase">#</th>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Voucher Type</th>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase"> Date</th>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Particulars</th>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase"> Debit</th>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase"> Credit</th>
             </tr>
           </thead>
           <tbody>

@@ -5,7 +5,6 @@ import axios from 'axios';
 
 const ItemsTable = () => {
   const [items, setItems] = useState([]);
-  const [activeRow, setActiveRow] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -76,13 +75,13 @@ const ItemsTable = () => {
 
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-2">
         <table className="min-w-full border-collapse">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+          <thead className="bg-gray-500">
+            <tr className='text-white '>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase">#</th>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Item Name</th>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Description</th>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Status</th>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Action</th>
             </tr>
           </thead>
           <tbody>

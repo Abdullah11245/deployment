@@ -7,18 +7,18 @@ const SaleDetailTable = ({
   setSaleDetails,
   taxPercentage = 0,
   taxAmount = 0,
-  setGrandTotal, // ✅ NEW
+  setGrandTotal,
+  setTaxPercentage, // ✅ Add this
+
 }) => {
   const [items, setItems] = useState([]);
 
-  // Fetch items from API
   useEffect(() => {
     const fetchItems = async () => {
       try {
         const response = await fetch('https://accounts-management.onrender.com/common/items/getAll');
         const data = await response.json();
 
-        // Filter only items with type "Sale" and map to Select-compatible format
         const saleItems = data
           .filter(item => item.type === 'Sale')
           .map(item => ({
@@ -35,6 +35,26 @@ const SaleDetailTable = ({
     fetchItems();
   }, []);
 
+  // Initialize with one default row if empty
+  useEffect(() => {
+    if (saleDetails.length === 0) {
+      setSaleDetails([
+        {
+          itemId: '',
+          itemLabel: '',
+          vehicleNo: '',
+          frieght: '',
+          uom: '',
+          weight: '',
+          rate: '',
+          adjustment: '',
+          total: 0,
+          taxPercentage,
+        },
+      ]);
+    }
+  }, []); // Runs only on mount
+
   const handleInputChange = (index, field, value) => {
     const updated = [...saleDetails];
     updated[index] = {
@@ -49,46 +69,28 @@ const SaleDetailTable = ({
     const weight = parseFloat(detail.weight) || 0;
     const rate = parseFloat(detail.rate) || 0;
     const adjustment = parseFloat(detail.adjustment) || 0;
-    return weight * rate + adjustment;
+    const Freight =parseFloat(detail.frieght) || 0
+    return weight * rate + adjustment -Freight ;
   };
 
   const subtotal = saleDetails.reduce((acc, detail) => acc + calculateTotal(detail), 0);
   const grandTotal = subtotal + (parseFloat(taxAmount) || 0);
 
-  // ✅ NEW: Update grandTotal to parent when saleDetails or taxAmount changes
   useEffect(() => {
     if (setGrandTotal) {
       setGrandTotal(grandTotal);
     }
   }, [saleDetails, taxAmount]);
-
-  const addRow = () => {
-    setSaleDetails([
-      ...saleDetails,
-      {
-        itemId: '',
-        itemLabel: '',
-        vehicleNo: '',
-        frieght: '',
-        uom: '',
-        weight: '',
-        rate: '',
-        adjustment: '',
-        total: 0,
-      },
-    ]);
+  const formatCurrencyPK = (number) => {
+    if (isNaN(number)) return '0';
+    const rounded = Math.round(Number(number));
+    return rounded.toLocaleString('en-IN');
   };
-   
-  const removeRow = (index) => {
-    const updated = [...saleDetails];
-    updated.splice(index, 1);
-    setSaleDetails(updated);
-  };console.log('Sale Details:', saleDetails);
   return (
     <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
       <table className="min-w-full border-collapse">
-        <thead className="bg-gray-100">
-          <tr>
+        <thead className="bg-gray-500">
+          <tr className='text-white'>
             <th className="px-4 py-2">#</th>
             <th className="px-4 py-2">Item</th>
             <th className="px-4 py-2">Vehicle No</th>
@@ -98,7 +100,6 @@ const SaleDetailTable = ({
             <th className="px-4 py-2">Rate</th>
             <th className="px-4 py-2">Adjustment</th>
             <th className="px-4 py-2">Total</th>
-            <th className="px-4 py-2">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -118,16 +119,18 @@ const SaleDetailTable = ({
               <td className="px-4 py-2">
                 <input
                   type="text"
-                  className="border rounded px-2 py-1 w-24"
+                  className="border rounded px-2 py-2 w-24"
                   value={detail?.vehicleNo}
+                  placeholder='Vehicle'
                   onChange={(e) => handleInputChange(index, 'vehicleNo', e.target.value)}
                 />
               </td>
 
               <td className="px-4 py-2">
                 <input
-                  type="number"
-                  className="border rounded px-2 py-1 w-20"
+                  type="text"
+                  className="border rounded px-2 py-2 w-24"
+                  placeholder='Frieght'
                   value={detail?.frieght}
                   onChange={(e) => handleInputChange(index, 'frieght', e.target.value)}
                 />
@@ -135,8 +138,9 @@ const SaleDetailTable = ({
 
               <td className="px-4 py-2">
                 <input
-                  type="number"
-                  className="border rounded px-2 py-1 w-20"
+                  type="text"
+                  className="border rounded px-2 py-2 w-24"
+                  placeholder='UOM'
                   value={detail?.uom}
                   onChange={(e) => handleInputChange(index, 'uom', e.target.value)}
                 />
@@ -144,8 +148,9 @@ const SaleDetailTable = ({
 
               <td className="px-4 py-2">
                 <input
-                  type="number"
-                  className="border rounded px-2 py-1 w-20"
+                  type="text"
+                  className="border rounded px-2 py-2 w-24"
+                  placeholder='Weight'
                   value={detail?.weight}
                   onChange={(e) => handleInputChange(index, 'weight', e.target.value)}
                 />
@@ -153,8 +158,9 @@ const SaleDetailTable = ({
 
               <td className="px-4 py-2">
                 <input
-                  type="number"
-                  className="border rounded px-2 py-1 w-20"
+                  type="text"
+                  className="border rounded px-2 py-2 w-24"
+                  placeholder='Rate'
                   value={detail?.rate}
                   onChange={(e) => handleInputChange(index, 'rate', e.target.value)}
                 />
@@ -162,60 +168,44 @@ const SaleDetailTable = ({
 
               <td className="px-4 py-2">
                 <input
-                  type="number"
-                  className="border rounded px-2 py-1 w-20"
+                  type="text"
+                  className="border rounded px-2 py-2 w-28"
+                  placeholder='Adjustment'
                   value={detail?.adjustment}
                   onChange={(e) => handleInputChange(index, 'adjustment', e.target.value)}
                 />
               </td>
 
               <td className="px-4 py-2 text-right font-semibold">
-                {calculateTotal(detail).toFixed(2)}
-              </td>
-
-              <td className="px-4 py-2 text-center">
-                <button
-                  type="button"
-                  onClick={() => removeRow(index)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  ✕
-                </button>
+                {formatCurrencyPK(calculateTotal(detail).toFixed(2))}
               </td>
             </tr>
           ))}
 
-          {/* Summary Rows */}
           <tr className="bg-gray-50 border-t">
             <td colSpan="8" className="text-right px-4 py-2 font-semibold">Subtotal</td>
-            <td className="text-right px-4 py-2 font-bold">{subtotal.toFixed(2)}</td>
-            <td />
+            <td className="text-right px-4 py-2 font-bold">{formatCurrencyPK(subtotal.toFixed(2))}</td>
           </tr>
           <tr className="bg-gray-50 border-t">
-            <td colSpan="8" className="text-right px-4 py-2 font-semibold">
+          <td colSpan="8" className="text-right px-4 py-2 font-semibold">
               Tax ({parseFloat(taxPercentage) || 0}%)
+            </td>  
+             <td className="text-right px-4 py-2">
+              <input
+                type="text"
+                onChange={(e) => setTaxPercentage(e.target.value)}
+                className="w-20 border rounded px-2 py-1 text-right"
+                placeholder="0"
+              />
             </td>
-            <td className="text-right px-4 py-2 font-bold">{parseFloat(taxAmount || 0).toFixed(2)}</td>
-            <td />
           </tr>
+         
           <tr className="bg-gray-200 border-t">
-            <td colSpan="8" className="text-right px-4 py-2 font-semibold"> Total</td>
-            <td className="text-right px-4 py-2 font-bold text-blue-600">{grandTotal.toFixed(2)}</td>
-            <td />
+            <td colSpan="8" className="text-right px-4 py-2 font-semibold">Total</td>
+            <td className="text-right px-4 py-2 font-bold text-blue-600">{formatCurrencyPK(grandTotal.toFixed(2))}</td>
           </tr>
         </tbody>
       </table>
-
-      {/* Add Row Button */}
-      <div className="mt-4 px-4 mb-4 flex justify-end">
-        <button
-          type="button"
-          onClick={addRow}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Add row
-        </button>
-      </div>
     </div>
   );
 };

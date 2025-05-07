@@ -11,7 +11,7 @@ function RouteList() {
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 25;
+  const itemsPerPage = 50;
   const [searchTerm, setSearchTerm] = useState('');
 
   const router = useRouter();
@@ -186,16 +186,16 @@ function RouteList() {
       </div>
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-2">
         <table className="min-w-full border-collapse">
-        <thead className="bg-gray-100">
-  <tr>
-    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Supplier</th>
-    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Supplier Urdu</th>
-    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Address</th>
-    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Routes</th>
-    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+        <thead className="bg-gray-500">
+  <tr className='text-white' >
+    <th className="px-4 py-3 text-left text-sm font-medium  uppercase">#</th>
+    <th className="px-4 py-3 text-left text-sm font-medium  uppercase">Code</th>
+    <th className="px-4 py-3 text-left text-sm font-medium  uppercase">Supplier</th>
+    <th className="px-4 py-3 text-left text-sm font-medium  uppercase">Supplier Urdu</th>
+    <th className="px-4 py-3 text-left text-sm font-medium  uppercase">Address</th>
+    <th className="px-4 py-3 text-left text-sm font-medium  uppercase">Routes</th>
+    <th className="px-4 py-3 text-left text-sm font-medium  uppercase">Status</th>
+    <th className="px-4 py-3 text-left text-sm font-medium  uppercase">Action</th>
   </tr>
 </thead>
 <tbody>

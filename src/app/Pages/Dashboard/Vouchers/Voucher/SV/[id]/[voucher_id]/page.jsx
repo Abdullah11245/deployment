@@ -41,7 +41,7 @@ function EditSale({ saleId }) {
       try {
         const saleResponse = await axios.get(`https://accounts-management.onrender.com/common/sale/sales/${voucher_id}`);
         const saleData = saleResponse.data;
-        setSaleDate(saleData.sale_date);
+        setSaleDate(saleData.sale_date?.split('T')[0]); // Keeps only 'YYYY-MM-DD'
         setPartyId(saleData.party_id);
         setTaxPercentage(saleData.tax_percentage);
         setTaxAmount(saleData.tax_amount);
@@ -73,7 +73,7 @@ function EditSale({ saleId }) {
 
     fetchData();
   }, [saleId, voucher_id]);
-
+  console.log(saleDate,'saleDate')
   useEffect(() => {
     if (!saleDetails) return;
 
@@ -174,26 +174,34 @@ setLoading(true)
     );
   }
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-2 py-8">
                   <Toaster position="top-right" reverseOrder={false} />
       
-      <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
+      <div className="flex justify-between items-center mb-0 border-b-2 pb-4 px-4">
         <h2 className="text-xl font-semibold text-gray-700">Edit Sale</h2>
       </div>
-
-      <div className="flex items-center justify-center p-12">
+     
+      <div className="flex items-center justify-center p-4">
+     
         <div className="mx-auto w-full bg-white">
+        <div>
+              <label className="mb-3 block text-base font-medium text-[#07074D]">Sale ID</label>
+              <div className='w-36 h-12 bg-gray-200 rounded-md flex items-center justify-center mb-6'>
+                <h2 className="text-xl  text-gray-700">{voucher_id }</h2>
+              </div>
+        </div>
           <form onSubmit={handleSubmit}>
             <div className="flex items-center space-x-4 mb-5">
               <div className="mb-5 w-full">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Sale Date</label>
                 <input
-                  type="date-time-local"
-                  value={saleDate}
-                  onChange={(e) => setSaleDate(e.target.value)}
-                  required
-                  className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-blue-300 focus:shadow-md"
-                />
+  type="date"
+  value={saleDate || ''}
+  onChange={(e) => setSaleDate(e.target.value)}
+  required
+  className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-blue-300 focus:shadow-md"
+/>
+
               </div>
 
               <div className="mb-5 w-full">
@@ -213,7 +221,7 @@ setLoading(true)
               </div>
             </div>
 
-            <div className="flex items-center space-x-4 mb-5">
+            {/* <div className="flex items-center space-x-4 mb-5">
               <div className="w-full">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Tax Percentage (%)</label>
                 <input
@@ -223,9 +231,9 @@ setLoading(true)
                   required
                   className="w-full rounded-md border border-[#e0e0e0] py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                 />
-              </div>
+              </div> */}
 
-              <div className="w-full">
+              {/* <div className="w-full">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Tax Amount</label>
                 <input
                   type="number"
@@ -234,26 +242,28 @@ setLoading(true)
                   required
                   className="w-full bg-gray-100 cursor-not-allowed rounded-md border border-[#e0e0e0] py-3 px-6 text-base font-medium text-[#6B7280]"
                 />
-              </div>
-            </div>
+              </div> */}
+            {/* </div> */}
 
             <div className="mb-5 w-full">
-              <SaleDetailTable
+            <SaleDetailTable
                 saleDetails={saleDetails}
                 setSaleDetails={setSaleDetails}
                 taxPercentage={taxPercentage}
+                setTaxPercentage={setTaxPercentage} // ✅ Add this
                 taxAmount={taxAmount}
                 setGrandTotal={setGrandTotal}
               />
             </div>
 
-            <div className="mb-5">
+            <div className="mb-5 mt-10">
               <label className="mb-3 block text-base font-medium text-[#07074D]">Notes</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                placeholder='Notes'
                 required
-                className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
+                className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-3 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md  min-h-36 max-w-1/2"
               />
             </div>
 
