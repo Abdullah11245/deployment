@@ -9,7 +9,7 @@ import toast, { Toaster } from 'react-hot-toast';
 
 function EditSale() {
   const { id, voucher_id } = useParams();
-
+   
   const [saleDate, setSaleDate] = useState('');
   const [partyId, setPartyId] = useState(null);
   const [taxPercentage, setTaxPercentage] = useState('');
