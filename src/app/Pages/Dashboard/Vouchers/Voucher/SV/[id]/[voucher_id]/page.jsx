@@ -7,7 +7,7 @@ import './Sale.css';
 import { useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
 
-function EditSale({ saleId }) {
+function EditSale() {
   const { id, voucher_id } = useParams();
 
   const [saleDate, setSaleDate] = useState('');
@@ -72,7 +72,7 @@ function EditSale({ saleId }) {
     };
 
     fetchData();
-  }, [saleId, voucher_id]);
+  }, [id, voucher_id]);
   console.log(saleDate,'saleDate')
   useEffect(() => {
     if (!saleDetails) return;
@@ -101,16 +101,16 @@ setLoading(true)
   
     try {
     
-      await axios.put(`https://accounts-management.onrender.com/common/sale/sales/${saleId}`, payload);
+      await axios.put(`https://accounts-management.onrender.com/common/sale/sales/${id}`, payload);
   
       const voucherPayload = {
-        voucher_id: saleId,
+        voucher_id: id,
         voucher_type: 'SV',
         voucher_date: saleDate,
         note: notes,
       };
       console.log('Updating Voucher:', voucherPayload);
-      await axios.put(`https://accounts-management.onrender.com/common/voucher/${saleId}`, voucherPayload);
+      await axios.put(`https://accounts-management.onrender.com/common/voucher/${id}`, voucherPayload);
   
       for (let i = 0; i < saleDetails.length; i++) {
         const detail = saleDetails[i];
