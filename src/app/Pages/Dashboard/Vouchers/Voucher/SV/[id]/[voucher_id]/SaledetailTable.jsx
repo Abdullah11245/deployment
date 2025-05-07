@@ -96,7 +96,7 @@ const SaleDetailTable = ({
               <td className="px-4 py-2 w-48">
                 <Select
                   options={items}
-                  value={items.find(item => item.value === detail.itemId) || null}
+                  value={items.find(item => item.id === detail.itemId) || null}
                   onChange={(val) => handleInputChange(index, 'itemId', val)}
                   placeholder="Select Item"
                 />
@@ -107,7 +107,7 @@ const SaleDetailTable = ({
                   type="text"
                   className="border rounded px-2 py-2 w-24"
                   placeholder='Vehicle'
-                  value={detail?.vehicleNo}
+                  value={detail?.vehicle_no}
                   onChange={(e) => handleInputChange(index, 'vehicleNo', e.target.value)}
                 />
               </td>
