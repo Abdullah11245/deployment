@@ -16,6 +16,7 @@ function Diary() {
       try {
         const res = await fetch('https://accounts-management.onrender.com/common/diaryVoucher/getAll');
         const result = await res.json();
+       
         setData(result);
       } catch (err) {
         setError('Failed to load data');
@@ -32,7 +33,7 @@ function Diary() {
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = data?.slice(indexOfFirstItem, indexOfLastItem);
 
   const handlePageChange = (page) => {
     if (page > 0 && page <= totalPages) {
@@ -55,7 +56,6 @@ function Diary() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
       <div className="flex justify-between items-center mb-4 border-b-2 pb-4">
         <h2 className="text-xl font-semibold text-gray-700">List of Diary Vouchers</h2>
         <button
@@ -66,7 +66,6 @@ function Diary() {
         </button>
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg">
         <table className="min-w-full border-collapse">
           <thead className="bg-gray-500 text-white">

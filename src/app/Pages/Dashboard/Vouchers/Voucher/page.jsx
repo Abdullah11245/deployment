@@ -91,9 +91,6 @@ const VoucherList = () => {
     } else if (voucher_type === 'JV' || voucher_type === 'BRV') {
       return `/Pages/Dashboard/Vouchers/Voucher/JV_BRV/${id}/${voucher_id}`;
     }
-    else if(voucher_type == 'DV'){
-      return `/Pages/Dashboard/Vouchers/Voucher`
-    }
     else {
       return `/Pages/Dashboard/Vouchers/Voucher/${voucher_type}/${id}/${voucher_id}`;
     }
