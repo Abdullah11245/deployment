@@ -124,19 +124,18 @@ const handleReset = () => {
 
 const getLastPaidJV = (accountCode) => {
   const jvWithDebit = voucherDetails
-    .filter(v => v.account_code === accountCode && v.voucher_type === 'JV' && Number(v.debit) > 0)
-    
+    .filter(v => v.account_code === accountCode && v.voucher_type === 'JV' && Number(v.debit) > 0);
 
   if (jvWithDebit.length > 0) {
     const latest = jvWithDebit[0];
     return {
-      amount: latest.debit,
+      amount: Number(latest.debit) || 0,  // Ensure it's a number
       particulars: latest.particulars,
       voucher_number: latest.voucher_number || 'N/A',
     };
   }
 
-  return null;
+  return { amount: 0, particulars: '', voucher_number: 'N/A' }; // Default values
 };
 const getCurrentBalance = (accountCode) => {
   const entries = voucherDetails.filter(v => v.account_code === accountCode);
@@ -204,46 +203,47 @@ const getCurrentBalance = (accountCode) => {
 
             </tr>
           </thead>
-          <tbody className="text-sm text-gray-700">
-            {filteredSuppliers.map((supplier, idx) => {
-              const jvParticulars = getJVParticulars(supplier.supplier_code);
-              const latestJVVoucher = voucherDetails.find(v => v.account_code === supplier.supplier_code && v.voucher_type === 'JV');
-             const lastPaid = getLastPaidJV(supplier.supplier_code);
-             const balance = getCurrentBalance(supplier.supplier_code);
-              return (
-                <tr key={supplier.supplier_code} className="border-b">
-                  <td className="px-4 py-2">{idx + 1}</td>
-                  <td className="px-4 py-2">
-  <Link
-    className='text-blue-600'
-    href={`/Pages/Dashboard/Ledger/${supplier.supplier_code}/${latestJVVoucher?.main_id }`}
-  >
-    {supplier.name}
-  </Link>
-</td>
-                  <td className="px-4 py-2">{supplier.route?.name || 'N/A'}</td>
+        <tbody className="text-sm text-gray-700">
+  {filteredSuppliers.map((supplier, idx) => {
+    const jvParticulars = getJVParticulars(supplier.supplier_code);
+    const latestJVVoucher = voucherDetails.find(v => v.account_code === supplier.supplier_code && v.voucher_type === 'JV');
+    const lastPaid = getLastPaidJV(supplier.supplier_code);
+    const balance = getCurrentBalance(supplier.supplier_code);
 
-                  <td className="px-4 py-2 w-44">{jvParticulars}</td>
-                  <td className="px-4 py-2">
-                    {lastPaid ? (
-                      <>
-                        <div>{lastPaid?.amount}</div>
-                      </>
-                    ) : '0'}
-                  </td>
-                  <td className="px-4 py-2">Avg</td>
-                 <td className="px-4 py-2 font-medium">{balance.toLocaleString()}</td>
-                 <td className="px-4 py-2 font-medium">
- {balance + lastPaid.amount}
-</td>
-<td className="px-4 py-2 font-medium">
- {balance}
-</td>
+    // Ensuring lastPaid is not null
+    const lastPaidAmount = lastPaid ? lastPaid.amount : 0;
 
-                </tr>
-              );
-            })}
-          </tbody>
+    return (
+      <tr key={supplier.supplier_code} className="border-b">
+        <td className="px-4 py-2">{idx + 1}</td>
+        <td className="px-4 py-2">
+          <Link
+            className='text-blue-600'
+            href={`/Pages/Dashboard/Ledger/${supplier.supplier_code}/${latestJVVoucher?.main_id}`}
+          >
+            {supplier.name}
+          </Link>
+        </td>
+        <td className="px-4 py-2">{supplier.route?.name || 'N/A'}</td>
+        <td className="px-4 py-2 w-44">{jvParticulars}</td>
+        <td className="px-4 py-2">
+          {lastPaidAmount > 0 ? (
+            <div>{lastPaidAmount}</div>
+          ) : '0'}
+        </td>
+        <td className="px-4 py-2">Avg</td>
+        <td className="px-4 py-2 font-medium">{balance.toLocaleString()}</td>
+        <td className="px-4 py-2 font-medium">
+          {(balance + lastPaidAmount).toLocaleString()}
+        </td>
+        <td className="px-4 py-2 font-medium">
+          {balance.toLocaleString()}
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
+
         </table>
       </div>
     </div>
