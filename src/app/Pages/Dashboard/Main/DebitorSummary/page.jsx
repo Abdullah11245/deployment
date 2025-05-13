@@ -253,7 +253,7 @@ const searchedParties = filteredParties.filter((party) => {
         </div>
       
 
-        <table className="min-w-full table-auto">
+        <table ref={tableRef} className="min-w-full table-auto">
           <thead className="bg-gray-100 text-sm font-semibold text-left">
             <tr>
               <th className="px-4 py-2">#</th>
