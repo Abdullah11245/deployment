@@ -3,6 +3,10 @@ import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
 import axios from 'axios';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { useRef } from 'react';
 function Receiptreport() {
   const [supplierOptions, setSupplierOptions] = useState([]);
   const [routeOptions, setRouteOptions] = useState([]);
@@ -14,7 +18,8 @@ function Receiptreport() {
   const [filteredSuppliers, setFilteredSuppliers] = useState([]);
   const [voucherDetails, setVoucherDetails] = useState([]);
   const [vouchers, setVouchers] = useState([]);
-const [allSuppliers, setAllSuppliers] = useState([]); // original unfiltered data
+  const [allSuppliers, setAllSuppliers] = useState([]); // original unfiltered data
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -146,6 +151,114 @@ const getCurrentBalance = (accountCode) => {
 
   return totalDebit - totalCredit;
 };
+const tableRef = useRef();
+const exportToExcel = () => {
+  const ws = XLSX.utils.json_to_sheet(
+    filteredSuppliers.map((supplier, idx) => ({
+      '#': idx + 1,
+      'Route': supplier.route?.name || 'N/A',
+      'Supplier': supplier.name,
+      'Particulars': getJVParticulars(supplier.supplier_code),
+      'Amount': getCurrentBalance(supplier.supplier_code),
+      'Status': getCurrentBalance(supplier.supplier_code) < 0 ? 'Cr' : 'Dr'
+    }))
+  );
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Suppliers');
+  XLSX.writeFile(wb, 'Supplier_Report.xlsx');
+};
+
+const exportToPDF = () => {
+  const doc = new jsPDF();
+  autoTable(doc, {
+    head: [['#', 'Route', 'Supplier', 'Particulars', 'Amount', 'Status']],
+    body: filteredSuppliers.map((supplier, idx) => [
+      idx + 1,
+      supplier.route?.name || 'N/A',
+      supplier.name,
+      getJVParticulars(supplier.supplier_code),
+      getCurrentBalance(supplier.supplier_code),
+      getCurrentBalance(supplier.supplier_code) < 0 ? 'Cr' : 'Dr'
+    ])
+  });
+  doc.save('Supplier_Report.pdf');
+};
+
+const handlePrint = () => {
+  const headerHTML = `
+    <div>
+      <h2>Receipt Report</h2>
+      <p>Date: ${new Date().toLocaleDateString()}</p>
+    </div>
+  `;
+
+  const tableHTML = tableRef.current.innerHTML;
+  const printWindow = window.open('', '', 'width=900,height=650');
+
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Creditor Final Status</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
+          thead { background-color: #f3f4f6; }
+        </style>
+      </head>
+      <body>
+        ${headerHTML}
+        ${tableHTML}
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.close();
+};
+
+const exportToCSV = () => {
+  const ws = XLSX.utils.json_to_sheet(
+    filteredSuppliers.map((supplier, idx) => ({
+      '#': idx + 1,
+      'Route': supplier.route?.name ,
+      'Supplier': supplier.name,
+      'Particulars': getJVParticulars(supplier.supplier_code),
+      'Amount': getCurrentBalance(supplier.supplier_code),
+      'Status': getCurrentBalance(supplier.supplier_code) < 0 ? 'Cr' : 'Dr'
+    }))
+  );
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Suppliers');
+
+  // Export as CSV
+  XLSX.writeFile(wb, 'Supplier_Report.csv', { bookType: 'csv' });
+};
+const handleBarSearch = (event) => {
+    const query = event.target.value.toLowerCase();
+    setSearchQuery(query);
+
+    // If the search query is empty, reset to show all suppliers
+    if (!query) {
+        setFilteredSuppliers(allSuppliers); // Show all suppliers
+    } else {
+        // Filter the suppliers based on the search query
+        const filtered = filteredSuppliers.filter((supplier) => {
+            return (
+                supplier.route?.name.toLowerCase().includes(query) || 
+                supplier.name.toLowerCase().includes(query) ||
+                getJVParticulars(supplier.supplier_code)?.toLowerCase().includes(query) ||
+                getCurrentBalance(supplier.supplier_code).toString().toLowerCase().includes(query) ||
+                (getLastPaidJV(supplier.supplier_code)?.amount.toString().toLowerCase().includes(query)) ||
+                (getCurrentBalance(supplier.supplier_code) < 0 ? 'Cr' : 'Dr').toLowerCase().includes(query)
+            );
+        });
+
+        setFilteredSuppliers(filtered); // Update filtered data based on search
+    }
+};
 
   if (loading) {
     return (
@@ -189,7 +302,25 @@ const getCurrentBalance = (accountCode) => {
       </div>
 
       <div className="overflow-x-auto mt-6 bg-white shadow-md rounded">
-        <table className="min-w-full table-auto">
+          <div className='flex justify-between items-center mb-4'>
+<div className="mt-6 flex flex-wrap gap-2">
+  <button onClick={exportToExcel} className="bg-gray-500 text-white hover:bg-gray-600 px-4 py-2 rounded">Export Excel</button>
+  <button onClick={exportToPDF} className="bg-gray-500 text-white hover:bg-gray-600 px-4 py-2 rounded">Export PDF</button>
+  <button onClick={handlePrint} className="bg-gray-500 text-white hover:bg-gray-600 px-4 py-2 rounded">Print</button>
+  <button onClick={exportToCSV} className="bg-gray-500 text-white hover:bg-gray-600 px-4 py-2 rounded">Export CSV</button>
+
+</div>
+<div className="mt-6 ">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={handleBarSearch}
+          placeholder="Search..."
+          className="px-4 py-2 border rounded-md w-full"
+        />
+      </div>
+        </div>
+        <table ref={tableRef} className="min-w-full table-auto">
           <thead className="bg-gray-100 text-sm font-semibold text-left">
             <tr>
               <th className="px-4 py-2">#</th>

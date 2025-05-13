@@ -3,6 +3,10 @@ import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
 import axios from 'axios';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { useRef } from 'react';
 
 function DebtorSummary() {
   const [partyOptions, setPartyOptions] = useState([]);
@@ -13,6 +17,7 @@ function DebtorSummary() {
   const [voucherDetails, setVoucherDetails] = useState([]);
   const [vouchers, setVouchers] = useState([]);
   const [allParties, setAllParties] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -96,6 +101,90 @@ function DebtorSummary() {
   const getLatestVoucher = (accountCode) => {
     return voucherDetails.find(v => v.account_code === accountCode && v.voucher_type === 'JV');
   };
+const tableRef = useRef();
+
+const exportToExcel = () => {
+  const data = filteredParties.map((party, idx) => ({
+    '#': idx + 1,
+    'Party Code': party.party_code,
+    'Party Name': party.name,
+    'Particulars': getJVParticulars(party.party_code),
+    'Amount': getCurrentBalance(party.party_code),
+    'Status': getCurrentBalance(party.party_code) < 0 ? 'Cr' : 'Dr'
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Debtors');
+  XLSX.writeFile(wb, 'Debtor_Summary.xlsx');
+};
+
+const exportToCSV = () => {
+  const data = filteredParties.map((party, idx) => ({
+    '#': idx + 1,
+    'Party Code': party.party_code,
+    'Party Name': party.name,
+    'Particulars': getJVParticulars(party.party_code),
+    'Amount': getCurrentBalance(party.party_code),
+    'Status': getCurrentBalance(party.party_code) < 0 ? 'Cr' : 'Dr'
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Debtors');
+  XLSX.writeFile(wb, 'Debtor_Summary.csv', { bookType: 'csv' });
+};
+
+const exportToPDF = () => {
+  const doc = new jsPDF();
+  autoTable(doc, {
+    head: [['#', 'Party Code', 'Party Name', 'Particulars', 'Amount', 'Status']],
+    body: filteredParties.map((party, idx) => [
+      idx + 1,
+      party.party_code,
+      party.name,
+      getJVParticulars(party.party_code),
+      getCurrentBalance(party.party_code),
+      getCurrentBalance(party.party_code) < 0 ? 'Cr' : 'Dr'
+    ]),
+  });
+  doc.save('Debtor_Summary.pdf');
+};
+
+const handlePrint = () => {
+  const headerHTML = `
+    <div>
+      <h2>Debtor Summary</h2>
+      <p>Date: ${new Date().toLocaleDateString()}</p>
+    </div>
+  `;
+
+  const tableHTML = tableRef.current.innerHTML;
+  const printWindow = window.open('', '', 'width=900,height=650');
+
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Debtor Summary</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
+          thead { background-color: #f3f4f6; }
+        </style>
+      </head>
+      <body>
+        ${headerHTML}
+        ${tableHTML}
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.close();
+};
 
   if (loading) {
     return (
@@ -109,6 +198,19 @@ function DebtorSummary() {
       </div>
     );
   }
+const searchedParties = filteredParties.filter((party) => {
+  const balance = getCurrentBalance(party.party_code);
+  const status = balance < 0 ? 'Cr' : 'Dr';
+  const particulars = getJVParticulars(party.party_code);
+
+  return (
+    party.name.toLowerCase().includes(searchQuery) ||
+    party.party_code.toLowerCase().includes(searchQuery) ||
+    particulars.toLowerCase().includes(searchQuery) ||
+    balance.toString().toLowerCase().includes(searchQuery) ||
+    status.toLowerCase().includes(searchQuery)
+  );
+});
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -131,6 +233,26 @@ function DebtorSummary() {
       </div>
 
       <div className="overflow-x-auto mt-6 bg-white shadow-md rounded">
+        <div className='flex justify-between items-center mb-6'>
+  <div className="mt-6 flex flex-wrap gap-2">
+  <button onClick={exportToExcel} className="bg-gray-500 text-white hover:bg-gray-600 px-4 py-2 rounded">Export Excel</button>
+  <button onClick={exportToCSV} className="bg-gray-500 text-white hover:bg-gray-600 px-4 py-2 rounded">Export CSV</button>
+  <button onClick={exportToPDF} className="bg-gray-500 text-white hover:bg-gray-600 px-4 py-2 rounded">Export PDF</button>
+  <button onClick={handlePrint} className="bg-gray-500 text-white hover:bg-gray-600 px-4 py-2 rounded">Print</button>
+</div>
+<div className="mt-6">
+  <input
+    type="text"
+    placeholder="Search anything..."
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value.toLowerCase())}
+    className="px-4 py-2 border rounded-md w-full"
+  />
+</div>
+
+        </div>
+      
+
         <table className="min-w-full table-auto">
           <thead className="bg-gray-100 text-sm font-semibold text-left">
             <tr>
@@ -143,7 +265,7 @@ function DebtorSummary() {
             </tr>
           </thead>
           <tbody className="text-sm text-gray-700">
-            {filteredParties.map((party, idx) => {
+            {searchedParties.map((party, idx) => {
               const particulars = getJVParticulars(party.party_code);
               const balance = getCurrentBalance(party.party_code);
               const latestJVVoucher = getLatestVoucher(party.party_code);
