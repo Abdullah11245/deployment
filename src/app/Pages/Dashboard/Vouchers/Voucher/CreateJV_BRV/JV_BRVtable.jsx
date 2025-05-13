@@ -4,11 +4,13 @@ import Select from 'react-select';
 
 const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
   const [accountOptions, setAccountOptions] = useState([]);
+
   const formatCurrencyPK = (number) => {
     if (isNaN(number)) return '0';
     const rounded = Math.round(Number(number));
     return rounded.toLocaleString('en-IN');
   };
+
   useEffect(() => {
     const fetchAllData = async () => {
       try {
@@ -23,24 +25,24 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
           banksRes.json(),
           partiesRes.json(),
         ]);
-     console.log(suppliersData.suppliers[0].supplier_code);
+
         const suppliers = suppliersData.suppliers.map(item => ({
           value: item.supplier_code,
-          label: `Supplier - ${item.name}`,
+          label: `${item.name}`,
           title: item.name,
           type: 'Supplier',
         }));
 
         const banks = banksData.map(item => ({
           value: item.account_code,
-          label: `Bank - ${item.account_title}`,
+          label: ` ${item.account_title}`,
           title: item.account_title,
           type: 'Bank',
         }));
 
         const parties = partiesData.map(item => ({
           value: item.party_code,
-          label: `Party - ${item.name}`,
+          label: `${item.name}`,
           title: item.name,
           type: 'Party',
         }));
@@ -53,12 +55,14 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
 
     fetchAllData();
   }, []);
-  const handleInputChange = (index, field, value,field2,value2) => {
+
+  const handleInputChange = (index, field, value, field2, value2, field3, value3) => {
     const updated = [...voucherDetails];
     updated[index] = {
       ...updated[index],
       [field]: value,
       [field2]: value2,
+      [field3]: value3,
     };
     setVoucherDetails(updated);
   };
@@ -69,6 +73,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
       {
         account_code: '',
         title: '',
+        label: '',
         particulars: '',
         debit: '',
         credit: '',
@@ -76,6 +81,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
       {
         account_code: '',
         title: '',
+        label: '',
         particulars: '',
         debit: '',
         credit: '',
@@ -119,10 +125,18 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
 
               <td className="px-4 py-2">
                 <Select
-value={accountOptions.find(opt => opt.value === row.account_code) || null}
-
-     onChange={(selected) => handleInputChange(index, 'account_code', selected?.value ,'title',selected.title|| '')}
-
+                  value={accountOptions.find(opt => opt.value === row.account_code) || null}
+                  onChange={(selected) =>
+                    handleInputChange(
+                      index,
+                      'account_code',
+                      selected?.value || '',
+                      'title',
+                      selected?.title || '',
+                      'label',
+                      selected?.label || ''
+                    )
+                  }
                   options={accountOptions}
                   className="react-select-container"
                   classNamePrefix="react-select"
@@ -135,7 +149,7 @@ value={accountOptions.find(opt => opt.value === row.account_code) || null}
                 <input
                   type="text"
                   value={row.particulars}
-                  onChange={(e) => handleInputChange(index, 'particulars', e.target.value)}
+                  onChange={(e) => handleInputChange(index, 'particulars', e.target.value, '', '', '', '')}
                   className="w-full border rounded px-2 py-3"
                   placeholder="e.g. Purchase of materials"
                 />
@@ -145,7 +159,7 @@ value={accountOptions.find(opt => opt.value === row.account_code) || null}
                 <input
                   type="text"
                   value={row.debit}
-                  onChange={(e) => handleInputChange(index, 'debit', e.target.value)}
+                  onChange={(e) => handleInputChange(index, 'debit', e.target.value, '', '', '', '')}
                   className="w-28 border rounded px-2 py-3 text-right"
                   placeholder="0"
                 />
@@ -155,7 +169,7 @@ value={accountOptions.find(opt => opt.value === row.account_code) || null}
                 <input
                   type="text"
                   value={row.credit}
-                  onChange={(e) => handleInputChange(index, 'credit', e.target.value)}
+                  onChange={(e) => handleInputChange(index, 'credit', e.target.value, '', '', '', '')}
                   className="w-28 border rounded px-2 py-3 text-right"
                   placeholder="0"
                 />

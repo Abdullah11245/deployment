@@ -17,8 +17,8 @@ const CreateVoucher = () => {
   const [note, setNote] = useState('');
   const [voucherDetails, setVoucherDetails] = useState([]); // Stores voucher details
   const [customVoucherId, setCustomVoucherId] = useState('');
-   const [loading, setLoading] = useState(true);
- 
+  const [loading, setLoading] = useState(true);
+
   // Fetch vouchers and calculate ID
   const fetchAndSetCustomVoucherId = async (selectedType) => {
     try {
@@ -27,10 +27,10 @@ const CreateVoucher = () => {
       const filtered = allVouchers.filter(v => v.voucher_type === selectedType);
       const newId = filtered.length + 1;
       setCustomVoucherId(newId);
-      setLoading(false)
+      setLoading(false);
     } catch (err) {
       console.error('Error fetching vouchers:', err);
-      setLoading(false)
+      setLoading(false);
       setCustomVoucherId('');
     }
   };
@@ -50,7 +50,7 @@ const CreateVoucher = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-setLoading(true)
+    setLoading(true);
 
     const voucherPayload = {
       voucher_id: customVoucherId, // Include custom ID
@@ -66,6 +66,7 @@ setLoading(true)
       if (!voucherId) throw new Error('Voucher creation failed.');
 
       const processVoucherDetails = async (voucherDetails, voucherId) => {
+   if (voucherType === 'BRV') {
         let totalDebit = 0;
         let totalCredit = 0;
       
@@ -123,13 +124,86 @@ setLoading(true)
         } catch (error) {
           console.error('Error creating voucher details:', error);
         }
-      };
-      
-      
+      } else{
 
+     
+
+        const processedEntries = [];
+        let totalDebit = 0;
+        let totalCredit = 0;
+
+        // Calculate total debit and credit
+        for (const detail of voucherDetails) {
+          totalDebit += parseFloat(detail?.debit || 0);
+          totalCredit += parseFloat(detail?.credit || 0);
+        }
+
+        if (totalDebit > 0) {
+          // Push individual debit entries
+          for (const detail of voucherDetails) {
+            const amount = parseFloat(detail?.debit || 0);
+            if (amount > 0) {
+              processedEntries.push({
+                main_id: voucherId,
+                account_code: detail.account_code,
+                particulars:detail.particulars,
+                debit: amount,
+                credit: 0,
+              });
+            }
+          }
+
+          // Push one credit entry to balance total
+        // Push one credit entry to balance total (fix the 'detail' reference)
+processedEntries.push({
+  main_id: voucherId,
+  account_code: '5110001',
+  particulars: `${voucherDetails[0]?.particulars} of ${voucherDetails[0]?.label}`, // Use the first voucher detail for context
+  debit: 0,
+  credit: totalDebit,
+});
+
+        }
+
+        if (totalCredit > 0) {
+          // Push individual credit entries
+          for (const detail of voucherDetails) {
+            const amount = parseFloat(detail?.credit || 0);
+            if (amount > 0) {
+              processedEntries.push({
+                main_id: voucherId,
+                account_code: detail.account_code,
+                particulars: `${detail.particulars}`,
+                debit: 0,
+                credit: amount,
+              });
+            }
+          }
+
+        
+processedEntries.push({
+  main_id: voucherId,
+  account_code: '5110001',
+  particulars: `${voucherDetails[0]?.particulars} of ${voucherDetails[0]?.label}`, // Use the first voucher detail for context
+  debit: 0,
+  credit: totalDebit,
+});
+
+        }
+
+        // Post all entries
+        try {
+          for (const entry of processedEntries) {
+            await axios.post('https://accounts-management.onrender.com/common/voucherDetail/create', entry);
+          }
+        } catch (error) {
+          console.error('Error creating voucher details:', error);
+        }
+      };
+ }
       // Process voucher details after voucher is created
       await processVoucherDetails(voucherDetails, voucherId);
-      setLoading(false)
+      setLoading(false);
       toast.success('Voucher and details created successfully!');
 
       // Reset the form after successful submission
@@ -140,10 +214,11 @@ setLoading(true)
       fetchAndSetCustomVoucherId('JV');
     } catch (err) {
       console.error(err);
-      setLoading(false)
+      setLoading(false);
       toast.error('An error occurred while creating the voucher.');
     }
   };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -156,28 +231,29 @@ setLoading(true)
       </div>
     );
   }
+
   return (
     <div className="mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
-            <Toaster position="top-right" reverseOrder={false} />
+      <Toaster position="top-right" reverseOrder={false} />
 
       <h2 className="text-2xl font-semibold mb-4 text-gray-700">Create New Voucher</h2>
 
       <form onSubmit={handleSubmit}>
-      <div className='mb-6 w-32'>
-            <label className="block text-gray-700 font-medium mb-2">Voucher ID</label>
-            <input
-              type="text"
-              value={customVoucherId}
-              readOnly
-              className="w-full bg-gray-100 border border-gray-300 rounded-md px-4 py-2 cursor-not-allowed text-gray-600"
-            />
-          </div>
+        <div className="mb-6 w-32">
+          <label className="block text-gray-700 font-medium mb-2">Voucher ID</label>
+          <input
+            type="text"
+            value={customVoucherId}
+            readOnly
+            className="w-full bg-gray-100 border border-gray-300 rounded-md px-4 py-2 cursor-not-allowed text-gray-600"
+          />
+        </div>
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block text-gray-700 font-medium mb-2">Voucher Type</label>
             <Select
               options={voucherTypeOptions}
-              value={voucherType}
+                         value={voucherType}
               onChange={handleVoucherTypeChange}
               placeholder="Select Voucher Type"
               className="text-sm"
@@ -195,8 +271,6 @@ setLoading(true)
               className="w-full border border-gray-300 rounded-md px-4 py-2"
             />
           </div>
-
-       
         </div>
 
         <div className="mb-6">
@@ -209,6 +283,7 @@ setLoading(true)
           />
         </div>
 
+        {/* Voucher Details Table */}
         <VoucherDetailTable
           voucherDetails={voucherDetails}
           setVoucherDetails={setVoucherDetails}
@@ -228,3 +303,6 @@ setLoading(true)
 };
 
 export default CreateVoucher;
+
+
+ 

@@ -64,12 +64,12 @@ setLoading(false)
     fetchVoucherData();
   }, [id]);
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
     e.preventDefault();
     const totalDebit = voucherDetails.reduce((sum, d) => sum + parseFloat(d.debit || 0), 0);
     const totalCredit = voucherDetails.reduce((sum, d) => sum + parseFloat(d.credit || 0), 0);
-  
-    if (totalDebit !== totalCredit) {
+
+    if (voucherType == 'BRV' &&totalDebit !== totalCredit) {
       toast(
         "⚠️ Debit and credit amounts must be equal before submitting the voucher.",
         {
@@ -84,7 +84,7 @@ setLoading(false)
       );
       return;
     }
-   setLoading(true)
+    setLoading(true);
     const payload = {
       voucher_id: customVoucherId,
       voucher_type: voucherType.value,
@@ -95,28 +95,86 @@ setLoading(false)
     try {
       await axios.put(`https://accounts-management.onrender.com/common/voucher/${id}`, payload);
 
-      let detailIndex = 0;
-      for (let i = 0; i < voucherDetails.length; i++) {
-        const detail = voucherDetails[i];
-      
-        const entry = {
-          main_id: id,
-          account_code: detail.account_code,
-          particulars: `${detail.particulars} Recieved by :${detail.title || ''}`,
-          debit: parseFloat(detail.debit || 0),
-          credit: parseFloat(detail.credit || 0),
-        };
-      
-        await axios.put(
-          `https://accounts-management.onrender.com/common/voucherDetail/update/${voucherType.value}/${customVoucherId}/${i}`,
-          entry
-        );
-      }
-      
-      setLoading(false)
+      if (voucherType.value === 'BRV') {
+       setLoading(true);
+        for (let i = 0; i < voucherDetails.length; i++) {
+          const detail = voucherDetails[i];
+        
+          const entry = {
+            main_id: id,
+            account_code: detail.account_code,
+            particulars: `${detail.particulars} Recieved by :${detail.title || ''}`,
+            debit: parseFloat(detail.debit || 0),
+            credit: parseFloat(detail.credit || 0),
+          };
+        
+          await axios.put(
+            `https://accounts-management.onrender.com/common/voucherDetail/update/${voucherType.value}/${customVoucherId}/${i}`,
+            entry
+          );
+        }
+      } else if (voucherType.value === 'JV') {
+         setLoading(true);
+  const processedEntries = [];
+
+  let totalDebit = 0;
+  let totalCredit = 0;
+
+  // Step 1: Ignore old 5110001 entries and only process user entries
+  const userEntries = voucherDetails.filter(detail => detail.account_code !== '5110001');
+
+  // Step 2: Add user entries and calculate totals
+  userEntries.forEach((detail) => {
+    const debit = parseFloat(detail.debit || 0);
+    const credit = parseFloat(detail.credit || 0);
+
+    totalDebit += debit;
+    totalCredit += credit;
+
+    processedEntries.push({
+      main_id: id,
+      account_code: detail.account_code,
+      particulars: detail.particulars,
+      debit,
+      credit,
+    });
+  });
+
+  // Step 3: Add the updated balancing entry (5110001)
+  if (totalDebit !== totalCredit) {
+    const diff = Math.abs(totalDebit - totalCredit);
+    const isDebitGreater = totalDebit > totalCredit;
+
+    processedEntries.push({
+      main_id: id,
+      account_code: '5110001',
+      particulars: `${userEntries[0]?.particulars || ''} of ${userEntries[0]?.label || ''}`,
+      debit: isDebitGreater ? 0 : diff,
+      credit: isDebitGreater ? diff : 0,
+    });
+  }
+
+  // Step 4: Perform the update with PUT requests
+  try {
+    for (let i = 0; i < processedEntries.length; i++) {
+      await axios.put(
+        `https://accounts-management.onrender.com/common/voucherDetail/update/${voucherType.value}/${customVoucherId}/${i}`,
+        processedEntries[i]
+      );
+    }
+  } catch (error) {
+    console.error('Error updating JV voucher details:', error);
+    toast.error('Failed to update JV voucher details.');
+  }
+}
+
+
+
+
+      setLoading(false);
       toast.success('Voucher updated successfully!');
     } catch (err) {
-      setLoading(false)
+      setLoading(false);
       toast.error('Update failed.');
     }
   };

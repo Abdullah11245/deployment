@@ -16,7 +16,7 @@ function EditSale() {
   const [taxAmount, setTaxAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [parties, setParties] = useState([]);
-  const [saleDetails, setSaleDetails] = useState({});
+  const [saleDetails, setSaleDetails] = useState([]);
   const [partyCode, setPartyCode] = useState('');
   const [partyName, setPartyName] = useState('');
   const [grandTotal, setGrandTotal] = useState(0);
@@ -73,7 +73,7 @@ function EditSale() {
 
     fetchData();
   }, [id, voucher_id]);
-  console.log(saleDate,'saleDate')
+
   useEffect(() => {
     if (!saleDetails) return;
 
@@ -109,13 +109,12 @@ setLoading(true)
         voucher_date: saleDate,
         note: notes,
       };
-      console.log('Updating Voucher:', voucherPayload);
       await axios.put(`https://accounts-management.onrender.com/common/voucher/${id}`, voucherPayload);
-  
       for (let i = 0; i < saleDetails.length; i++) {
         const detail = saleDetails[i];
         const particulars = `${detail.vehicle_no}: ${detail.itemLabel} ${detail.weight}KG@${detail.rate}`;
-  
+         console.log(detail)
+         console.log(partyName)
         const debitEntry = {
           main_id: id,
           account_code: partyCode,
@@ -150,10 +149,9 @@ setLoading(true)
           adjustment: parseFloat(detail.adjustment),
         };
   
-        console.log(`Updating Sale Detail [${detail.item_id}]`, detailPayload);
         await axios.put(`https://accounts-management.onrender.com/common/saleDetail/${voucher_id}/${detail.item_id}`, detailPayload);
       }
-  
+       setLoading(false)
       toast.success('Sale updated successfully');
     } catch (error) {
       setLoading(false)

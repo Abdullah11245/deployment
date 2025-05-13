@@ -22,21 +22,21 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
 
         const suppliers = suppliersData.suppliers.map(item => ({
           value: item.supplier_code,
-          label: `Supplier - ${item.name}`,
+          label: `${item.name}`,
           title: item.name,
           type: 'Supplier',
         }));
 
         const banks = banksData.map(item => ({
           value: item.account_code,
-          label: `Bank - ${item.account_title}`,
+          label: ` ${item.account_title}`,
           title: item.account_title,
           type: 'Bank',
         }));
 
         const parties = partiesData.map(item => ({
           value: item.party_code,
-          label: `Party - ${item.name}`,
+          label: ` ${item.name}`,
           title: item.name,
           type: 'Party',
         }));
@@ -50,23 +50,32 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
     fetchAllData();
   }, []);
 
-  const handleInputChange = (index, field, value, field2, value2) => {
-    console.log(`Updating row ${index}, field: ${field}, value: ${value}`);
+   const handleInputChange = (index, field, value, field2, value2, field3, value3) => {
     const updated = [...voucherDetails];
     updated[index] = {
       ...updated[index],
       [field]: value,
       [field2]: value2,
+      [field3]: value3,
     };
     setVoucherDetails(updated);
   };
 
-  const addRow = () => {
+   const addRow = () => {
     setVoucherDetails([
       ...voucherDetails,
       {
         account_code: '',
         title: '',
+        label: '',
+        particulars: '',
+        debit: '',
+        credit: '',
+      },
+      {
+        account_code: '',
+        title: '',
+        label: '',
         particulars: '',
         debit: '',
         credit: '',
@@ -112,7 +121,15 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
                 <Select
                   value={accountOptions.find(opt => opt.value === row.account_code) || null}
                   onChange={(selected) =>
-                    handleInputChange(index, 'account_code', selected?.value, 'title', selected?.title || '')
+                    handleInputChange(
+                      index,
+                      'account_code',
+                      selected?.value || '',
+                      'title',
+                      selected?.title || '',
+                      'label',
+                      selected?.label || ''
+                    )
                   }
                   options={accountOptions}
                   className="react-select-container"

@@ -258,6 +258,12 @@ function RouteList() {
     printWindow.print();
     printWindow.close();
   };
+const indexOfFirstVoucher = (currentPage - 1) * itemsPerPage;
+const indexOfLastVoucher = currentPage * itemsPerPage;
+const handlePageChange = (pageNumber) => {
+  if (pageNumber < 1 || pageNumber > Math.ceil(mergedData.length / itemsPerPage)) return;
+  setCurrentPage(pageNumber);
+};
 
   if (loading) {
     return (
@@ -298,7 +304,6 @@ function RouteList() {
         <p>Account Code: {supplierId}</p>
       </div>
 
-      {/* Filters */}
       <div className="mb-6 border-b-2 pb-4">
         <div className="flex flex-wrap gap-4 items-center">
           <select
@@ -339,7 +344,6 @@ function RouteList() {
         </div>
       </div>
 
-      {/* Export Buttons */}
       <div className="flex justify-between items-center mt-8 mb-4">
         <div className="flex space-x-1">
           <button onClick={exportCSV} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded-md">CSV</button>
@@ -349,7 +353,6 @@ function RouteList() {
         </div>
       </div>
 
-      {/* Table */}
       <div ref={tableRef} className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
         <table className="min-w-full border-collapse">
           <thead className="bg-gray-100">
@@ -400,20 +403,44 @@ function RouteList() {
       </div>
 
       {/* Pagination */}
-      <div className="mt-4 flex justify-between items-center">
-        <button
-          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md"
-          onClick={() => setCurrentPage(currentPage > 1 ? currentPage - 1 : 1)}
-        >
-          Previous
-        </button>
-        <span>Page {currentPage}</span>
-        <button
-          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md"
-          onClick={() => setCurrentPage(currentPage + 1)}
-        >
-          Next
-        </button>
+      <div className="flex justify-between items-center mt-4">
+        <span className="text-sm font-semibold text-gray-700">
+          Showing {indexOfFirstVoucher + 1} to {Math.min(indexOfLastVoucher, mergedData.length)} of {mergedData.length} entries
+        </span>
+
+        <div className="flex gap-2 text-xs font-medium">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 bg-white text-gray-900"
+          >
+            <span className="sr-only">Previous</span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
+            </svg>
+          </button>
+
+          {[...Array(Math.ceil(mergedData.length / itemsPerPage))].map((_, idx) => (
+            <button
+              key={idx + 1}
+              onClick={() => handlePageChange(idx + 1)}
+              className={`inline-flex items-center justify-center w-8 h-8 rounded border ${currentPage === idx + 1 ? 'bg-blue-500 text-white' : 'bg-white text-gray-900'}`}
+            >
+              {idx + 1}
+            </button>
+          ))}
+
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === Math.ceil(mergedData.length / itemsPerPage)}
+            className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 bg-white text-gray-900"
+          >
+            <span className="sr-only">Next</span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );

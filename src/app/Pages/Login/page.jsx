@@ -28,29 +28,34 @@ const LoginPage = () => {
     
     );
       if (response.data) {
-        toast.success('Login successful!');
+       
       
   
         localStorage.setItem('user', JSON.stringify(response.data));
   
         router.push('/'); 
+        setLoading(false)
+         toast.success('Login successful!');
       }
     } catch (error) {
       console.error('Login failed:', error);
       toast.error('Invalid credentials or server error!');
-    } finally {
-      setLoading(false);
-    }
+       setLoading(false)
+
+    } 
   };
   
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="flex space-x-2">
-          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></span>
-          <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:0.15s]"></span>
+     <div className="flex justify-center items-center h-screen w-screen">
+        <div className="flex justify-center items-center h-screen w-screen flex-col fixed bg-white z-10">
+          <p className='text-lg mb-2'>Authenticating</p>
+          <div className="flex space-x-2">
+            <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+            <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+            <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></span>
+            <span className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:0.15s]"></span>
+          </div>
         </div>
       </div>
     );

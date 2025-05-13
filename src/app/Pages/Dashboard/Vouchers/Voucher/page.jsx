@@ -109,22 +109,22 @@ const VoucherList = () => {
         '#': index + 1,
         'Voucher Type': `${voucher.voucher_type}-${voucher.voucher_id}`,
         'Voucher Date': new Date(voucher.voucher_date).toLocaleDateString(),
-        'Particulars': details.map(d => d.particulars).join(', '),
+        'Particulars': details.length > 0 ? details[0].particulars : '',
         'Total Debit': formatCurrencyPK(totalDebit),
         'Total Credit': formatCurrencyPK(totalCredit),
       };
     });
 
     const doc = new jsPDF();
-    doc.autoTable({
-      head: [['#', 'Voucher Type', 'Voucher Date', 'Particulars', 'Total Debit', 'Total Credit']],
+   autoTable(doc, {
+      head: [['#', 'Type', 'Date', 'Particulars', 'Debit', 'Credit']],
       body: filteredVoucherData.map(item => [
         item['#'],
-        item['Voucher Type'],
-        item['Voucher Date'],
+        item['Type'],
+        item['Date'],
         item['Particulars'],
-        item['Total Debit'],
-        item['Total Credit'],
+        item['Debit'],
+        item['Credit'],
       ]),
     });
     doc.save('Voucher_List.pdf');
@@ -137,11 +137,11 @@ const VoucherList = () => {
       const totalCredit = getTotalCredit(details);
       return {
         '#': index + 1,
-        'Voucher Type': `${voucher.voucher_type}-${voucher.voucher_id}`,
-        'Voucher Date': new Date(voucher.voucher_date).toLocaleDateString(),
-        'Particulars': details.map(d => d.particulars).join(', '),
-        'Total Debit': formatCurrencyPK(totalDebit),
-        'Total Credit': formatCurrencyPK(totalCredit),
+        'Type': `${voucher.voucher_type}-${voucher.voucher_id}`,
+        'Date': new Date(voucher.voucher_date).toLocaleDateString(),
+        'Particulars': details.length > 0 ? details[0].particulars : '',
+        'Debit': formatCurrencyPK(totalDebit),
+        'Credit': formatCurrencyPK(totalCredit),
       };
     });
 
@@ -165,11 +165,11 @@ const VoucherList = () => {
       const totalCredit = getTotalCredit(details);
       return {
         '#': index + 1,
-        'Voucher Type': `${voucher.voucher_type}-${voucher.voucher_id}`,
-        'Voucher Date': new Date(voucher.voucher_date).toLocaleDateString(),
-        'Particulars': details.map(d => d.particulars).join(', '),
-        'Total Debit': formatCurrencyPK(totalDebit),
-        'Total Credit': formatCurrencyPK(totalCredit),
+        ' Type': `${voucher.voucher_type}-${voucher.voucher_id}`,
+        ' Date': new Date(voucher.voucher_date).toLocaleDateString(),
+        'Particulars': details.length > 0 ? details[0].particulars : '',
+        ' Debit': formatCurrencyPK(totalDebit),
+        ' Credit': formatCurrencyPK(totalCredit),
       };
     });
 
@@ -186,11 +186,11 @@ const VoucherList = () => {
       const totalCredit = getTotalCredit(details);
       return {
         '#': index + 1,
-        'Voucher Type': `${voucher.voucher_type}-${voucher.voucher_id}`,
-        'Voucher Date': new Date(voucher.voucher_date).toLocaleDateString(),
-        'Particulars': details.map(d => d.particulars).join(', '),
-        'Total Debit': formatCurrencyPK(totalDebit),
-        'Total Credit': formatCurrencyPK(totalCredit),
+        'Type': `${voucher.voucher_type}-${voucher.voucher_id}`,
+        'Date': new Date(voucher.voucher_date).toLocaleDateString(),
+        'Particulars': details.length > 0 ? details[0].particulars : '',
+        'Debit': formatCurrencyPK(totalDebit),
+        'Credit': formatCurrencyPK(totalCredit),
       };
     });
 
@@ -212,11 +212,11 @@ const VoucherList = () => {
             <thead>
               <tr>
                 <th>#</th>
-                <th>Voucher Type</th>
-                <th>Voucher Date</th>
+                <th>Type</th>
+                <th>Date</th>
                 <th>Particulars</th>
-                <th>Total Debit</th>
-                <th>Total Credit</th>
+                <th>Debit</th>
+                <th>Credit</th>
               </tr>
             </thead>
             <tbody>
@@ -225,11 +225,11 @@ const VoucherList = () => {
                   return `
                     <tr>
                       <td>${item['#']}</td>
-                      <td>${item['Voucher Type']}</td>
-                      <td>${item['Voucher Date']}</td>
+                      <td>${item['Type']}</td>
+                      <td>${item['Date']}</td>
                       <td>${item['Particulars']}</td>
-                      <td>${item['Total Debit']}</td>
-                      <td>${item['Total Credit']}</td>
+                      <td>${item['Debit']}</td>
+                      <td>${item['Credit']}</td>
                     </tr>
                   `;
                 })
@@ -245,7 +245,6 @@ const VoucherList = () => {
   };
 
  
-  
   
   if (loading) {
     return (
@@ -359,8 +358,9 @@ const VoucherList = () => {
                       {new Date(voucher.voucher_date).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
-                      {details.map((d, i) => (<p key={i}>{d.particulars}</p>))}
-                    </td>
+  {details.length > 0 ? details[0].particulars : ''}
+</td>
+
                     <td className="px-6 py-4 text-base text-gray-700">{formatCurrencyPK(totalDebit)}</td>
                     <td className="px-6 py-4 text-base text-gray-700">{formatCurrencyPK(totalCredit)}</td>
                   </tr>

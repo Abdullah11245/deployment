@@ -13,11 +13,13 @@ const SaleDetailTable = ({
   const [items, setItems] = useState([]);
 
   const normalizedDetails = Array.isArray(saleDetails) ? saleDetails : [saleDetails];
+
   const formatCurrencyPK = (number) => {
     if (isNaN(number)) return '0';
     const rounded = Math.round(Number(number));
     return rounded.toLocaleString('en-IN');
   };
+
   useEffect(() => {
     const fetchItems = async () => {
       try {
@@ -96,7 +98,7 @@ const SaleDetailTable = ({
               <td className="px-4 py-2 w-48">
                 <Select
                   options={items}
-                  value={items.find(item => item.id === detail.itemId) || null}
+                  value={items.find(item => item.value === detail.item_id) || null}
                   onChange={(val) => handleInputChange(index, 'itemId', val)}
                   placeholder="Select Item"
                 />
