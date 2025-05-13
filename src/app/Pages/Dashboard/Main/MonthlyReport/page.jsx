@@ -227,7 +227,7 @@ const getCurrentBalance = (accountCode) => {
                   <td className="px-4 py-2">
                     {lastPaid ? (
                       <>
-                        <div>{lastPaid.amount}</div>
+                        <div>{lastPaid?.amount}</div>
                       </>
                     ) : '0'}
                   </td>
