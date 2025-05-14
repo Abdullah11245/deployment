@@ -367,38 +367,62 @@ const handlePageChange = (pageNumber) => {
             </tr>
           </thead>
           <tbody>
-            {mergedData
-              .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-              .map((voucher, index) => (
-                <tr key={voucher.id || index} className="border-t">
-                  <td className="px-6 py-4">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                  <td className="px-6 py-4">
+  {mergedData
+    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    .map((voucher, voucherIndex) => {
+      const voucherDetails = voucher.details || [];
+      const rowSpan = voucherDetails.length || 1;
+
+      return voucherDetails.length > 0 ? (
+        voucherDetails.map((detail, detailIndex) => (
+          <tr key={`${voucher.id}-${detailIndex}`} className="border-t">
+            {detailIndex === 0 && (
+              <>
+                <td className="px-6 py-4" rowSpan={rowSpan}>{(currentPage - 1) * itemsPerPage + voucherIndex + 1}</td>
+                <td className="px-6 py-4" rowSpan={rowSpan}>
                   <Link
-                    className='bg-gray-100 hover:bg-gray-200 px-6 py-3'
+                    className='bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded'
                     href={getVoucherLink(voucher)}
                   >
-                  {voucher.voucher_type}-{voucher.voucher_id}
+                    {voucher.voucher_type}-{voucher.voucher_id}
                   </Link>
-                    
-                   </td>
-                  <td className="px-6 py-4">{new Date(voucher.voucher_date).toLocaleDateString()}</td>
-                  <td className="px-6 py-4">
-                    {voucher.details.length > 0
-                      ? voucher.details.map(d => d.particulars).join(', ')
-                      : 'No Details'}
-                  </td>
-                  <td className="px-6 py-4">
-                    {formatCurrencyPK(voucher.details.reduce((total, d) => total + (parseFloat(d.debit) || 0), 0).toFixed(2))}
-                  </td>
-                  <td className="px-6 py-4">
-                    {formatCurrencyPK(voucher.details.reduce((total, d) => total + (parseFloat(d.credit) || 0), 0).toFixed(2))}
-                  </td>
-                  <td className="px-6 py-4">
-                    {formatCurrencyPK(voucher.details.reduce((total, d) => total + (parseFloat(d.debit) || 0) - (parseFloat(d.credit) || 0), 0).toFixed(2))}
-                  </td>
-                </tr>
-              ))}
-          </tbody>
+                </td>
+                <td className="px-6 py-4" rowSpan={rowSpan}>
+                  {new Date(voucher.voucher_date).toLocaleDateString()}
+                </td>
+              </>
+            )}
+            <td className="px-6 py-4">{detail.particulars}</td>
+            <td className="px-6 py-4">{formatCurrencyPK((parseFloat(detail.debit) || 0).toFixed(2))}</td>
+            <td className="px-6 py-4">{formatCurrencyPK((parseFloat(detail.credit) || 0).toFixed(2))}</td>
+            {detailIndex === 0 && (
+              <td className="px-6 py-4" rowSpan={rowSpan}>
+                {formatCurrencyPK(
+                  voucherDetails.reduce((total, d) => total + (parseFloat(d.debit) || 0) - (parseFloat(d.credit) || 0), 0).toFixed(2)
+                )}
+              </td>
+            )}
+          </tr>
+        ))
+      ) : (
+        <tr key={`${voucher.id}-no-details`} className="border-t">
+          <td className="px-6 py-4">{(currentPage - 1) * itemsPerPage + voucherIndex + 1}</td>
+          <td className="px-6 py-4">
+            <Link
+              className='bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded'
+              href={getVoucherLink(voucher)}
+            >
+              {voucher.voucher_type}-{voucher.voucher_id}
+            </Link>
+          </td>
+          <td className="px-6 py-4">{new Date(voucher.voucher_date).toLocaleDateString()}</td>
+          <td className="px-6 py-4" colSpan={3}>No Details</td>
+          <td className="px-6 py-4">0</td>
+        </tr>
+      );
+    })}
+</tbody>
+
         </table>
       </div>
 

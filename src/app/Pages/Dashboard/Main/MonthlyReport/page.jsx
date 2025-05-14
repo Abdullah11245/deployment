@@ -15,85 +15,120 @@ function Receiptreport() {
   const [voucherDetails, setVoucherDetails] = useState([]);
   const [vouchers, setVouchers] = useState([]);
 const [allSuppliers, setAllSuppliers] = useState([]); // original unfiltered data
+const [supplierPurchaseDetails, setSupplierPurchaseDetails] = useState({});
+const fetchPurchaseDetailsInBatches = async (suppliers, concurrency = 5) => {
+  const detailsMap = {};
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const queue = [...suppliers];
+  const workers = [];
+
+  const worker = async () => {
+    while (queue.length) {
+      const supplier = queue.shift();
       try {
-        // Fetch suppliers
-        const suppliersRes = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
-        const suppliers = suppliersRes.data.suppliers || [];
+        const response = await axios.get(`https://accounts-management.onrender.com/common/purchaseDetail/${supplier.id}`);
+        const purchases = response.data;
 
-        setSupplierOptions(suppliers.map(s => ({ value: s.supplier_code, label: s.name })));
+        const totalQty = [purchases].reduce((sum, p) => sum + Number(p.qty || 0), 0);
+        const totalAmount = [purchases].reduce((sum, p) => sum + (Number(p.qty || 0) * Number(p.rate || 0)), 0);
+        const avgRate = totalQty > 0 ? totalAmount / totalQty : 0;
 
-        const routesSet = new Set();
-        const routeMap = {};
-
-        suppliers.forEach(supplier => {
-          const routeName = supplier.route?.name || 'N/A';
-          routesSet.add(routeName);
-          routeMap[supplier.supplier_code] = routeName;
-        });
-
-        setRouteOptions(Array.from(routesSet).map(route => ({ label: route, value: route })));
-setAllSuppliers(suppliers); // store full list for reset/reference
-setFilteredSuppliers(suppliers); // display initially
-
-        // ✅ Fetch voucher details for each supplier in batches
-        const fetchVoucherDetailsInBatches = async (suppliers, batchSize = 50) => {
-          const allVoucherDetails = [];
-
-          // Process suppliers in batches
-          for (let i = 0; i < suppliers.length; i += batchSize) {
-            const batch = suppliers.slice(i, i + batchSize);
-
-            // Send requests for this batch in parallel
-            const results = await Promise.allSettled(
-              batch.map(supplier =>
-                axios.get(`https://accounts-management.onrender.com/common/voucherDetail/mains/${supplier.supplier_code}`)
-              )
-            );
-
-            // Handle successful and failed responses
-            results.forEach((result, index) => {
-              if (result.status === 'fulfilled' && Array.isArray(result.value.data)) {
-                allVoucherDetails.push(...result.value.data);
-              } else {
-                const failedSupplier = batch[index];
-                console.error(`Failed to fetch voucher details for supplier ${failedSupplier.supplier_code}:`, result.reason);
-              }
-            });
-          }
-
-          return allVoucherDetails;
-        };
-
-        // Fetch all voucher details in batches
-        const allVoucherDetails = await fetchVoucherDetailsInBatches(suppliers);
-        setVoucherDetails(allVoucherDetails);
-        console.log(allVoucherDetails);
-
-        // ✅ Fetch all vouchers
-        const voucherRes = await axios.get(`https://accounts-management.onrender.com/common/voucher/getAll`);
-        setVouchers(voucherRes.data || []);
-
+        detailsMap[supplier.id] = { weight: totalQty, rate: avgRate };
+        console.log(`Fetched: ${supplier.id}`, detailsMap[supplier.id]);
       } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
+        console.error(`Error for ${supplier.id}:`, error.message);
+        detailsMap[supplier.id] = { weight: 0, rate: 0 };
       }
-    };
-
-    fetchData();
-  }, []);
-
-  // Function to get the latest JV voucher details for a given account_code
-  const getJVParticulars = (accountCode) => {
-    // Filter vouchers by account_code and type 'JV'
-    const filteredVouchers = voucherDetails.filter(voucher => voucher.account_code === accountCode && voucher.voucher_type === 'JV');
-    // Sort the filtered vouchers by main_id (or another date field) in descending order to get the latest voucher
-    const sortedVouchers = filteredVouchers.sort((a, b) => b.main_id - a.main_id);
-    return sortedVouchers[0]?.particulars || ''; // Return particulars of the latest JV voucher or a default message
+    }
   };
+
+  for (let i = 0; i < concurrency; i++) {
+    workers.push(worker());
+  }
+
+  await Promise.all(workers);
+  return detailsMap;
+};
+
+
+
+
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      // Fetch suppliers
+      const suppliersRes = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
+      const suppliers = suppliersRes.data.suppliers || [];
+
+      setSupplierOptions(suppliers.map(s => ({ value: s.supplier_code, label: s.name })));
+
+      const routesSet = new Set();
+      const routeMap = {};
+
+      suppliers.forEach(supplier => {
+        const routeName = supplier.route?.name || 'N/A';
+        routesSet.add(routeName);
+        routeMap[supplier.supplier_code] = routeName;
+      });
+
+      setRouteOptions(Array.from(routesSet).map(route => ({ label: route, value: route })));
+      setAllSuppliers(suppliers); // store full list for reset/reference
+      setFilteredSuppliers(suppliers); // display initially
+
+      // ✅ Fetch voucher details for each supplier in batches
+      const fetchVoucherDetailsInBatches = async (suppliers, batchSize = 50) => {
+        const allVoucherDetails = [];
+
+        // Process suppliers in batches
+        for (let i = 0; i < suppliers.length; i += batchSize) {
+          const batch = suppliers.slice(i, i + batchSize);
+
+          // Send requests for this batch in parallel
+          const results = await Promise.allSettled(
+            batch.map(supplier =>
+              axios.get(`https://accounts-management.onrender.com/common/voucherDetail/mains/${supplier.supplier_code}`)
+            )
+          );
+
+          // Handle successful and failed responses
+          results.forEach((result, index) => {
+            if (result.status === 'fulfilled' && Array.isArray(result.value.data)) {
+              allVoucherDetails.push(...result.value.data);
+            } else {
+              const failedSupplier = batch[index];
+              console.error(`Failed to fetch voucher details for supplier ${failedSupplier.supplier_code}:`, result.reason);
+            }
+          });
+        }
+
+        return allVoucherDetails;
+      };
+
+      // Fetch all voucher details in batches
+      const allVoucherDetails = await fetchVoucherDetailsInBatches(suppliers);
+      setVoucherDetails(allVoucherDetails);
+
+      // ✅ Fetch all vouchers
+      const voucherRes = await axios.get(`https://accounts-management.onrender.com/common/voucher/getAll`);
+      setVouchers(voucherRes.data || []);
+
+      // ✅ Fetch purchase details in batches
+      const supplierPurchaseDetails = await fetchPurchaseDetailsInBatches(suppliers); 
+      setSupplierPurchaseDetails(supplierPurchaseDetails);
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, []);
+
+
+
 
   const handleSearch = () => {
     const includedSupplierIds = includedSuppliers.map(s => s.value);
@@ -139,12 +174,13 @@ const getLastPaidJV = (accountCode) => {
 };
 const getCurrentBalance = (accountCode) => {
   const entries = voucherDetails.filter(v => v.account_code === accountCode);
-   console.log(entries)
   const totalDebit = entries.reduce((sum, entry) => sum + Number(entry.debit || 0), 0);
   const totalCredit = entries.reduce((sum, entry) => sum + Number(entry.credit || 0), 0);
 
   return totalDebit - totalCredit;
 };
+
+
 
   if (loading) {
     return (
@@ -203,9 +239,8 @@ const getCurrentBalance = (accountCode) => {
 
             </tr>
           </thead>
-        <tbody className="text-sm text-gray-700">
+      <tbody className="text-sm text-gray-700">
   {filteredSuppliers.map((supplier, idx) => {
-    const jvParticulars = getJVParticulars(supplier.supplier_code);
     const latestJVVoucher = voucherDetails.find(v => v.account_code === supplier.supplier_code && v.voucher_type === 'JV');
     const lastPaid = getLastPaidJV(supplier.supplier_code);
     const balance = getCurrentBalance(supplier.supplier_code);
@@ -213,36 +248,35 @@ const getCurrentBalance = (accountCode) => {
     // Ensuring lastPaid is not null
     const lastPaidAmount = lastPaid ? lastPaid.amount : 0;
 
+    // Accessing purchase details using supplier.supplier_code
+    const purchaseDetails = supplierPurchaseDetails[supplier.id] || { weight: 0, rate: 0 };
     return (
       <tr key={supplier.supplier_code} className="border-b">
         <td className="px-4 py-2">{idx + 1}</td>
         <td className="px-4 py-2">
           <Link
-            className='text-blue-600'
+            className="text-blue-600"
             href={`/Pages/Dashboard/Ledger/${supplier.supplier_code}/${latestJVVoucher?.main_id}`}
           >
             {supplier.name}
           </Link>
         </td>
         <td className="px-4 py-2">{supplier.route?.name || 'N/A'}</td>
-        <td className="px-4 py-2 w-44">{jvParticulars}</td>
+        <td className="px-4 py-2">{purchaseDetails.weight.toFixed(2)}</td> {/* Weight */}
         <td className="px-4 py-2">
-          {lastPaidAmount > 0 ? (
-            <div>{lastPaidAmount}</div>
-          ) : '0'}
+          {lastPaidAmount > 0 ? <div>{lastPaidAmount}</div> : '0'}
         </td>
-        <td className="px-4 py-2">Avg</td>
+        <td className="px-4 py-2">{purchaseDetails.rate.toFixed(2)}</td> {/* Rate */}
         <td className="px-4 py-2 font-medium">{balance.toLocaleString()}</td>
         <td className="px-4 py-2 font-medium">
           {(balance + lastPaidAmount).toLocaleString()}
         </td>
-        <td className="px-4 py-2 font-medium">
-          {balance.toLocaleString()}
-        </td>
+        <td className="px-4 py-2 font-medium">{balance.toLocaleString()}</td>
       </tr>
     );
   })}
 </tbody>
+
 
         </table>
       </div>

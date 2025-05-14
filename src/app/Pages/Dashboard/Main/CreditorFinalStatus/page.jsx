@@ -1,12 +1,11 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Select from 'react-select';
 import axios from 'axios';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { useRef } from 'react';
 
 function Receiptreport() {
   const [supplierOptions, setSupplierOptions] = useState([]);
@@ -19,70 +18,113 @@ function Receiptreport() {
   const [filteredSuppliers, setFilteredSuppliers] = useState([]);
   const [voucherDetails, setVoucherDetails] = useState([]);
   const [vouchers, setVouchers] = useState([]);
-  const [allSuppliers, setAllSuppliers] = useState([]); // original unfiltered data
+  const [allSuppliers, setAllSuppliers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [supplierPurchaseDetails, setSupplierPurchaseDetails] = useState({});
+  const tableRef = useRef();
+
+const extractWeightAndMonth = (particulars) => {
+  if (typeof particulars !== 'string') return null;
+
+  console.log('Original Particulars:', particulars);
+
+  // Updated regex to allow prefix before the weight@rate
+  const match = particulars.match(/.*?(\d+(?:\.\d+)?)@\d+\/-\s*\(\s*(\w{3})-(\d{4})\s*\)/);
+
+  if (!match) {
+    console.warn('No match found for particulars:', particulars);
+    return null;
+  }
+
+  const weight = parseFloat(match[1]);
+  const month = match[2];
+  const year = match[3];
+
+  const monthNumber = new Date(`${month} 1, ${year}`).getMonth() + 1;
+  const monthKey = `${year}-${String(monthNumber).padStart(2, '0')}`;
+
+  console.log('Parsed Weight:', weight);
+  console.log('Parsed MonthKey:', monthKey);
+
+  return { weight, monthKey };
+};
+
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch suppliers
         const suppliersRes = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
         const suppliers = suppliersRes.data.suppliers || [];
 
         setSupplierOptions(suppliers.map(s => ({ value: s.supplier_code, label: s.name })));
-
         const routesSet = new Set();
-        const routeMap = {};
+        suppliers.forEach(s => routesSet.add(s.route?.name || 'N/A'));
+        setRouteOptions(Array.from(routesSet).map(r => ({ label: r, value: r })));
+        setAllSuppliers(suppliers);
+        setFilteredSuppliers(suppliers);
 
-        suppliers.forEach(supplier => {
-          const routeName = supplier.route?.name || 'N/A';
-          routesSet.add(routeName);
-          routeMap[supplier.supplier_code] = routeName;
-        });
-
-        setRouteOptions(Array.from(routesSet).map(route => ({ label: route, value: route })));
-setAllSuppliers(suppliers); // store full list for reset/reference
-setFilteredSuppliers(suppliers); // display initially
-
-        // ✅ Fetch voucher details for each supplier in batches
         const fetchVoucherDetailsInBatches = async (suppliers, batchSize = 50) => {
           const allVoucherDetails = [];
-
-          // Process suppliers in batches
           for (let i = 0; i < suppliers.length; i += batchSize) {
             const batch = suppliers.slice(i, i + batchSize);
-
-            // Send requests for this batch in parallel
             const results = await Promise.allSettled(
-              batch.map(supplier =>
-                axios.get(`https://accounts-management.onrender.com/common/voucherDetail/mains/${supplier.supplier_code}`)
+              batch.map(s =>
+                axios.get(`https://accounts-management.onrender.com/common/voucherDetail/mains/${s.supplier_code}`)
               )
             );
-
-            // Handle successful and failed responses
-            results.forEach((result, index) => {
-              if (result.status === 'fulfilled' && Array.isArray(result.value.data)) {
-                allVoucherDetails.push(...result.value.data);
+            results.forEach((res, idx) => {
+              if (res.status === 'fulfilled' && Array.isArray(res.value.data)) {
+                allVoucherDetails.push(...res.value.data);
               } else {
-                const failedSupplier = batch[index];
-                console.error(`Failed to fetch voucher details for supplier ${failedSupplier.supplier_code}:`, result.reason);
+                console.error(`Failed to fetch for ${batch[idx].supplier_code}`);
               }
             });
           }
-
           return allVoucherDetails;
         };
 
-        // Fetch all voucher details in batches
         const allVoucherDetails = await fetchVoucherDetailsInBatches(suppliers);
         setVoucherDetails(allVoucherDetails);
-        console.log(allVoucherDetails);
 
-        // ✅ Fetch all vouchers
-        const voucherRes = await axios.get(`https://accounts-management.onrender.com/common/voucher/getAll`);
+        const voucherRes = await axios.get('https://accounts-management.onrender.com/common/voucher/getAll');
         setVouchers(voucherRes.data || []);
 
-      } catch (error) {
-        console.error('Error fetching data:', error);
+        const calculateAverageFromParticulars = () => {
+          const purchaseMap = {};
+          suppliers.forEach(supplier => {
+            const relevantVouchers = allVoucherDetails.filter(
+              v => v.account_code === supplier.supplier_code && v.voucher_type === 'PV'
+            );
+          
+
+            const monthlyWeights = new Map();
+            relevantVouchers.forEach(voucher => {
+              const parsed = extractWeightAndMonth(voucher.particulars);
+              if (parsed) {
+                const currentWeight = monthlyWeights.get(parsed.monthKey) || 0;
+                monthlyWeights.set(parsed.monthKey, currentWeight + parsed.weight);
+              }
+            });
+
+            const totalWeight = Array.from(monthlyWeights.values()).reduce((sum, w) => sum + w, 0);
+            const months = monthlyWeights.size;
+            const avgWeightPerMonth = months > 0 ? totalWeight / months : 0;
+
+            purchaseMap[supplier.id] = {
+              weight: totalWeight.toFixed(2),
+              avgWeightPerMonth: avgWeightPerMonth.toFixed(2),
+            };
+          });
+
+          return purchaseMap;
+        };
+
+        const purchaseMap = calculateAverageFromParticulars();
+        console.log(purchaseMap)
+        setSupplierPurchaseDetails(purchaseMap);
+
+      } catch (err) {
+        console.error('Error fetching data:', err);
       } finally {
         setLoading(false);
       }
@@ -91,183 +133,154 @@ setFilteredSuppliers(suppliers); // display initially
     fetchData();
   }, []);
 
-  // Function to get the latest JV voucher details for a given account_code
+
+
   const getJVParticulars = (accountCode) => {
-    // Filter vouchers by account_code and type 'JV'
-    const filteredVouchers = voucherDetails.filter(voucher => voucher.account_code === accountCode && voucher.voucher_type === 'JV');
-    // Sort the filtered vouchers by main_id (or another date field) in descending order to get the latest voucher
-    const sortedVouchers = filteredVouchers.sort((a, b) => b.main_id - a.main_id);
-    return sortedVouchers[0]?.particulars || ''; // Return particulars of the latest JV voucher or a default message
+    const filtered = voucherDetails.filter(v => v.account_code === accountCode && v.voucher_type === 'JV');
+    const sorted = filtered.sort((a, b) => b.main_id - a.main_id);
+    return sorted[0]?.particulars || '';
+  };
+
+  const getLastPaidJV = (accountCode) => {
+    const jvs = voucherDetails.filter(v => v.account_code === accountCode && Number(v.debit) > 0).sort((a, b) => b.main_id - a.main_id);
+    if (jvs.length > 0) {
+      const latest = jvs[0];
+      return {
+        amount: latest.debit,
+        particulars: latest.particulars,
+        voucher_number: latest.voucher_number || 'N/A',
+      };
+    }
+    return null;
+  };
+
+  const getCurrentBalance = (accountCode) => {
+    const entries = voucherDetails.filter(v => v.account_code === accountCode);
+    const totalDebit = entries.reduce((sum, e) => sum + Number(e.debit || 0), 0);
+    const totalCredit = entries.reduce((sum, e) => sum + Number(e.credit || 0), 0);
+    return totalDebit - totalCredit;
   };
 
   const handleSearch = () => {
-    const includedSupplierIds = includedSuppliers.map(s => s.value);
-    const excludedSupplierIds = excludedSuppliers.map(s => s.value);
-    const includedRouteNames = includedRoutes.map(r => r.value);
-    const excludedRouteNames = excludedRoutes.map(r => r.value);
+    const includedIds = includedSuppliers.map(s => s.value);
+    const excludedIds = excludedSuppliers.map(s => s.value);
+    const includedR = includedRoutes.map(r => r.value);
+    const excludedR = excludedRoutes.map(r => r.value);
 
-    const filtered = allSuppliers.filter(supplier => {
-      const routeName = supplier.route?.name || 'N/A';
-      const supplierIncluded = includedSupplierIds.length === 0 || includedSupplierIds.includes(supplier.supplier_code);
-      const supplierExcluded = excludedSupplierIds.length === 0 || !excludedSupplierIds.includes(supplier.supplier_code);
-      const routeIncluded = includedRouteNames.length === 0 || includedRouteNames.includes(routeName);
-      const routeExcluded = excludedRouteNames.length === 0 || !excludedRouteNames.includes(routeName);
-
-      return supplierIncluded && supplierExcluded && routeIncluded && routeExcluded;
+    const filtered = allSuppliers.filter(s => {
+      const route = s.route?.name || 'N/A';
+      const include = includedIds.length === 0 || includedIds.includes(s.supplier_code);
+      const exclude = excludedIds.length === 0 || !excludedIds.includes(s.supplier_code);
+      const includeRoute = includedR.length === 0 || includedR.includes(route);
+      const excludeRoute = excludedR.length === 0 || !excludedR.includes(route);
+      return include && exclude && includeRoute && excludeRoute;
     });
 
     setFilteredSuppliers(filtered);
   };
 
-const handleReset = () => {
-  setIncludedSuppliers([]);
-  setExcludedSuppliers([]);
-  setIncludedRoutes([]);
-  setExcludedRoutes([]);
-  setFilteredSuppliers(allSuppliers); // restore original list
-};
+  const handleReset = () => {
+    setIncludedSuppliers([]);
+    setExcludedSuppliers([]);
+    setIncludedRoutes([]);
+    setExcludedRoutes([]);
+    setFilteredSuppliers(allSuppliers);
+  };
 
-const getLastPaidJV = (accountCode) => {
-  const jvWithDebit = voucherDetails
-    .filter(v => v.account_code === accountCode && v.voucher_type === 'JV' && Number(v.debit) > 0)
-    
+  const handleBarSearch = (e) => {
+    const q = e.target.value.toLowerCase();
+    setSearchQuery(q);
+    if (!q) return setFilteredSuppliers(allSuppliers);
 
-  if (jvWithDebit.length > 0) {
-    const latest = jvWithDebit[0];
-    return {
-      amount: latest.debit,
-      particulars: latest.particulars,
-      voucher_number: latest.voucher_number || 'N/A',
-    };
-  }
+    const filtered = filteredSuppliers.filter(s => {
+      return (
+        s.name.toLowerCase().includes(q) ||
+        s.route?.name?.toLowerCase().includes(q) ||
+        getJVParticulars(s.supplier_code)?.toLowerCase().includes(q) ||
+        getCurrentBalance(s.supplier_code).toString().includes(q)
+      );
+    });
 
-  return null;
-};
-const getCurrentBalance = (accountCode) => {
-  const entries = voucherDetails.filter(v => v.account_code === accountCode);
-   console.log(entries)
-  const totalDebit = entries.reduce((sum, entry) => sum + Number(entry.debit || 0), 0);
-  const totalCredit = entries.reduce((sum, entry) => sum + Number(entry.credit || 0), 0);
+    setFilteredSuppliers(filtered);
+  };
 
-  return totalDebit - totalCredit;
-};
-const tableRef = useRef();
+  const exportToExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(filteredSuppliers.map((s, i) => ({
+      '#': i + 1,
+      'Route': s.route?.name || 'N/A',
+      'Supplier': s.name,
+      'Particulars': getJVParticulars(s.supplier_code),
+      'Last Paid': getLastPaidJV(s.supplier_code)?.amount || 0,
+      'Average': supplierPurchaseDetails[s.id]?.avgWeightPerMonth || '0'
+,
+      'Amount': getCurrentBalance(s.supplier_code),
+      'Status': getCurrentBalance(s.supplier_code) < 0 ? 'Cr' : 'Dr'
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Suppliers');
+    XLSX.writeFile(wb, 'Supplier_Report.xlsx');
+  };
 
-const exportToExcel = () => {
-  const ws = XLSX.utils.json_to_sheet(
-    filteredSuppliers.map((supplier, idx) => ({
-      '#': idx + 1,
-      'Route': supplier.route?.name || 'N/A',
-      'Supplier': supplier.name,
-      'Particulars': getJVParticulars(supplier.supplier_code),
-      'Last Paid': getLastPaidJV(supplier.supplier_code)?.amount || 0,
-      'Balance': getCurrentBalance(supplier.supplier_code),
-      'Status': getCurrentBalance(supplier.supplier_code) < 0 ? 'Cr' : 'Dr'
-    }))
-  );
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Suppliers');
-  XLSX.writeFile(wb, 'Supplier_Report.xlsx');
-};
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    autoTable(doc, {
+      head: [['#', 'Route', 'Supplier', 'Particulars', 'Last Paid', 'Average', 'Amount', 'Status']],
+      body: filteredSuppliers.map((s, i) => [
+        i + 1,
+        s.route?.name || 'N/A',
+        s.name,
+        getJVParticulars(s.supplier_code),
+        getLastPaidJV(s.supplier_code)?.amount || 0,
+        supplierPurchaseDetails[s.id]?.avgWeightPerMonth || '0'
+,
+        getCurrentBalance(s.supplier_code),
+        getCurrentBalance(s.supplier_code) < 0 ? 'Cr' : 'Dr'
+      ])
+    });
+    doc.save('Supplier_Report.pdf');
+  };
 
-const exportToPDF = () => {
-  const doc = new jsPDF();
-  autoTable(doc, {
-    head: [['#', 'Route', 'Supplier', 'Particulars', 'Last Paid', 'Balance', 'Status']],
-    body: filteredSuppliers.map((supplier, idx) => [
-      idx + 1,
-      supplier.route?.name || 'N/A',
-      supplier.name,
-      getJVParticulars(supplier.supplier_code),
-      getLastPaidJV(supplier.supplier_code)?.amount || 0,
-      getCurrentBalance(supplier.supplier_code),
-      getCurrentBalance(supplier.supplier_code) < 0 ? 'Cr' : 'Dr'
-    ])
-  });
-  doc.save('Supplier_Report.pdf');
-};
-
-const handlePrint = () => {
-  const headerHTML = `
-    <div>
-      <h2>Receipt Report</h2>
-      <p>Date: ${new Date().toLocaleDateString()}</p>
-    </div>
-  `;
-
-  const tableHTML = tableRef.current.innerHTML;
-  const printWindow = window.open('', '', 'width=900,height=650');
-
-  printWindow.document.write(`
-    <html>
+  const handlePrint = () => {
+    const header = `
+      <div>
+        <h2>Receipt Report</h2>
+        <p>Date: ${new Date().toLocaleDateString()}</p>
+      </div>`;
+    const tableHTML = tableRef.current.innerHTML;
+    const win = window.open('', '', 'width=900,height=650');
+    win.document.write(`
+      <html>
       <head>
-        <title>Creditor Final Status</title>
         <style>
-          body { font-family: Arial, sans-serif; padding: 20px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
-          thead { background-color: #f3f4f6; }
+          body { font-family: Arial; padding: 20px; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #ccc; padding: 8px; }
         </style>
       </head>
-      <body>
-        ${headerHTML}
-        ${tableHTML}
-      </body>
-    </html>
-  `);
+      <body>${header}${tableHTML}</body>
+      </html>`);
+    win.document.close();
+    win.print();
+    win.close();
+  };
 
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
-  printWindow.close();
-};
-
-const exportToCSV = () => {
-  const ws = XLSX.utils.json_to_sheet(
-    filteredSuppliers.map((supplier, idx) => ({
-      '#': idx + 1,
-      'Route': supplier.route?.name ,
-      'Supplier': supplier.name,
-      'Particulars': getJVParticulars(supplier.supplier_code),
-      'Last Paid': getLastPaidJV(supplier.supplier_code)?.amount || 0,
-      'Balance': getCurrentBalance(supplier.supplier_code),
-      'Status': getCurrentBalance(supplier.supplier_code) < 0 ? 'Cr' : 'Dr'
-    }))
-  );
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Suppliers');
-
-  // Export as CSV
-  XLSX.writeFile(wb, 'Supplier_Report.csv', { bookType: 'csv' });
-};
-
-const handleBarSearch = (event) => {
-    const query = event.target.value.toLowerCase();
-    setSearchQuery(query);
-
-    // If the search query is empty, reset to show all suppliers
-    if (!query) {
-        setFilteredSuppliers(allSuppliers); // Show all suppliers
-    } else {
-        // Filter the suppliers based on the search query
-        const filtered = filteredSuppliers.filter((supplier) => {
-            return (
-                supplier.route?.name.toLowerCase().includes(query) || 
-                supplier.name.toLowerCase().includes(query) ||
-                getJVParticulars(supplier.supplier_code)?.toLowerCase().includes(query) ||
-                getCurrentBalance(supplier.supplier_code).toString().toLowerCase().includes(query) ||
-                (getLastPaidJV(supplier.supplier_code)?.amount.toString().toLowerCase().includes(query)) ||
-                (getCurrentBalance(supplier.supplier_code) < 0 ? 'Cr' : 'Dr').toLowerCase().includes(query)
-            );
-        });
-
-        setFilteredSuppliers(filtered); // Update filtered data based on search
-    }
-};
-
-
-
-  if (loading) {
+  const exportToCSV = () => {
+    const ws = XLSX.utils.json_to_sheet(filteredSuppliers.map((s, i) => ({
+      '#': i + 1,
+      'Route': s.route?.name,
+      'Supplier': s.name,
+      'Particulars': getJVParticulars(s.supplier_code),
+      'Last Paid': getLastPaidJV(s.supplier_code)?.amount || 0,
+      'Average': supplierPurchaseDetails[s.id]?.avgWeightPerMonth || '0'
+,
+      'Amount': getCurrentBalance(s.supplier_code),
+      'Status': getCurrentBalance(s.supplier_code) < 0 ? 'Cr' : 'Dr'
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Suppliers');
+    XLSX.writeFile(wb, 'Supplier_Report.csv', { bookType: 'csv' });
+  };
+ if (loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-white">
         <div className="flex space-x-2">
@@ -281,10 +294,9 @@ const handleBarSearch = (event) => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto p-6">
       <h2 className="text-xl font-semibold mb-4">Creditor Final Status</h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
           <label className="text-sm font-medium">Included Suppliers</label>
           <Select className='mt-2' isMulti options={supplierOptions} value={includedSuppliers} onChange={setIncludedSuppliers} />
@@ -308,8 +320,8 @@ const handleBarSearch = (event) => {
         <button onClick={handleReset} className="ml-2 bg-red-600 text-white px-4 py-2 rounded">Reset</button>
       </div>
 
-      <div className="overflow-x-auto mt-6 bg-white shadow-md rounded">
-        <div className='flex justify-between items-center mb-4'>
+      <div className="overflow-x-auto bg-white rounded shadow mt-6">
+           <div className='flex justify-between items-center mb-4'>
 <div className="mt-6 flex flex-wrap gap-2">
   <button onClick={exportToExcel} className="bg-gray-500 text-white hover:bg-gray-600 px-4 py-2 rounded">Export Excel</button>
   <button onClick={exportToPDF} className="bg-gray-500 text-white hover:bg-gray-600 px-4 py-2 rounded">Export PDF</button>
@@ -327,52 +339,36 @@ const handleBarSearch = (event) => {
         />
       </div>
         </div>
-        <table  ref={tableRef} className="min-w-full table-auto">
-          <thead className="bg-gray-100 text-sm font-semibold text-left">
+        <table ref={tableRef} className="min-w-full table-auto text-sm">
+          <thead className="bg-gray-100">
             <tr>
               <th className="px-4 py-2">#</th>
               <th className="px-4 py-2">Route</th>
               <th className="px-4 py-2">Supplier</th>
               <th className="px-4 py-2">Particulars</th>
-              <th className="px-4 py-2">Last paid</th>
+              <th className="px-4 py-2">Last Paid</th>
               <th className="px-4 py-2">Average</th>
-              <th className="px-4 py-2"> Amount</th>
-              <th className='px-4 py-2'>Status</th>
-
+              <th className="px-4 py-2">Amount</th>
+              <th className="px-4 py-2">Status</th>
             </tr>
           </thead>
-          <tbody className="text-sm text-gray-700">
-            {filteredSuppliers.map((supplier, idx) => {
-              const jvParticulars = getJVParticulars(supplier.supplier_code);
-              const latestJVVoucher = voucherDetails.find(v => v.account_code === supplier.supplier_code && v.voucher_type === 'JV');
-             const lastPaid = getLastPaidJV(supplier.supplier_code);
-             const balance = getCurrentBalance(supplier.supplier_code);
+          <tbody>
+            {filteredSuppliers.map((s, idx) => {
+              const balance = getCurrentBalance(s.supplier_code);
               return (
-                <tr key={supplier.supplier_code} className="border-b">
+                <tr key={s.supplier_code} className="border-b">
                   <td className="px-4 py-2">{idx + 1}</td>
-                  <td className="px-4 py-2">{supplier.route?.name || 'N/A'}</td>
-<td className="px-4 py-2">
-  <Link
-    className='text-blue-600'
-    href={`/Pages/Dashboard/Ledger/${supplier.supplier_code}/${latestJVVoucher?.main_id }`}
-  >
-    {supplier.name}
-  </Link>
-</td>
-                  <td className="px-4 py-2 w-44">{jvParticulars}</td>
+                  <td className="px-4 py-2">{s.route?.name || 'N/A'}</td>
                   <td className="px-4 py-2">
-                    {lastPaid ? (
-                      <>
-                        <div>{lastPaid.amount}</div>
-                      </>
-                    ) : '0'}
+                    <Link href={`/Pages/Dashboard/Ledger/${s.supplier_code}/${getLastPaidJV(s.supplier_code)?.main_id || ''}`}>
+                      <span className="text-blue-600">{s.name}</span>
+                    </Link>
                   </td>
-                  <td className="px-4 py-2">Avg</td>
-                 <td className="px-4 py-2 font-medium">{balance.toLocaleString()}</td>
-                 <td className="px-4 py-2 font-medium">
- {balance < 0 ? 'Cr' : 'Dr'}
-</td>
-
+                  <td className="px-4 py-2 w-32">{getJVParticulars(s.supplier_code)}</td>
+                  <td className="px-4 py-2">{getLastPaidJV(s.supplier_code)?.amount || 0}</td>
+   <td className="px-4 py-2">{supplierPurchaseDetails[s.id]?.avgWeightPerMonth || '0'}</td>
+                  <td className="px-4 py-2 font-semibold">{balance.toLocaleString()}</td>
+                  <td className="px-4 py-2 font-semibold">{balance < 0 ? 'Cr' : 'Dr'}</td>
                 </tr>
               );
             })}
