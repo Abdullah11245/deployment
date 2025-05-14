@@ -40,7 +40,7 @@ const Navbar = () => {
                       
                     </a>
                       <span className=" font-semibold">{username}</span>
-              </div>
+          </div>
           </div>
         </div>
        

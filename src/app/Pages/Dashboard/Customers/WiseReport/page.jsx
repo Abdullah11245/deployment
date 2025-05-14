@@ -26,7 +26,10 @@ function RouteList() {
   const salesPerPage = 50;
   const indexOfLastSale = currentPage * salesPerPage;
   const indexOfFirstSale = indexOfLastSale - salesPerPage;
-  const currentSales = filteredSales.slice(indexOfFirstSale, indexOfLastSale);
+  const currentSales = Array.isArray(filteredSales)
+  ? filteredSales.slice(indexOfFirstSale, indexOfLastSale)
+  : [];
+
   const totalPages = Math.ceil(filteredSales.length / salesPerPage);
   useEffect(() => {
     const searchLower = searchTerm.toLowerCase();
@@ -83,9 +86,10 @@ function RouteList() {
           axios.get('https://accounts-management.onrender.com/common/items/getAll'),
         ]);
 
-        const fetchedSales = saleRes.data || [];
-        
-        setSales(fetchedSales);
+       const fetchedSales = saleRes.data || [];
+setSales(fetchedSales);
+setFilteredSales(fetchedSales);
+
         setFilteredSales(fetchedSales);
         setSaleDetails(detailRes.data || []);
 
@@ -266,7 +270,35 @@ function RouteList() {
   const handlePrint = () => {
     const printWindow = window.open('', '', 'width=800,height=600');
     const content = document.querySelector('table').outerHTML;
-    printWindow.document.write(`<html><head><title>Print</title></head><body>${content}</body></html>`);
+    printWindow.document.write(`
+    <html>
+      <head>
+        <title>Print</title>
+        <style>
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+          }
+          th, td {
+            border: 1px solid #333;
+            padding: 6px 8px;
+            text-align: left;
+          }
+          th {
+            background-color: #f2f2f2;
+          }
+            .no-print {
+    display: none !important;
+  }
+        </style>
+      </head>
+      <body>
+        ${content}
+      </body>
+    </html>
+  `);
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
@@ -288,24 +320,7 @@ function RouteList() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h2 className="text-xl font-semibold text-gray-700 border-b pb-4 mb-4">Customers Wise Report</h2>
-      <div className="mt-6 flex justify-between items-center flex-wrap gap-4">
-  <div className="flex gap-2 mb-6">
-    <button onClick={exportToCSV} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">CSV</button>
-    <button onClick={exportToExcel} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">Excel</button>
-    <button onClick={exportToPDF} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">PDF</button>
-    <button onClick={handlePrint} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">Print</button>
-  </div>
-  <input
-    type="text"
-    placeholder="Search..."
-    value={searchTerm}
-    onChange={(e) => {
-      setSearchTerm(e.target.value);
-      setCurrentPage(1); // Reset pagination
-    }}
-    className="px-4 py-2 border rounded-md text-sm w-full max-w-[300px]"
-  />
-</div>
+   
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
@@ -356,6 +371,24 @@ function RouteList() {
       </div>
 
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
+           <div className="mt-6  flex justify-between items-center flex-wrap gap-4 mb-4">
+  <div className="flex gap-2 ">
+    <button onClick={exportToCSV} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">CSV</button>
+    <button onClick={exportToExcel} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">Excel</button>
+    <button onClick={exportToPDF} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">PDF</button>
+    <button onClick={handlePrint} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">Print</button>
+  </div>
+  <input
+    type="text"
+    placeholder="Search..."
+    value={searchTerm}
+    onChange={(e) => {
+      setSearchTerm(e.target.value);
+      setCurrentPage(1); // Reset pagination
+    }}
+    className="px-4 py-2 border rounded-md text-sm w-full max-w-[300px]"
+  />
+</div>
         <table className="min-w-full border-collapse">
           <thead className="bg-gray-500">
             <tr>

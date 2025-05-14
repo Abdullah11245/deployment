@@ -240,29 +240,58 @@ const extractWeightAndMonth = (particulars) => {
     doc.save('Supplier_Report.pdf');
   };
 
-  const handlePrint = () => {
-    const header = `
-      <div>
-        <h2>Receipt Report</h2>
-        <p>Date: ${new Date().toLocaleDateString()}</p>
-      </div>`;
-    const tableHTML = tableRef.current.innerHTML;
-    const win = window.open('', '', 'width=900,height=650');
-    win.document.write(`
-      <html>
+const handlePrint = () => {
+  const headerHTML = `
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h2>Creditor Final Status</h2>
+      <p>Date: ${new Date().toLocaleDateString()}</p>
+    </div>`;
+
+  const style = `
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      h2 {
+        margin: 0;
+        font-size: 24px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th, td {
+        border: 1px solid #999;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f3f3f3;
+      }
+    </style>`;
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <html>
       <head>
-        <style>
-          body { font-family: Arial; padding: 20px; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #ccc; padding: 8px; }
-        </style>
+        <title>Print Table</title>
+        ${style}
       </head>
-      <body>${header}${tableHTML}</body>
-      </html>`);
-    win.document.close();
-    win.print();
-    win.close();
-  };
+      <body>
+        ${headerHTML}
+        ${tableRef.current.outerHTML}
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.close();
+};
+
 
   const exportToCSV = () => {
     const ws = XLSX.utils.json_to_sheet(filteredSuppliers.map((s, i) => ({

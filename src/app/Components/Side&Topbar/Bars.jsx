@@ -28,9 +28,9 @@ const Sidebar = () => {
     
     if (userData) {
       const parsedUser = JSON.parse(userData);
-      console.log(parsedUser); // Check the structure of the parsed user data
+     
       setUserType(parsedUser?.user?.role); 
-      setUserName(parsedUser?.user?.firstName)// adjust this key to match your API response
+      setUserName(parsedUser?.user?.firstName)
     }
     fetchSystemData();
 
@@ -51,7 +51,7 @@ const Sidebar = () => {
   return (
    <>
    <div className="hidden  h-screen overflow-y-auto fixed md:flex flex-col w-64 custom-scrollbar">
-       
+       {/* {label: "Cash ()", id: "1110001"}, */}
        <div className="flex flex-col flex-1  ">
          <nav className="flex-1 px-2 py-4 ">
            <aside aria-label="Sidebar">
@@ -64,7 +64,7 @@ const Sidebar = () => {
                    >
                      
                    </Link>
-                     <span className=" font-semibold">{systemData}</span>
+                     <span className=" font-semibold">{systemData} - {userType}</span>
              </li>
                  <div className='px-4 space-y-3'>
                  <li >

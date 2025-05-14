@@ -62,7 +62,7 @@ function Receiptreport() {
             }
           })
         );
-        const brVouchers = voucherData.filter(v => v.voucher_type === 'BR');
+        const brVouchers = voucherData.filter(v => v.voucher_type === 'BR' || v.voucher_type =='JV');
         setRoutes(brVouchers);
         setOriginalRoutes(brVouchers);
         setPartyNameMap(partyNameMap);
@@ -224,11 +224,30 @@ function Receiptreport() {
       const details = getDetailsForVoucher(route.id);
       return {
         '#': index + 1,
-        'Voucher #': route.voucher_id,
+        'Voucher': route.voucher_id,
         'Date': new Date(route.voucher_date).toLocaleDateString(),
-        'Party': route.supplier_code || 'N/A',
-        'Nature/Mode': route.voucher_type,
-        'Particulars': route.note,
+        'Party':  (() => {
+  const details = getDetailsForVoucher(route.id);
+  const matchedParty = details.find(detail => partyNameMap[detail.account_code]);
+  return matchedParty ? partyNameMap[matchedParty.account_code] : 'N/A';
+})(),
+        'Nature/Mode':(() => {
+  const details = getDetailsForVoucher(route.id);
+  for (let detail of details) {
+    const { nature } = processParticulars(detail?.particulars);
+    const matchedBank = Object.keys(resolvedBanks).find(bankKey =>
+      nature.toLowerCase().includes(bankKey)
+    );
+    if (matchedBank) {
+      return resolvedBanks[matchedBank];
+    }
+  }
+  return 'N/A';
+})(),
+        'Particulars': (() => {
+  const details = getDetailsForVoucher(route.id);
+  return details.length > 0 ? details[0].particulars : 'N/A';
+})(),
         'Amount': getTotalDebit(details).toFixed(2),
       };
     });
@@ -253,12 +272,34 @@ function Receiptreport() {
       const details = getDetailsForVoucher(route.id);
       return {
         '#': index + 1,
-        'Voucher #': route.voucher_id,
+        'Voucher': route.voucher_id,
         'Date': new Date(route.voucher_date).toLocaleDateString(),
-        'Party': route.supplier_code || 'N/A',
-        'Nature/Mode': route.voucher_type,
-        'Particulars': route.note,
-        'Amount': getTotalDebit(details).toFixed(2),
+        'Party':  (() => {
+  const details = getDetailsForVoucher(route.id);
+  const matchedParty = details.find(detail => partyNameMap[detail.account_code]);
+  return matchedParty ? partyNameMap[matchedParty.account_code] : 'N/A';
+})(),
+        'Nature/Mode':(() => {
+  const details = getDetailsForVoucher(route.id);
+  for (let detail of details) {
+    const { nature } = processParticulars(detail?.particulars);
+    const matchedBank = Object.keys(resolvedBanks).find(bankKey =>
+      nature.toLowerCase().includes(bankKey)
+    );
+    if (matchedBank) {
+      return resolvedBanks[matchedBank];
+    }
+  }
+  return 'N/A';
+})(),
+        'Particulars': (() => {
+  const details = getDetailsForVoucher(route.id);
+  return details.length > 0 ? details[0].particulars : 'N/A';
+})(),
+        'Amount': (() => {
+  const details = getDetailsForVoucher(route.id);
+  return getTotalDebit(details).toFixed(2);
+})(),
       };
     });
 
@@ -270,7 +311,7 @@ function Receiptreport() {
 
   const exportPDF = () => {
     const doc = new jsPDF();
-    const tableColumn = ['#', 'Voucher #', 'Date', 'Party', 'Nature/Mode', 'Particulars', 'Amount'];
+    const tableColumn = ['#', 'Voucher', 'Date', 'Party', 'Nature/Mode', 'Particulars', 'Amount'];
     const tableRows = [];
 
     routes.forEach((route, index) => {
@@ -279,11 +320,35 @@ function Receiptreport() {
         index + 1,
         route.voucher_id,
         new Date(route.voucher_date).toLocaleDateString(),
-        route.supplier_code || 'N/A',
-        route.voucher_type,
-        route.note,
-        getTotalDebit(details).toFixed(2),
-      ]);
+       (() => {
+  const details = getDetailsForVoucher(route.id);
+  const matchedParty = details.find(detail => partyNameMap[detail.account_code]);
+  return matchedParty ? partyNameMap[matchedParty.account_code] : 'N/A';
+})(),
+
+      (() => {
+  const details = getDetailsForVoucher(route.id);
+  for (let detail of details) {
+    const { nature } = processParticulars(detail?.particulars);
+    const matchedBank = Object.keys(resolvedBanks).find(bankKey =>
+      nature.toLowerCase().includes(bankKey)
+    );
+    if (matchedBank) {
+      return resolvedBanks[matchedBank];
+    }
+  }
+  return 'N/A';
+})(),
+        (() => {
+  const details = getDetailsForVoucher(route.id);
+  return details.length > 0 ? details[0].particulars : 'N/A';
+})(),
+(() => {
+  const details = getDetailsForVoucher(route.id);
+  return getTotalDebit(details).toFixed(2);
+})(),
+
+]);
     });
 
     autoTable(doc, {
@@ -352,40 +417,54 @@ function Receiptreport() {
   const totalPages = Math.ceil(routes.length / itemsPerPage);
   const indexOfFirstRoute = (currentPage - 1) * itemsPerPage;
   const indexOfLastRoute = Math.min(indexOfFirstRoute + itemsPerPage, routes.length);
-  const handleUniversalSearch = (searchTerm) => {
-    if (!searchTerm.trim()) {
-      setRoutes(originalRoutes);
-      setCurrentPage(1);
-      return;
-    }
-  
-    const lowerSearch = searchTerm.toLowerCase();
-  
-    const filtered = originalRoutes.filter(route => {
-      const voucherId = route.voucher_id?.toString().toLowerCase() || '';
-      const voucherDate = new Date(route.voucher_date).toLocaleDateString().toLowerCase();
-      const note = route.note?.toLowerCase() || '';
-  
-      const details = getDetailsForVoucher(route.id);
-      const particularsMatch = details.some(detail =>
-        (detail.particulars || '').toLowerCase().includes(lowerSearch)
-      );
-  
-      const partyMatch = details.some(detail => {
-        const partyName = partyNameMap[detail.account_code]?.toLowerCase() || '';
-        return partyName.includes(lowerSearch);
-      });
-  
-      return voucherId.includes(lowerSearch) ||
-             voucherDate.includes(lowerSearch) ||
-             note.includes(lowerSearch) ||
-             particularsMatch ||
-             partyMatch;
-    });
-  
-    setRoutes(filtered);
+ const handleUniversalSearch = (searchTerm) => {
+  if (!searchTerm.trim()) {
+    setRoutes(originalRoutes);
     setCurrentPage(1);
-  };
+    return;
+  }
+
+  const lowerSearch = searchTerm.toLowerCase();
+
+  const filtered = originalRoutes.filter(route => {
+    const voucherId = route.voucher_id?.toString().toLowerCase() || '';
+    const voucherType = route.voucher_type?.toLowerCase() || '';
+    const voucherDate = new Date(route.voucher_date).toLocaleDateString().toLowerCase();
+    const note = route.note?.toLowerCase() || '';
+
+    const details = getDetailsForVoucher(route.id);
+
+    const particularsMatch = details.some(detail =>
+      (detail.particulars || '').toLowerCase().includes(lowerSearch)
+    );
+
+    const partyMatch = details.some(detail => {
+      const partyName = partyNameMap[detail.account_code]?.toLowerCase() || '';
+      return partyName.includes(lowerSearch);
+    });
+
+    const bankMatch = details.some(detail => {
+      const { nature } = processParticulars(detail?.particulars);
+      return Object.keys(resolvedBanks).some(bankKey =>
+        nature.toLowerCase().includes(bankKey) && bankKey.includes(lowerSearch)
+      );
+    });
+
+    return (
+      voucherId.includes(lowerSearch) ||
+      voucherType.includes(lowerSearch) ||
+      voucherDate.includes(lowerSearch) ||
+      note.includes(lowerSearch) ||
+      particularsMatch ||
+      partyMatch ||
+      bankMatch
+    );
+  });
+
+  setRoutes(filtered);
+  setCurrentPage(1);
+};
+
   
   return (
     <div className="container mx-auto px-4 py-8">
@@ -483,7 +562,7 @@ function Receiptreport() {
           {getPaginatedData().map((route, index) => {
             const details = getDetailsForVoucher(route.id);
             return (
-              <tr key={route.id} className="text-sm text-gray-700">
+              <tr key={route.id} className="text-sm text-gray-700 hover:bg-gray-200">
                 <td className="py-3 px-4">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                 <td className="py-3 px-4">{route.voucher_type}-{route.voucher_id}</td>
                 <td className="py-3 px-4">{new Date(route.voucher_date).toLocaleDateString()}</td>
@@ -497,26 +576,30 @@ function Receiptreport() {
 </td>
 
 <td className="py-3 px-4">
-  {
-    getDetailsForVoucher(route.id).map((detail, idx) => {
+  {(() => {
+    const details = getDetailsForVoucher(route.id);
+    for (let detail of details) {
       const { nature } = processParticulars(detail?.particulars);
       const matchedBank = Object.keys(resolvedBanks).find(bankKey =>
         nature.toLowerCase().includes(bankKey)
       );
-      return (
-        matchedBank ? <div key={idx}>{resolvedBanks[matchedBank]}</div> : null
-      );
-    })
-  }
+      if (matchedBank) {
+        return resolvedBanks[matchedBank];
+      }
+    }
+    return 'N/A';
+  })()}
 </td>
 
 
 
-                <td className="py-3 px-4 ">
-  {getDetailsForVoucher(route.id).map((detail, idx) => (
-    <div key={idx}>{detail.particulars}</div>
-  ))}
+         <td className="py-3 px-4 w-72">
+  {(() => {
+    const details = getDetailsForVoucher(route.id);
+    return details.length > 0 ? details[0].particulars : 'N/A';
+  })()}
 </td>
+
 
                 <td className="py-3 px-4">{formatCurrencyPK(getTotalDebit(details).toFixed(2))}</td>
               </tr>

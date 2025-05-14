@@ -21,9 +21,13 @@ function RouteList() {
       try {
         const response = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
         console.log( response.data.suppliers); // Log the response data
-        if (response.status === 200) {
-          setRoutes(response.data.suppliers);
-        } else {
+       if (response.status === 200) {
+  const sortedSuppliers = response.data.suppliers.sort((a, b) =>
+    a.name?.localeCompare(b.name)
+  );
+  setRoutes(sortedSuppliers);
+}
+ else {
           console.error('Failed to fetch routes');
         }
       } catch (error) {
@@ -50,12 +54,7 @@ function RouteList() {
       route.route?.name?.toLowerCase().includes(lowerTerm)
     );
   };
-  function decodeMisencodedUrdu(text) {
-    // Convert misencoded Latin1 string to UTF-8 correctly
-    const bytes = new TextEncoder('iso-8859-1').encode(text);
-    const decoded = new TextDecoder('utf-8').decode(bytes);
-    return decoded;
-  }
+
   // Calculate the routes for the current page
  
   const filteredRoutes = routes.filter((route) => matchesSearch(route, searchTerm));
@@ -98,27 +97,55 @@ function RouteList() {
     doc.text('Suppliers List', 14, 15);
     autoTable(doc, {
       startY: 20,
-      head: [['Code', 'Name', 'Address', 'Status']],
+      head: [['Code', 'Name', 'Route', 'Supplier Urdu']],
       body: routes.map((s) => [
-        s.code,
+        s.supplier_code,
         s.name,
-        s.address,
-        s.status === 1 ? 'Active' : 'Inactive',
+        s.route?.name,
+        s.name_ur,
       ]),
     });
     doc.save('suppliers.pdf');
   };
   
-  const handlePrint = () => {
-    const printWindow = window.open('', '', 'width=800,height=600');
-    const content = document.querySelector('table').outerHTML;
-    printWindow.document.write(`<html><head><title>Print</title></head><body>${content}</body></html>`);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
-  };
-  
+const handlePrint = () => {
+  const content = document.querySelector('table').outerHTML;
+  const printWindow = window.open('', '', 'width=800,height=600');
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Print</title>
+        <style>
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+          }
+          th, td {
+            border: 1px solid #333;
+            padding: 6px 8px;
+            text-align: left;
+          }
+          th {
+            background-color: #f2f2f2;
+          }
+            .no-print {
+    display: none !important;
+  }
+        </style>
+      </head>
+      <body>
+        ${content}
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.close();
+};
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -176,7 +203,7 @@ function RouteList() {
   value={searchTerm}
   onChange={(e) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(1); // Optional: reset to page 1 on new search
+    setCurrentPage(1); 
   }}
   className="bg-white h-10 px-5 pr-10 rounded-full text-sm focus:outline-none"
 />
@@ -195,7 +222,7 @@ function RouteList() {
     <th className="px-4 py-3 text-left text-sm font-medium  uppercase">Address</th>
     <th className="px-4 py-3 text-left text-sm font-medium  uppercase">Routes</th>
     <th className="px-4 py-3 text-left text-sm font-medium  uppercase">Status</th>
-    <th className="px-4 py-3 text-left text-sm font-medium  uppercase">Action</th>
+    <th className="px-4 py-3 text-left text-sm font-medium  uppercase  no-print">Action</th>
   </tr>
 </thead>
 <tbody>
@@ -206,7 +233,7 @@ function RouteList() {
       <td className="px-4 py-2 text-sm text-gray-700">{route.name}</td>
       <td className="px-4 py-2 text-sm text-gray-700">{route.name_ur}</td>
       <td className="px-4 py-2 text-sm text-gray-700">{route.address}</td>
-      <td className="px-4 py-2 text-sm text-gray-700">{route.route?.name || '-'}</td>
+      <td className="px-4 py-2 text-sm text-gray-700 ">{route.route?.name || '-'}</td>
       <td className="px-4 py-2 text-sm">
         <span
           className={`${
@@ -218,7 +245,7 @@ function RouteList() {
           {route.status === 1 ? 'Active' : 'Inactive'}
         </span>
       </td>
-      <td className="px-4 py-2 text-sm text-gray-700">
+      <td className="px-4 py-2 text-sm text-gray-700   no-print">
         <button
           onClick={() => handleEdit(route)}
           className="bg-gray-200 text-white p-2 rounded-full hover:bg-green-200 w-[35px] h-[35px] flex items-center justify-center"

@@ -12,21 +12,22 @@ function RouteList() {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchRoutes = async () => {
-      try {
-        const response = await axios.get('https://accounts-management.onrender.com/common/routes/getAll');
-        console.log('Response:', response.data); // Log the response data
-        if (response.status === 200) {
-          setRoutes(response.data.routes);
-        } else {
-          console.error('Failed to fetch routes');
-        }
-      } catch (error) {
-        console.error('Error fetching routes:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchRoutes = async () => {
+  try {
+    const response = await axios.get('https://accounts-management.onrender.com/common/routes/getAll');
+    if (response.status === 200) {
+      const sortedRoutes = response.data.routes.sort((a, b) => a.name.localeCompare(b.name));
+      setRoutes(sortedRoutes);
+    } else {
+      console.error('Failed to fetch routes');
+    }
+  } catch (error) {
+    console.error('Error fetching routes:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
     fetchRoutes();
   }, []);
@@ -86,14 +87,16 @@ function RouteList() {
         <table className="min-w-full border-collapse">
           <thead className="bg-gray-500 text-white">
             <tr>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase">#</th>
               <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Route Name</th>
               <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Status</th>
               <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Action</th>
             </tr>
           </thead>
           <tbody>
-            {currentRoutes.map((route) => (
+            {currentRoutes.map((route,index) => (
               <tr key={route.id} className="border-t">
+                <td className="px-6 py-4 text-sm text-gray-700">{index+1}</td>
                 <td className="px-6 py-4 text-sm text-gray-700">{route.name}</td>
                 <td className="px-6 py-4 text-sm">
                   <span
