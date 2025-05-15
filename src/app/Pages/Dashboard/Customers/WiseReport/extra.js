@@ -6,7 +6,6 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { json2csv } from 'json-2-csv';
-import Link from 'next/link';
 
 function RouteList() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -31,57 +30,46 @@ function RouteList() {
 
   const totalPages = Math.ceil(filteredSales.length / salesPerPage);
 
-const [vouchers, setVouchers] = useState([]);
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const [saleRes, detailRes, partyRes, itemRes] = await Promise.all([
+          axios.get('https://accounts-management.onrender.com/common/sale/getAll'),
+          axios.get('https://accounts-management.onrender.com/common/saleDetail/getAll'),
+          axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
+          axios.get('https://accounts-management.onrender.com/common/items/getAll'),
+        ]);
 
-useEffect(() => {
-  const fetchInitialData = async () => {
-    try {
-      const [saleRes, detailRes, partyRes, itemRes, voucherRes] = await Promise.all([
-        axios.get('https://accounts-management.onrender.com/common/sale/getAll'),
-        axios.get('https://accounts-management.onrender.com/common/saleDetail/getAll'),
-        axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
-        axios.get('https://accounts-management.onrender.com/common/items/getAll'),
-        axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
-      ]);
+        const fetchedSales = saleRes.data || [];
+        const fetchedSaleDetails = detailRes.data || [];
+        const fetchedParties = partyRes.data.filter(p => p.status);
+        const fetchedItems = itemRes.data.filter(item => item.type === 'Sale');
 
-      const fetchedSales = saleRes.data || [];
+        // Fetch vouchers for each saleId and filter them by type "SV"
+        const salesWithVouchers = await Promise.all(fetchedSales.map(async (sale) => {
+          const vouchersRes = await axios.get(`https://accounts-management.onrender.com/common/voucher/${sale.sale_id}`);
+          const vouchers = vouchersRes.data.filter(voucher => voucher.voucher_type === 'SV');
+          return { ...sale, vouchers }; // Attach vouchers to the sale object
+        }));
 
-      setSales(fetchedSales);
-      setFilteredSales(fetchedSales);
-      setSaleDetails(detailRes.data || []);
+        setSales(salesWithVouchers);
+        setFilteredSales(salesWithVouchers);
+        setSaleDetails(fetchedSaleDetails);
 
-      const allVouchers = voucherRes.data || [];
-      
-      const filteredVouchers = allVouchers.filter(
-        (v) => v.voucher_type === 'SV'
-      );
-      setVouchers(filteredVouchers);
+        const parties = fetchedParties.map(p => ({ value: p.id, label: p.name }));
+        setPartyOptions(parties);
 
-      const parties = partyRes.data
-        .filter(p => p.status)
-        .map(p => ({ value: p.id, label: p.name }));
-      setPartyOptions(parties);
+        const saleItems = [{ value: 'all', label: 'All' }, ...fetchedItems.map(item => ({ value: String(item.id), label: item.name }))];
+        setItemOptions(saleItems);
+      } catch (err) {
+        console.error('Error fetching initial data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      const saleItems = itemRes.data
-        .filter(item => item.type === 'Sale')
-        .map(item => ({ value: String(item.id), label: item.name }));
-
-      setItemOptions([{ value: 'all', label: 'All' }, ...saleItems]);
-    } catch (err) {
-      console.error('Error fetching initial data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchInitialData();
-}, []);
-
- const findVoucherIdForSale = (saleId) => {
- 
-    const voucher = vouchers.find(v => Number(v.voucher_id) === Number(saleId));
-    return voucher;
-  };
+    fetchInitialData();
+  }, []);
 
   const getDetailsForSale = (saleId) =>
     saleDetails.filter(detail => Number(detail.sale_id) === Number(saleId));
@@ -205,8 +193,8 @@ useEffect(() => {
     doc.text('Sales Report', 14, 15);
     autoTable(doc, {
       startY: 20,
-      head: [['#', 'Date', 'Vr#', 'Item Name', 'Weight', 'Rate', 'Gross Amount', 'Freight', 'Net Amount']],
-      body: filteredSales.map(sale=> {
+      head: [['Date', 'Vr#', 'Item Name', 'Weight', 'Rate', 'Gross', 'Freight', 'Net']],
+      body: filteredSales.map(sale => {
         const details = getDetailsForSale(sale.sale_id);
         const first = details[0] || {};
         const weight = getTotalWeight(details);
@@ -360,13 +348,8 @@ useEffect(() => {
                   <tr key={sale.sale_id} className="border-t">
                     <td className="px-6 py-4 text-sm">{indexOfFirstSale + index + 1}</td>
                     <td className="px-6 py-4 text-sm">{new Date(sale.sale_date).toISOString().split('T')[0]}</td>
-<td className='px-6 py-4 text-sm text-blue-500'>
-                      <Link href={`/Pages/Dashboard/Vouchers/Voucher/${findVoucherIdForSale(sale.sale_id)?.voucher_type}/${findVoucherIdForSale(sale.sale_id)?.id}/${findVoucherIdForSale(sale.sale_id)?.voucher_id}`}>
-                      
-                      {findVoucherIdForSale(sale.sale_id)?.voucher_id}
-                      </Link>
-                      
-                      </td>                    <td className="px-6 py-4 text-sm">
+                    <td className="px-6 py-4 text-sm">{firstDetail.vehicle_no || '-'}</td>
+                    <td className="px-6 py-4 text-sm">
                       {firstDetail.item_id === 2 ? 'Oil' : firstDetail.item_id ? 'Protein' : '-'}
                     </td>
                     <td className="px-6 py-4 text-sm">{totalWeight}</td>
@@ -374,8 +357,6 @@ useEffect(() => {
                     <td className="px-6 py-4 text-sm">{formatPKR(gross)}</td>
                     <td className="px-6 py-4 text-sm">{formatPKR(freight)}</td>
                     <td className="px-6 py-4 text-sm">{formatPKR(net)}</td>
-                    
-
                   </tr>
                 );
               })
