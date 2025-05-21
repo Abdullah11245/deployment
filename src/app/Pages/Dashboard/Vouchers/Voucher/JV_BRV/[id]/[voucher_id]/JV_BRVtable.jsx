@@ -13,7 +13,15 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
           fetch('https://accounts-management.onrender.com/common/banks/getAll'),
           fetch('https://accounts-management.onrender.com/common/parties/getAll'),
         ]);
-
+        const initials = [
+          { account_title: 'Cash', account_code: '1110001' },
+          { account_title: 'Sales Tax ()', account_code: '2120001' },
+          { account_title: 'Adjusted Balances ()', account_code: '5110001' },
+          { account_title: 'Inventory', account_code: '1140001' },
+          { account_title: 'Deduction of W.H.T by Azhar Corp. (Pvt.) Ltd.', account_code: '1150001' },
+          { account_title: 'Deduction of W.H.T by Salva Feed (Pvt.) Ltd.', account_code: '1150002' },
+          { account_title: 'Deduction of W.H.T by Sadiq Feed (Pvt.) Ltd.', account_code: '1150003' },
+        ];
         const [suppliersData, banksData, partiesData] = await Promise.all([
           suppliersRes.json(),
           banksRes.json(),
@@ -40,8 +48,15 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
           title: item.name,
           type: 'Party',
         }));
+         const initial =initials.map(item=>({
+          value: item.account_code,
+          label: `${item.account_title}`,
+          title: item.account_title,
+          type: 'Initials',
+        }));
 
-        setAccountOptions([...suppliers, ...banks, ...parties]);
+        setAccountOptions([...suppliers, ...banks, ...parties,...initial]);
+
       } catch (error) {
         console.error('Error fetching data:', error);
       }

@@ -3,55 +3,76 @@ import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
 
 const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) => {
-  const [accounts, setAccounts] = useState([]); // To store either suppliers or customers
+  const [accountOptions, setAccountOptions] = useState([]);
+
   const formatCurrencyPK = (number) => {
     if (isNaN(number)) return '0';
     const rounded = Math.round(Number(number));
     return rounded.toLocaleString('en-IN');
   };
-  // Fetch suppliers or customers based on voucher type
+
+  // Fetch and group all accounts (banks, suppliers, parties, initials)
   useEffect(() => {
     const fetchAccounts = async () => {
       try {
-        let url = '';
-        if (voucherType === 'CP') {
-          url = 'https://accounts-management.onrender.com/common/suppliers/getAll';
-        } else if (voucherType === 'CR') {
-          url = 'https://accounts-management.onrender.com/common/parties/getAll';
-        }
-  
-        if (url) {
-          const response = await fetch(url);
-          const data = await response.json();
-  
-          // Normalize response into a common shape: { code, name }
-          let normalized = [];
-  
-          if (voucherType === 'CP' && data?.suppliers) {
-            normalized = data.suppliers.map((s) => ({
-              code: s.supplier_code,
-              name: s.name,
-            }));
-          } else if (voucherType === 'CR' && data) {
-            normalized = data.map((c) => ({
-              code: c.party_code,
-              name: c.name,
-            }));
-          
-          }
-  
-          setAccounts(normalized);
-        }
+        const initials = [
+          { account_title: 'Cash', account_code: '1110001' },
+          { account_title: 'Sales Tax ()', account_code: '2120001' },
+          { account_title: 'Adjusted Balances ()', account_code: '5110001' },
+          { account_title: 'Inventory', account_code: '1140001' },
+          { account_title: 'Deduction of W.H.T by Azhar Corp. (Pvt.) Ltd.', account_code: '1150001' },
+          { account_title: 'Deduction of W.H.T by Salva Feed (Pvt.) Ltd.', account_code: '1150002' },
+          { account_title: 'Deduction of W.H.T by Sadiq Feed (Pvt.) Ltd.', account_code: '1150003' },
+        ];
+
+        const [bankRes, partyRes, supplierRes] = await Promise.all([
+          fetch('https://accounts-management.onrender.com/common/banks/getAll'),
+          fetch('https://accounts-management.onrender.com/common/parties/getAll'),
+          fetch('https://accounts-management.onrender.com/common/suppliers/getAll'),
+        ]);
+
+        const banks = await bankRes.json();
+        const parties = await partyRes.json();
+        const suppliersData = await supplierRes.json();
+        const suppliers = suppliersData?.suppliers || [];
+
+        const bankMapped = banks.map((b) => ({
+          label: b.account_title,
+          value: b.account_code,
+        }));
+
+        const partyMapped = parties.map((p) => ({
+          label: p.name,
+          value: p.party_code,
+        }));
+
+        const supplierMapped = suppliers.map((s) => ({
+          label: s.name,
+          value: s.supplier_code,
+        }));
+
+        const initialMapped = initials.map((i) => ({
+          label: i.account_title,
+          value: i.account_code,
+        }));
+
+        const grouped = [
+          { label: 'Banks', options: bankMapped },
+          { label: 'Parties', options: partyMapped },
+          { label: 'Suppliers', options: supplierMapped },
+          { label: 'Initial Accounts', options: initialMapped },
+        ];
+
+        setAccountOptions(grouped);
       } catch (error) {
-        console.error('Error fetching accounts:', error);
+        console.error('Error fetching account options:', error);
       }
     };
-  
-    fetchAccounts();
-  }, [voucherType]);
-   // Re-run the effect when voucherType changes
 
-  const handleInputChange = (index, field, value,field2,label) => {
+    fetchAccounts();
+  }, []);
+
+  const handleInputChange = (index, field, value, field2, label) => {
     const updated = [...voucherDetails];
     updated[index] = {
       ...updated[index],
@@ -66,6 +87,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
       ...voucherDetails,
       {
         account_code: '',
+        title: '',
         particulars: '',
         debit: '',
         credit: '',
@@ -116,26 +138,27 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
               <td className="px-4 py-2">{index + 1}</td>
 
               <td className="px-4 py-2">
-  <Select
-    className="w-full"
-    options={accounts.map((account) => ({
-      value: account.code,
-      label: account.name,
-    }))}
-    value={
-      row.account_code
-        ? {
-            value: row.account_code,
-            label: accounts.find((a) => a.code === row.account_code)?.name || '',
-          }
-        : null
-    }
-    onChange={(selected) => handleInputChange(index, 'account_code', selected?.value ,'title',selected.label|| '')}
-    placeholder="Select Account"
-    isClearable
-  />
-</td>
-
+                <Select
+                  className="w-full"
+                  options={accountOptions}
+                  value={
+                    row.account_code
+                      ? {
+                          value: row.account_code,
+                          label:
+                            accountOptions
+                              .flatMap((group) => group.options)
+                              .find((opt) => opt.value === row.account_code)?.label || '',
+                        }
+                      : null
+                  }
+                  onChange={(selected) =>
+                    handleInputChange(index, 'account_code', selected?.value, 'title', selected?.label || '')
+                  }
+                  placeholder="Select Account"
+                  isClearable
+                />
+              </td>
 
               <td className="px-4 py-2">
                 <input
@@ -147,7 +170,6 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                 />
               </td>
 
-              {/* Conditionally render Debit or Credit column based on voucher type */}
               {voucherType === 'CP' ? (
                 <td className="px-4 py-2 text-right">
                   <input
@@ -173,7 +195,6 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                   <td className="px-4 py-2 text-right">
                     <input
                       type="text"
-                  
                       value={row.debit}
                       onChange={(e) => handleInputChange(index, 'debit', e.target.value)}
                       className="w-32 border rounded px-2 py-3 text-right"
@@ -206,7 +227,6 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
             </tr>
           ))}
 
-          {/* Summary row */}
           <tr className="bg-gray-50 border-t font-semibold">
             <td colSpan="3" className="px-4 py-2 text-right">Totals</td>
             <td className="px-4 py-2 text-right">{formatCurrencyPK(totalDebit.toFixed(2))}</td>
@@ -216,7 +236,6 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
         </tbody>
       </table>
 
-      {/* Add Row Button */}
       <div className="p-4 flex justify-end">
         <button
           type="button"

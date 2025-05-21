@@ -5,42 +5,72 @@ import Select from 'react-select';
 const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) => {
   const [mainOptions, setMainOptions] = useState([]);
   const [bankOptions, setBankOptions] = useState([]);
+
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        // Always fetch banks
-        const bankRes = await fetch('https://accounts-management.onrender.com/common/banks/getAll');
-        const bankData = await bankRes.json();
-        setBankOptions(
-          bankData.map((bank) => ({
-            value: bank.account_code,
-            label: bank.account_title,
-          }))
-        );
+        const initials = [
+          { account_title: 'Cash', account_code: '1110001' },
+          { account_title: "Sales Tax ()", account_code: "2120001" },
+          { account_title: "Adjusted Balances ()", account_code: "5110001" },
+          { account_title: "Inventory", account_code: "1140001" },
+          { account_title: 'Deduction of W.H.T by Azhar Corp. (Pvt.) Ltd.', account_code: '1150001' },
+          { account_title: "Deduction of W.H.T by Salva Feed (Pvt.) Ltd. ", account_code: '1150002' },
+          { account_title: "Deduction of W.H.T by Sadiq Feed (Pvt.) Ltd.", account_code: "1150003" }
+        ];
 
-        // Fetch either customers or suppliers based on type
-        if (voucherType =='BR') {
-          const res = await fetch('https://accounts-management.onrender.com/common/parties/getAll');
-          const data = await res.json();
-          console.log(data.data);
-          setMainOptions(
-            data.map((p) => ({
-              value: p.party_code,
-              label: p.name,
-            }))
-          );
-        } else if (voucherType == 'BP') {
-          const res = await fetch('https://accounts-management.onrender.com/common/suppliers/getAll');
-          const data = await res.json();
-          setMainOptions(
-            data.suppliers.map((s) => ({
-              value: s.supplier_code,
-              label: s.name,
-            }))
-          );
-        } else {
-          setMainOptions([]); // or default to other data
-        }
+        const [bankRes, partyRes, supplierRes] = await Promise.all([
+          fetch('https://accounts-management.onrender.com/common/banks/getAll'),
+          fetch('https://accounts-management.onrender.com/common/parties/getAll'),
+          fetch('https://accounts-management.onrender.com/common/suppliers/getAll')
+        ]);
+
+        const banks = await bankRes.json();
+        const parties = await partyRes.json();
+        const suppliersData = await supplierRes.json();
+        const suppliers = suppliersData.suppliers;
+
+        const bankMapped = banks.map(b => ({
+          label: b.account_title,
+          value: b.account_code,
+          type: 'bank'
+        }));
+
+        const partyMapped = parties.map(p => ({
+          label: p.name,
+          value: p.party_code,
+          type: 'party'
+        }));
+
+        const supplierMapped = suppliers.map(s => ({
+          label: s.name,
+          value: s.supplier_code,
+          type: 'supplier'
+        }));
+
+        const initialMapped = initials.map(i => ({
+          label: i.account_title,
+          value: i.account_code,
+          type: 'initial'
+        }));
+
+        const combined = [
+          ...bankMapped,
+          ...partyMapped,
+          ...supplierMapped,
+          ...initialMapped
+        ];
+
+        // Optionally group them visually
+        const grouped = [
+          { label: 'Banks', options: bankMapped },
+          { label: 'Parties', options: partyMapped },
+          { label: 'Suppliers', options: supplierMapped },
+          { label: 'Initial Accounts', options: initialMapped }
+        ];
+
+        setMainOptions(grouped);
+        setBankOptions(grouped);
       } catch (err) {
         console.error('Error fetching dropdown data:', err);
       }
@@ -49,30 +79,29 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
     fetchOptions();
   }, [voucherType]);
 
-  const handleInputChange = (index, field, value) => {
+  const handleInputChange = (index, field, value, type) => {
     setVoucherDetails((prevDetails) => {
       const updated = [...prevDetails];
       const currentRow = { ...updated[index] };
-  
+
+      const flatOptions = [...mainOptions.flatMap(g => g.options)];
+
       if (field === 'account_code') {
-        const selected = mainOptions.find(opt => opt.value === value);
+        const selected = flatOptions.find(opt => opt.value === value && opt.type === type);
         currentRow.account_code = String(value);
         currentRow.party_name = selected?.label || '';
       } else if (field === 'bank_account_code') {
-        const selectedBank = bankOptions.find(opt => opt.value === value);
+        const selectedBank = flatOptions.find(opt => opt.value === value && opt.type === type);
         currentRow.bank_account_code = String(value);
         currentRow.bank_name = selectedBank?.label || '';
       } else {
         currentRow[field] = value;
       }
-  
+
       updated[index] = currentRow;
       return updated;
     });
   };
-  
-  
-  
 
   const addRow = () => {
     setVoucherDetails([
@@ -82,8 +111,8 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
         bank_account_code: '',
         particulars: '',
         debit: '',
-        credit: '',
-      },
+        credit: ''
+      }
     ]);
   };
 
@@ -97,21 +126,27 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
     (sum, item) => sum + (parseFloat(item.debit) || 0),
     0
   );
+
   const totalCredit = voucherDetails.reduce(
     (sum, item) => sum + (parseFloat(item.credit) || 0),
     0
   );
 
+  const getSelectedOption = (options, value) => {
+    const flat = options.flatMap(g => g.options);
+    return flat.find(opt => opt.value === value) || null;
+  };
+
   return (
     <div className="overflow-x-auto bg-white shadow-md rounded-md mt-8">
-      <table className="min-w-full border border-gray-200 ">
+      <table className="min-w-full border border-gray-200">
         <thead className="bg-gray-100 text-gray-600">
           <tr>
             <th className="px-4 py-2 text-left">#</th>
             <th className="px-4 py-2 text-left">
-              {voucherType === 'BR' ? 'Customer' : voucherType === 'BP' ? 'Supplier' : 'Account'}
+              {voucherType === 'BR' ? 'Account' : voucherType === 'BP' ? 'Account' : 'Account'}
             </th>
-            <th className="px-4 py-2 text-left">Bank</th>
+            <th className="px-4 py-2 text-left">Account</th>
             <th className="px-4 py-2 text-left">Particulars</th>
             <th className="px-4 py-2 text-right">Debit</th>
             <th className="px-4 py-2 text-right">Credit</th>
@@ -123,12 +158,12 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
             <tr key={index} className="border-t">
               <td className="px-4 py-2">{index + 1}</td>
 
-              {/* Customer / Supplier Dropdown */}
+              {/* Account Dropdown */}
               <td className="px-4 py-2 w-64">
                 <Select
-value={mainOptions.find((opt) => opt.value === row.account_code) || null}
-onChange={(selected) =>
-                    handleInputChange(index, 'account_code', selected?.value || '')
+                  value={getSelectedOption(mainOptions, row.account_code)}
+                  onChange={(selected) =>
+                    handleInputChange(index, 'account_code', selected?.value || '', selected?.type)
                   }
                   options={mainOptions}
                   placeholder="Select"
@@ -138,16 +173,15 @@ onChange={(selected) =>
 
               {/* Bank Dropdown */}
               <td className="px-4 py-2 w-64">
-              <Select
-value={bankOptions.find((opt) => opt.value === row.bank_account_code) || null}
-onChange={(selected) =>
-    handleInputChange(index, 'bank_account_code', selected?.value || '')
-  }
-  options={bankOptions}
-  placeholder="Select Bank"
-  isClearable
-/>
-
+                <Select
+                  value={getSelectedOption(bankOptions, row.bank_account_code)}
+                  onChange={(selected) =>
+                    handleInputChange(index, 'bank_account_code', selected?.value || '', selected?.type)
+                  }
+                  options={bankOptions}
+                  placeholder="Select Bank"
+                  isClearable
+                />
               </td>
 
               <td className="px-4 py-2">

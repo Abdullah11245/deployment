@@ -6,6 +6,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { json2csv } from 'json-2-csv';
+import Link from 'next/link';
 
 function RouteList() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -14,83 +15,79 @@ function RouteList() {
   const [selectedValue, setSelectedValue] = useState([]);
   const [selectedItem, setSelectedItem] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sales, setSales] = useState([]);
-  const [filteredSales, setFilteredSales] = useState([]);
-  const [saleDetails, setSaleDetails] = useState([]);
+  const [filteredVouchers, setFilteredVouchers] = useState([]);
   const [partyOptions, setPartyOptions] = useState([]);
   const [itemOptions, setItemOptions] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [vouchers, setVouchers] = useState([]);
+  const [voucherDetails, setVoucherDetails] = useState([]);
+  const [saleDetails, setSaleDetails] = useState([]);
 
   const salesPerPage = 50;
   const indexOfLastSale = currentPage * salesPerPage;
   const indexOfFirstSale = indexOfLastSale - salesPerPage;
-  const currentSales = Array.isArray(filteredSales)
-    ? filteredSales.slice(indexOfFirstSale, indexOfLastSale)
+  const currentVouchers = Array.isArray(filteredVouchers)
+    ? filteredVouchers.slice(indexOfFirstSale, indexOfLastSale)
     : [];
-
-  const totalPages = Math.ceil(filteredSales.length / salesPerPage);
+  const totalPages = Math.ceil(filteredVouchers.length / salesPerPage);
 
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [saleRes, detailRes, partyRes, itemRes] = await Promise.all([
-          axios.get('https://accounts-management.onrender.com/common/sale/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/saleDetail/getAll'),
+        const [voucherRes, detailRes, partyRes, itemRes, saleDetailRes] = await Promise.all([
+          axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
+          axios.get('https://accounts-management.onrender.com/common/voucherDetail/getAll'),
           axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
           axios.get('https://accounts-management.onrender.com/common/items/getAll'),
+          axios.get('https://accounts-management.onrender.com/common/saleDetail/getAll'), // New call
         ]);
 
-        const fetchedSales = saleRes.data || [];
-        const fetchedSaleDetails = detailRes.data || [];
-        const fetchedParties = partyRes.data.filter(p => p.status);
-        const fetchedItems = itemRes.data.filter(item => item.type === 'Sale');
+        const allVouchers = voucherRes.data || [];
+        const allVoucherDetails = detailRes.data || [];
+        const allSaleDetails = saleDetailRes.data || [];
 
-        // Fetch vouchers for each saleId and filter them by type "SV"
-        const salesWithVouchers = await Promise.all(fetchedSales.map(async (sale) => {
-          const vouchersRes = await axios.get(`https://accounts-management.onrender.com/common/voucher/${sale.sale_id}`);
-          const vouchers = vouchersRes.data.filter(voucher => voucher.voucher_type === 'SV');
-          return { ...sale, vouchers }; // Attach vouchers to the sale object
-        }));
+        let svVouchers = allVouchers.filter(v => v.voucher_type === 'SV');
 
-        setSales(salesWithVouchers);
-        setFilteredSales(salesWithVouchers);
-        setSaleDetails(fetchedSaleDetails);
-
-        const parties = fetchedParties.map(p => ({ value: p.id, label: p.name }));
+        setVouchers(svVouchers);
+        setVoucherDetails(allVoucherDetails);
+        setSaleDetails(allSaleDetails); // Store freight sale details
+        const parties = partyRes.data
+          .filter(p => p.status)
+          .map(p => ({ value: p.party_code, label: p.name }));
         setPartyOptions(parties);
 
-        const saleItems = [{ value: 'all', label: 'All' }, ...fetchedItems.map(item => ({ value: String(item.id), label: item.name }))];
-        setItemOptions(saleItems);
-      } catch (err) {
-        console.error('Error fetching initial data:', err);
-      } finally {
+        const saleItems = itemRes.data
+          .filter(item => item.type === 'Sale')
+          .map(item => ({ value: String(item.id), label: item.name }));
+
+        setItemOptions([{ value: 'all', label: 'All' }, ...saleItems]);
+
         setLoading(false);
+      } catch (err) {
+        console.error('Error fetching data:', err);
       }
     };
 
     fetchInitialData();
   }, []);
 
-  const getDetailsForSale = (saleId) =>
-    saleDetails.filter(detail => Number(detail.sale_id) === Number(saleId));
-
-  const getTotalWeight = (details) =>
-    details.reduce((sum, d) => sum + Number(d.weight || 0), 0);
-
-  const getAverageRate = (details) => {
-    const validRates = details.map(d => Number(d.rate || 0));
-    return validRates.length > 0
-      ? (validRates.reduce((sum, r) => sum + r, 0) / validRates.length).toFixed(2)
-      : '0';
+  const parseParticulars = (text) => {
+    const regex = /:\s*([A-Za-z]+)\s*(\d+(?:\.\d+)?)kg\.?@(\d+(?:\.\d+)?)/i;
+    const match = text.match(regex);
+    if (match) {
+      return {
+        item: match[1].trim(),
+        weight: parseFloat(match[2]),
+        rate: parseFloat(match[3]),
+      };
+    }
+    return { item: '-', weight: 0, rate: 0 };
   };
 
-  const getTotalAmount = (details) =>
-    details.reduce((sum, d) => {
-      const weight = parseFloat(d.weight) || 0;
-      const rate = parseFloat(d.rate) || 0;
-      const adjustment = parseFloat(d.adjustment) || 0;
-      return sum + (weight * rate + adjustment);
-    }, 0);
+  const getFreightByVoucherId = (voucherId) => {
+    const match = saleDetails.find(s => Number(s.sale_id) === Number(voucherId));
+    return match ? parseFloat(match.frieght || 0) : 0;
+  };
 
   const formatPKR = (amount) => {
     const rounded = Math.round(amount);
@@ -105,69 +102,99 @@ function RouteList() {
   const handleSearch = () => {
     const searchLower = searchTerm.toLowerCase();
 
-    const filtered = sales.filter((sale) => {
-      const saleDateOnly = new Date(sale.sale_date).toISOString().split('T')[0];
-      const saleDetailsForThisSale = getDetailsForSale(sale.sale_id);
-      const firstDetail = saleDetailsForThisSale[0] || {};
+    const filtered = vouchers.filter((voucher) => {
+      const dateOnly = new Date(voucher.voucher_date).toISOString().split('T')[0];
 
-      const party = partyOptions.find(p => p.value === sale.party_id);
-      const partyName = party ? party.label : '';
+      const details = voucherDetails.filter(d => Number(d.main_id) === Number(voucher.id));
+      if (!details.length) return false;
 
-      const itemName = firstDetail.item_id === 2 ? 'Oil' : firstDetail.item_id ? 'Protein' : '-';
-      const totalWeight = getTotalWeight(saleDetailsForThisSale);
-      const averageRate = getAverageRate(saleDetailsForThisSale);
-      const grossAmount = getTotalAmount(saleDetailsForThisSale);
-      const freight = parseFloat(sale.frieght || firstDetail.frieght || 0);
-      const netAmount = grossAmount - freight;
+      const particulars = parseParticulars(details[0]?.particulars || '');
+      const item = particulars.item;
+      const weight = particulars.weight;
+      const rate = particulars.rate;
 
-      const allFields = [
-        sale.sale_id,
-        saleDateOnly,
-        partyName,
-        firstDetail.vehicle_no,
-        itemName,
-        totalWeight,
-        averageRate,
-        grossAmount,
-        freight,
-        netAmount
-      ];
-
-      const matchesSearch = allFields.some(field =>
-        String(field).toLowerCase().includes(searchLower)
-      );
-
-      const partyFilter =
-        selectedValue.length === 0 ||
-        selectedValue.some(p => p.value === sale.party_id);
-
-      const selectedItemValues = selectedItem.map(i => i.value);
-      const isAllSelected = selectedItemValues.includes('all');
+      const gross = weight * rate;
+      const freight = getFreightByVoucherId(voucher.id);
+      const net = gross - freight;
 
       const itemFilter =
         selectedItem.length === 0 ||
-        isAllSelected ||
-        selectedItemValues.some(item =>
-          saleDetailsForThisSale.some(detail => String(detail.item_id) === item)
+        selectedItem.some(itemOption =>
+          itemOption.value === 'all' || item.toLowerCase().includes(itemOption.label.toLowerCase())
         );
 
-      const startFilter = !startDate || saleDateOnly >= startDate;
-      const endFilter = !endDate || saleDateOnly <= endDate;
+      const detailAccountCode = details[0]?.account_code;
 
-      return partyFilter && itemFilter && startFilter && endFilter && matchesSearch;
+      const partyFilter =
+        selectedValue.length === 0 ||
+        selectedValue.some(p => p.value === detailAccountCode);
+
+      const startFilter = !startDate || dateOnly >= startDate;
+      const endFilter = !endDate || dateOnly <= endDate;
+
+      const searchMatch = [
+        voucher.voucher_id,
+        dateOnly,
+        item,
+        weight,
+        rate,
+        formatPKR(gross),
+        formatPKR(freight),
+        formatPKR(net)
+      ].some(field => String(field).toLowerCase().includes(searchLower));
+
+      return itemFilter && partyFilter && startFilter && endFilter && searchMatch;
     });
 
-    setFilteredSales(filtered);
+    setFilteredVouchers(filtered);
     setCurrentPage(1);
   };
 
   useEffect(() => {
     handleSearch();
-  }, [searchTerm]);
+  }, [searchTerm, vouchers, voucherDetails, selectedValue, selectedItem, startDate, endDate]);
+const groupByParty = () => {
+  // Group vouchers by `account_code`
+  const grouped = filteredVouchers.reduce((acc, voucher) => {
+    const details = voucherDetails.filter(d => d.main_id === voucher.id);
+    if (details.length) {
+      const accountCode = details[0]?.account_code;
+      if (!acc[accountCode]) {
+        acc[accountCode] = [];
+      }
+      acc[accountCode].push(voucher);
+    }
+    return acc;
+  }, {});
 
-  const exportToCSV = async () => {
+  // Sort parties by name or other criteria if needed
+  const sortedParties = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+
+  return sortedParties.map(partyCode => {
+    const partyVouchers = grouped[partyCode];
+    const partyTotal = partyVouchers.reduce((total, voucher) => {
+      const details = voucherDetails.filter(d => d.main_id === voucher.id);
+      const particulars = parseParticulars(details[0]?.particulars || '');
+      const gross = particulars.weight * particulars.rate;
+      const freight = getFreightByVoucherId(voucher.id);
+      return total + (gross - freight);
+    }, 0);
+
+    // Find the party name from partyOptions by matching accountCode (from voucher details) and partyCode (from partyOptions)
+    const partyName = partyOptions.find(p => p.value === partyCode)?.label || 'Unknown Party';
+
+    return {
+      partyName,
+      partyVouchers,
+      partyTotal,
+    };
+  });
+};
+
+
+ const exportToCSV = async () => {
     try {
-      const csv = await json2csv(filteredSales);
+      const csv = await json2csv(filteredVouchers);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -182,7 +209,7 @@ function RouteList() {
   };
 
   const exportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredSales);
+    const worksheet = XLSX.utils.json_to_sheet(filteredVouchers);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Sales');
     XLSX.writeFile(workbook, 'sales.xlsx');
@@ -193,9 +220,9 @@ function RouteList() {
     doc.text('Sales Report', 14, 15);
     autoTable(doc, {
       startY: 20,
-      head: [['Date', 'Vr#', 'Item Name', 'Weight', 'Rate', 'Gross', 'Freight', 'Net']],
-      body: filteredSales.map(sale => {
-        const details = getDetailsForSale(sale.sale_id);
+      head: [['#', 'Date', 'Vr#', 'Item Name', 'Weight', 'Rate', 'Gross Amount', 'Freight', 'Net Amount']],
+      body: filteredVouchers.map(sale=> {
+        const details = getDetailsForSale(sale.id);
         const first = details[0] || {};
         const weight = getTotalWeight(details);
         const rate = getAverageRate(details);
@@ -237,8 +264,7 @@ function RouteList() {
     printWindow.print();
     printWindow.close();
   };
-
-  const handlePageChange = (page) => {
+   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
@@ -258,11 +284,13 @@ function RouteList() {
   }
 
   return (
-   <div className="container mx-auto px-4 py-8">
-      <h2 className="text-xl font-semibold text-gray-700 border-b pb-4 mb-4">Customers Wise Report</h2>
+    <div className="container mx-auto px-4 py-8">
+     <h2 className="text-xl font-semibold text-gray-700 border-b pb-4 mb-4">Customers Wise Report</h2>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4">
+     
+
+       <div className="flex flex-wrap gap-4">
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium text-gray-900 mb-2">Party Name</label>
           <Select isMulti value={selectedValue} onChange={setSelectedValue} options={partyOptions} />
@@ -289,12 +317,11 @@ function RouteList() {
           />
         </div>
       </div>
-
-      <div className="mt-4 flex gap-2">
+<div className="mt-4 flex gap-2">
         <button className="px-4 py-2 bg-blue-500 text-white rounded-md text-sm" onClick={handleSearch}>Search</button>
         <button className="px-4 py-2 bg-gray-500 text-white rounded-md text-sm"
           onClick={() => {
-            setFilteredSales(sales);
+           setFilteredVouchers(vouchers)
             setSelectedValue([]);
             setSelectedItem([]);
             setStartDate('');
@@ -304,9 +331,9 @@ function RouteList() {
           }}
         >Reset</button>
       </div>
-
+      {/* Voucher Table */}
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
-        <div className="mt-6 flex justify-between items-center flex-wrap gap-4 mb-4">
+          <div className="mt-6 flex justify-between items-center flex-wrap gap-4 mb-4">
           <div className="flex gap-2">
             <button onClick={exportToCSV} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">CSV</button>
             <button onClick={exportToExcel} className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md">Excel</button>
@@ -324,7 +351,6 @@ function RouteList() {
             className="px-4 py-2 border rounded-md text-sm w-full max-w-[300px]"
           />
         </div>
-
         <table className="min-w-full border-collapse">
           <thead className="bg-gray-500">
             <tr>
@@ -334,45 +360,43 @@ function RouteList() {
             </tr>
           </thead>
           <tbody>
-            {currentSales.length > 0 ? (
-              currentSales.map((sale, index) => {
-                const details = getDetailsForSale(sale.sale_id);
-                const firstDetail = details[0] || {};
-                const totalWeight = getTotalWeight(details);
-                const averageRate = getAverageRate(details);
-                const gross = getTotalAmount(details);
-                const freight = parseFloat(sale.frieght || firstDetail.frieght || 0);
-                const net = gross - freight;
+            {groupByParty().map((party, partyIndex) => (
+              <React.Fragment key={partyIndex}>
+                {/* Display Vouchers for this party */}
+                {party.partyVouchers.map((voucher, index) => {
+                  const details = voucherDetails.filter(d => d.main_id === voucher.id);
+                  const particulars = parseParticulars(details[0]?.particulars || '');
+                  const gross = particulars.weight * particulars.rate;
+                  const freight = getFreightByVoucherId(voucher.id);
+                  const net = gross - freight;
 
-                return (
-                  <tr key={sale.sale_id} className="border-t">
-                    <td className="px-6 py-4 text-sm">{indexOfFirstSale + index + 1}</td>
-                    <td className="px-6 py-4 text-sm">{new Date(sale.sale_date).toISOString().split('T')[0]}</td>
-                    <td className="px-6 py-4 text-sm">{firstDetail.vehicle_no || '-'}</td>
-                    <td className="px-6 py-4 text-sm">
-                      {firstDetail.item_id === 2 ? 'Oil' : firstDetail.item_id ? 'Protein' : '-'}
-                    </td>
-                    <td className="px-6 py-4 text-sm">{totalWeight}</td>
-                    <td className="px-6 py-4 text-sm">{formatPKR(averageRate)}</td>
-                    <td className="px-6 py-4 text-sm">{formatPKR(gross)}</td>
-                    <td className="px-6 py-4 text-sm">{formatPKR(freight)}</td>
-                    <td className="px-6 py-4 text-sm">{formatPKR(net)}</td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan="9" className="text-center px-6 py-4 text-sm text-gray-700">No sales data found.</td>
-              </tr>
-            )}
+                  return (
+                    <tr key={voucher.id} className="border-t">
+                      <td className="px-6 py-4 text-sm">{indexOfFirstSale + index + 1}</td>
+                      <td className="px-6 py-4 text-sm">{new Date(voucher.voucher_date).toISOString().split('T')[0]}</td>
+                      <td className="px-6 py-4 text-sm">{voucher.voucher_id}</td>
+                      <td className="px-6 py-4 text-sm">{particulars.item}</td>
+                      <td className="px-6 py-4 text-sm">{particulars.weight}</td>
+                      <td className="px-6 py-4 text-sm">{particulars.rate}</td>
+                      <td className="px-6 py-4 text-sm">{formatPKR(gross)}</td>
+                      <td className="px-6 py-4 text-sm">{formatPKR(freight)}</td>
+                      <td className="px-6 py-4 text-sm">{formatPKR(net)}</td>
+                    </tr>
+                  );
+                })}
+                {/* Display Total for this party */}
+                <tr className="bg-gray-200">
+                  <td colSpan="8" className="px-6 py-4 text-sm font-semibold">Total for {party.partyName}</td>
+                  <td className="px-6 py-4 text-sm font-semibold">{formatPKR(party.partyTotal)}</td>
+                </tr>
+              </React.Fragment>
+            ))}
           </tbody>
         </table>
       </div>
-
-      {/* Pagination */}
-      <div className="flex justify-between items-center mt-8">
+        <div className="flex justify-between items-center mt-8">
         <span className="text-sm text-gray-700">
-          Showing {indexOfFirstSale + 1} to {Math.min(indexOfLastSale, filteredSales.length)} of {filteredSales.length} entries
+          Showing {indexOfFirstSale + 1} to {Math.min(indexOfLastSale, filteredVouchers.length)} of {filteredVouchers.length} entries
         </span>
         <ol className="flex gap-1 text-xs font-medium">
           <li>

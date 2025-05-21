@@ -4,10 +4,10 @@ import Dashboard from './Pages/Dashboard/Home/page';
 
 export default function Home() {
   return (
-    <ProtectedRoute>
+    // <ProtectedRoute>
       <div className="p-4">
         <Dashboard />
       </div>
-    </ProtectedRoute>
+    // </ProtectedRoute>
   );
 }

@@ -258,6 +258,16 @@ function RouteList() {
     printWindow.print();
     printWindow.close();
   };
+  const sortedData = [
+  ...mergedData.filter(v =>
+    v.voucher_type === 'JV' &&
+    v.details?.some(d => d.particulars === 'Opening Balance')
+  ),
+  ...mergedData.filter(v =>
+    !(v.voucher_type === 'JV' && v.details?.some(d => d.particulars === 'Opening Balance'))
+  ),
+];
+
 const indexOfFirstVoucher = (currentPage - 1) * itemsPerPage;
 const indexOfLastVoucher = currentPage * itemsPerPage;
 const handlePageChange = (pageNumber) => {
@@ -367,7 +377,7 @@ const handlePageChange = (pageNumber) => {
             </tr>
           </thead>
           <tbody>
-  {mergedData
+  {sortedData
     .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
     .map((voucher, voucherIndex) => {
       const voucherDetails = voucher.details || [];

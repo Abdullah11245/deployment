@@ -57,7 +57,7 @@ function Receiptreport() {
                   partyNameMap[code] = partyRes.data.name;
                 }
               } catch (partyErr) {
-                // Log error or handle the case when neither supplier nor party is found
+                
               }
             }
           })

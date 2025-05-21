@@ -48,176 +48,85 @@ const CreateVoucher = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-    const voucherPayload = {
-      voucher_id: customVoucherId, // Include custom ID
-      voucher_type: voucherType.value,
-      voucher_date: voucherDate,
-      note,
-    };
+  // 1. Check totals before proceeding
+  const totalDebit = voucherDetails.reduce(
+    (sum, d) => sum + parseFloat(d.debit || 0),
+    0
+  );
+  const totalCredit = voucherDetails.reduce(
+    (sum, d) => sum + parseFloat(d.credit || 0),
+    0
+  );
 
-    try {
-      const res = await axios.post('https://accounts-management.onrender.com/common/voucher/create', voucherPayload);
-      const voucherId = res?.data?.id;
+  if (totalDebit !== totalCredit) {
+    toast(
+      "⚠️ Debit and credit amounts must be equal before submitting the voucher.",
+      {
+        icon: '⚠️',
+        style: {
+          border: '1px solid #facc15',
+          padding: '12px',
+          color: '#92400e',
+          background: '#fef9c3',
+        },
+      }
+    );
+    setLoading(false);
+    return;
+  }
 
-      if (!voucherId) throw new Error('Voucher creation failed.');
-
-      const processVoucherDetails = async (voucherDetails, voucherId) => {
-   if (voucherType === 'BRV') {
-        let totalDebit = 0;
-        let totalCredit = 0;
-      
-        const processedEntries = [];
-      
-        // Process entries in pairs
-        for (let i = 0; i < voucherDetails.length; i += 2) {
-          const first = { ...voucherDetails[i] };
-          const second = { ...voucherDetails[i + 1] };
-      
-          // Defaulting values to 0 if undefined
-          first.debit = parseFloat(first?.debit || 0);
-          first.credit = parseFloat(first?.credit || 0);
-          second.debit = parseFloat(second?.debit || 0);
-          second.credit = parseFloat(second?.credit || 0);
-      
-          // Adjust debit/credit as per new rules
-          first.debit += second.debit;
-          second.debit = 0;
-      
-          second.credit += first.credit;
-          first.credit = 0;
-      
-          // Push processed entries
-          processedEntries.push({
-            main_id: voucherId,
-            account_code: first.account_code || '',
-            particulars: first.particulars || '',
-            debit: first.debit,
-            credit: 0,
-          });
-      
-          if (voucherDetails[i + 1]) {
-            processedEntries.push({
-              main_id: voucherId,
-              account_code: second.account_code || '',
-              particulars: second.particulars || '',
-              debit: 0,
-              credit: second.credit,
-            });
-          }
-      
-          totalDebit += first.debit;
-          totalCredit += second.credit;
-        }
-      
-      
-        // Send to API
-        try {
-          for (const entry of processedEntries) {
-            if (entry.debit > 0 || entry.credit > 0) {
-              await axios.post('https://accounts-management.onrender.com/common/voucherDetail/create', entry);
-            }
-          }
-        } catch (error) {
-          console.error('Error creating voucher details:', error);
-        }
-      } else{
-
-     
-
-        const processedEntries = [];
-        let totalDebit = 0;
-        let totalCredit = 0;
-
-        // Calculate total debit and credit
-        for (const detail of voucherDetails) {
-          totalDebit += parseFloat(detail?.debit || 0);
-          totalCredit += parseFloat(detail?.credit || 0);
-        }
-
-        if (totalDebit > 0) {
-          // Push individual debit entries
-          for (const detail of voucherDetails) {
-            const amount = parseFloat(detail?.debit || 0);
-            if (amount > 0) {
-              processedEntries.push({
-                main_id: voucherId,
-                account_code: detail.account_code,
-                particulars:detail.particulars,
-                debit: amount,
-                credit: 0,
-              });
-            }
-          }
-
-          // Push one credit entry to balance total
-        // Push one credit entry to balance total (fix the 'detail' reference)
-processedEntries.push({
-  main_id: voucherId,
-  account_code: '5110001',
-  particulars: `${voucherDetails[0]?.particulars} of ${voucherDetails[0]?.label}`, // Use the first voucher detail for context
-  debit: 0,
-  credit: totalDebit,
-});
-
-        }
-
-        if (totalCredit > 0) {
-          // Push individual credit entries
-          for (const detail of voucherDetails) {
-            const amount = parseFloat(detail?.credit || 0);
-            if (amount > 0) {
-              processedEntries.push({
-                main_id: voucherId,
-                account_code: detail.account_code,
-                particulars: `${detail.particulars}`,
-                debit: 0,
-                credit: amount,
-              });
-            }
-          }
-
-        
-processedEntries.push({
-  main_id: voucherId,
-  account_code: '5110001',
-  particulars: `${voucherDetails[0]?.particulars} of ${voucherDetails[0]?.label}`, // Use the first voucher detail for context
-  debit: 0,
-  credit: totalDebit,
-});
-
-        }
-
-        // Post all entries
-        try {
-          for (const entry of processedEntries) {
-            await axios.post('https://accounts-management.onrender.com/common/voucherDetail/create', entry);
-          }
-        } catch (error) {
-          console.error('Error creating voucher details:', error);
-        }
-      };
- }
-      // Process voucher details after voucher is created
-      await processVoucherDetails(voucherDetails, voucherId);
-      setLoading(false);
-      toast.success('Voucher and details created successfully!');
-
-      // Reset the form after successful submission
-      setVoucherType(voucherTypeOptions[0]);
-      setVoucherDate('');
-      setNote('');
-      setVoucherDetails([]);
-      fetchAndSetCustomVoucherId('JV');
-    } catch (err) {
-      console.error(err);
-      setLoading(false);
-      toast.error('An error occurred while creating the voucher.');
-    }
+  const voucherPayload = {
+    voucher_id: customVoucherId, // Include custom ID
+    voucher_type: voucherType.value,
+    voucher_date: voucherDate,
+    note,
   };
+
+  try {
+    const res = await axios.post(
+      'https://accounts-management.onrender.com/common/voucher/create',
+      voucherPayload
+    );
+    const voucherId = res?.data?.id;
+
+    if (!voucherId) throw new Error('Voucher creation failed.');
+
+    // Process voucher details only if voucher creation is successful
+    const processedEntries = voucherDetails
+      .filter((row) => parseFloat(row.debit || 0) > 0 || parseFloat(row.credit || 0) > 0)
+      .map((row) => ({
+        main_id: voucherId,
+        account_code: row.account_code || '',
+        particulars: row.particulars || '',
+        debit: parseFloat(row.debit || 0),
+        credit: parseFloat(row.credit || 0),
+      }));
+
+    for (const entry of processedEntries) {
+      await axios.post(
+        'https://accounts-management.onrender.com/common/voucherDetail/create',
+        entry
+      );
+    }
+
+    toast.success('✅ Voucher and details created successfully!');
+    setVoucherType(voucherTypeOptions[0]);
+    setVoucherDate('');
+    setNote('');
+    setVoucherDetails([]);
+    fetchAndSetCustomVoucherId('JV');
+  } catch (err) {
+    console.error(err);
+    toast.error('❌ An error occurred while creating the voucher.');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   if (loading) {
     return (

@@ -73,7 +73,7 @@ const CreateVoucher = () => {
           debitEntry = {
             main_id: voucherId,
             account_code: detail.account_code,
-            particulars: `${detail.particulars} Recieved by :${detail.title}`,
+            particulars: `${detail.particulars}`,
             debit: parseFloat(detail.debit || 0),
             credit: 0,
           };
@@ -81,7 +81,7 @@ const CreateVoucher = () => {
           creditEntry = {
             main_id: voucherId,
             account_code:'1110001',
-            particulars: `${detail.particulars} Recieved by :${detail.title}`,
+            particulars: `${detail.particulars}`,
             debit: 0,
             credit: parseFloat(detail.debit || 0),
           };

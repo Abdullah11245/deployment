@@ -74,7 +74,7 @@ const CreateVoucher = () => {
         const debitEntry = {
           main_id: voucherId,
           account_code: detail.account_code,
-          particulars:`${detail.particulars} from ${detail.party_name}`, 
+          particulars:`${detail.particulars} from ${detail.bank_name}`, 
           debit: detail.debit,
           credit: 0,
         };
@@ -82,7 +82,7 @@ const CreateVoucher = () => {
         const creditEntry = {
           main_id: voucherId,
           account_code: detail.bank_account_code, 
-          particulars: ` ${detail.particulars} into ${detail.bank_name}`,
+          particulars: ` ${detail.particulars} into ${detail.party_name}`,
           debit: 0,
           credit: detail.credit,
         };

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef,useMemo } from 'react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
@@ -41,8 +41,9 @@ function RouteList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasSearched, setHasSearched] = useState(false);
 const [searchQuery, setSearchQuery] = useState('');
+  const [beforeStartBalance, setBeforeStartBalance] = useState(0);
 
-  const itemsPerPage = 15;
+  const itemsPerPage = 200;
   const tableRef = useRef(null);
   const formatCurrencyPK = (number) => {
     if (isNaN(number)) return '0';
@@ -142,54 +143,6 @@ useEffect(() => {
   setMergedData(filtered);
   setCurrentPage(1);
 }, [startDate, endDate, accountCode, selectedPartyId, originalData]);
-// const getFilteredRows = () => {
-//   const filteredRows = [];
-
-//   mergedData.forEach((voucher) => {
-//     voucher.details
-//       .filter((detail) => {
-//         const debit = parseFloat(detail.debit) || 0;
-//         const credit = parseFloat(detail.credit) || 0;
-//         const voucherType = voucher.voucher_type;
-
-//         const isNonZero = debit !== 0 || credit !== 0;
-//         const isValidAccount =
-//           voucherType === 'PV' ? true : !["1140001", "1110001"].includes(detail.account_code);
-
-//         if (["BR", "BP"].includes(voucherType)) {
-//           return isValidAccount && credit !== 0;
-//         }
-
-//         return isValidAccount && isNonZero;
-//       })
-//       .forEach((detail) => {
-//         const query = searchQuery.toLowerCase();
-//         const matches =
-//           !searchQuery.trim() ||
-//           (detail.particulars || '').toLowerCase().includes(query) ||
-//           String(detail.debit || '').includes(query) ||
-//           String(detail.credit || '').includes(query) ||
-//           (voucher.voucher_type || '').toLowerCase().includes(query) ||
-//           String(voucher.voucher_id || '').toLowerCase().includes(query);
-
-//         if (matches) {
-//           filteredRows.push({ voucher, detail });
-//         }
-//       });
-//   });
-
-//   return filteredRows;
-// };
-
-
-//   const getDetailsForVoucher = (id) => {
-//     const voucher = mergedData.find(v => v.id === id);
-//     return voucher ? voucher.details : [];
-//   };
-
-//   const getTotalDebit = (details) => {
-//     return details.reduce((sum, d) => sum + (parseFloat(d.debit) || 0), 0);
-//   };
 
 const handleSearch = () => {
   const filtered = originalData.filter(entry => {
@@ -218,7 +171,7 @@ const handleSearch = () => {
   setHasSearched(true);
 };
 
-// exportCSV
+
   const handleReset = () => {
     setStartDate('');
     setEndDate('');
@@ -228,9 +181,18 @@ const handleSearch = () => {
     setCurrentPage(1);
     setHasSearched(false)
     setSelectedPartyId('')
+    setBeforeStartBalance(0)
     
   };
+
 const today = new Date().toISOString().split('T')[0];
+
+
+
+
+
+
+
 
 
 
@@ -240,168 +202,241 @@ const today = new Date().toISOString().split('T')[0];
 
 const exportCSV = () => {
   const filteredRows = [];
-  let runningBalance = 0;
+  let runningBalance = beforeStartBalance || 0;
 
-  mergedData.forEach((voucher) => {
+  const headerInfo = [
+    ['Ledger of Account'],
+    [`From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || 'dd-mm-yyyy'}`],
+    [`Account Title: ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''}`],
+    [`Account Code: ${selectedPartyId || ''}`],
+    [], // Empty row before table
+  ];
+
+  // Add opening balance row if applicable
+  if (startDate) {
+    filteredRows.push({
+      VoucherID: '-',
+      Date: new Date(startDate).toLocaleDateString(),
+      Particulars: 'Opening Balance',
+      Debit: '-',
+      Credit: '-',
+      Balance: runningBalance.toFixed(2),
+    });
+  }
+
+  const transactions = [];
+
+  sortedData.forEach((voucher) => {
     voucher.details
-      .filter((detail) => {
-        const debit = parseFloat(detail.debit) || 0;
-        const credit = parseFloat(detail.credit) || 0;
-        const voucherType = voucher.voucher_type;
-
-        const isNonZero = debit !== 0 || credit !== 0;
-        const isValidAccount =
-          voucherType === 'PV' ? true : !["1140001", "1110001"].includes(detail.account_code);
-
-        if (["BR", "BP"].includes(voucherType)) {
-          return isValidAccount && credit !== 0;
-        }
-
-        return isValidAccount && isNonZero;
-      })
+      .filter((detail) => String(detail.account_code) === String(selectedPartyId))
       .forEach((detail) => {
         const debit = parseFloat(detail.debit) || 0;
         const credit = parseFloat(detail.credit) || 0;
-        const balance = debit - credit;
+        const isOpeningEntry = (detail.particulars || '').toLowerCase().includes('opening balance');
 
-        // Update the running balance
-        runningBalance += balance;
-
-        filteredRows.push({
-          VoucherID: `${voucher.voucher_type}-${voucher.voucher_id}`,
-          Date: new Date(voucher.voucher_date).toLocaleDateString(),
-          Particulars: detail.particulars || '-',
-          Debit: debit.toFixed(2),
-          Credit: credit.toFixed(2),
-          Balance: runningBalance.toFixed(2),
+        transactions.push({
+          isOpeningEntry,
+          row: {
+            VoucherID: `${voucher.voucher_type}-${voucher.voucher_id}`,
+            Date: new Date(voucher.voucher_date).toLocaleDateString(),
+            Particulars: detail.particulars || '-',
+            Debit: debit.toFixed(2),
+            Credit: credit.toFixed(2),
+            runningBalance: debit - credit,
+          },
         });
       });
   });
 
-  // Convert the filteredRows to CSV
-  json2csv(filteredRows, (err, csv) => {
-    if (err) throw err;
+  // Sort to bring opening entries to top
+  const sortedRows = transactions
+    .sort((a, b) => (a.isOpeningEntry ? -1 : 0))
+    .map((entry) => {
+      runningBalance += entry.row.runningBalance;
+      return {
+        ...entry.row,
+        Balance: runningBalance.toFixed(2),
+      };
+    });
 
-    // Create a Blob and trigger a download
+  filteredRows.push(...sortedRows);
+
+  // Convert to CSV
+  json2csv([...headerInfo, ...filteredRows], (err, csv) => {
+    if (err) throw err;
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'voucher_details.csv';
+    link.download = 'ledger.csv';
     link.click();
   });
 };
 
 
 
+
 const exportExcel = () => {
-  const filteredRows = [];
-  let runningBalance = 0;
+  let runningBalance = beforeStartBalance || 0;
 
-  mergedData.forEach((voucher) => {
+  const sheetData = [
+    ['Ledger of Account'],
+    [`From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || 'dd-mm-yyyy'}`],
+    [`Account Title: ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''}`],
+    [`Account Code: ${selectedPartyId || ''}`],
+    [], // Empty row before table
+    ['Voucher ID', 'Date', 'Particulars', 'Debit', 'Credit', 'Balance'],
+  ];
+
+  // Opening balance row if applicable
+  if (startDate) {
+    sheetData.push([
+      '-', // Voucher ID
+      new Date(startDate).toLocaleDateString(),
+      'Opening Balance',
+      '-', '-', 
+      runningBalance.toFixed(2)
+    ]);
+  }
+
+  const transactions = [];
+
+  sortedData.forEach((voucher) => {
     voucher.details
-      .filter((detail) => {
-        const debit = parseFloat(detail.debit) || 0;
-        const credit = parseFloat(detail.credit) || 0;
-        const voucherType = voucher.voucher_type;
-
-        const isNonZero = debit !== 0 || credit !== 0;
-        const isValidAccount =
-          voucherType === 'PV' ? true : !["1140001", "1110001"].includes(detail.account_code);
-
-        if (["BR", "BP"].includes(voucherType)) {
-          return isValidAccount && credit !== 0;
-        }
-
-        return isValidAccount && isNonZero;
-      })
+      .filter(detail => String(detail.account_code) === String(selectedPartyId))
       .forEach((detail) => {
         const debit = parseFloat(detail.debit) || 0;
         const credit = parseFloat(detail.credit) || 0;
-        const balance = debit - credit;
+        const isOpeningEntry = (detail.particulars || '').toLowerCase().includes('opening balance');
 
-        // Update the running balance
-        runningBalance += balance;
-
-        filteredRows.push({
-          VoucherID: `${voucher.voucher_type}-${voucher.voucher_id}`,
-          Date: new Date(voucher.voucher_date).toLocaleDateString(),
-          Particulars: detail.particulars || '-',
-          Debit: debit.toFixed(2),
-          Credit: credit.toFixed(2),
-          Balance: runningBalance.toFixed(2),
+        transactions.push({
+          isOpeningEntry,
+          row: {
+            VoucherID: `${voucher.voucher_type}-${voucher.voucher_id}`,
+            Date: new Date(voucher.voucher_date).toLocaleDateString(),
+            Particulars: detail.particulars || '-',
+            Debit: debit.toFixed(2),
+            Credit: credit.toFixed(2),
+            runningBalance: debit - credit,
+          },
         });
       });
   });
 
-  // Convert to a worksheet
-  const ws = XLSX.utils.json_to_sheet(filteredRows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Voucher Details');
+  // Sort to bring opening balance entry to top
+  const sortedRows = transactions
+    .sort((a, b) => (a.isOpeningEntry ? -1 : 0))
+    .map(entry => {
+      runningBalance += entry.row.runningBalance;
+      return [
+        entry.row.VoucherID,
+        entry.row.Date,
+        entry.row.Particulars,
+        entry.row.Debit,
+        entry.row.Credit,
+        runningBalance.toFixed(2)
+      ];
+    });
 
-  // Save the Excel file
-  XLSX.writeFile(wb, 'voucher_details.xlsx');
+  sheetData.push(...sortedRows);
+
+  // Create worksheet & workbook
+  const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Ledger');
+
+  // Save file
+  XLSX.writeFile(workbook, 'ledger.xlsx');
 };
+
 
 
 
 const exportPDF = () => {
-  const doc = new jsPDF();
+ const doc = new jsPDF();
+
+  let runningBalance = beforeStartBalance || 0;
   const filteredRows = [];
-  let runningBalance = 0;  // Initial balance set to 0
-  let totalDebit = 0;
-  let totalCredit = 0;
-  let totalBalance = 0;
 
-  // Calculate running balance and totals for each row
-  mergedData.forEach((voucher) => {
-    voucher.details.forEach((detail) => {
-      const debit = parseFloat(detail.debit) || 0;
-      const credit = parseFloat(detail.credit) || 0;
-      const balance = debit - credit;
+  const headerInfo = [
+    ['Ledger of Account'],
+    [`From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || 'dd-mm-yyyy'}`],
+    [`Account Title: ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''}`],
+    [`Account Code: ${selectedPartyId || ''}`],
+  ];
 
-      // Update the running balance
-      runningBalance += balance;
+  // Add opening balance row if applicable
+  if (startDate) {
+    filteredRows.push([
+      '-', // Voucher ID
+      new Date(startDate).toLocaleDateString(),
+      'Opening Balance',
+      '-', // Debit
+      '-', // Credit
+      runningBalance.toFixed(2),
+    ]);
+  }
 
-      // Add row to filteredRows with the current balance
-      filteredRows.push({
-        VoucherID: `${voucher.voucher_type}-${voucher.voucher_id}`,
-        Date: new Date(voucher.voucher_date).toLocaleDateString(),
-        Particulars: detail.particulars || '-',
-        Debit: debit.toFixed(2),
-        Credit: credit.toFixed(2),
-        Balance: runningBalance.toFixed(2),
+  const transactions = [];
+
+  sortedData.forEach((voucher) => {
+    voucher.details
+      .filter(detail => String(detail.account_code) === String(selectedPartyId))
+      .forEach((detail) => {
+        const debit = parseFloat(detail.debit) || 0;
+        const credit = parseFloat(detail.credit) || 0;
+        const isOpeningEntry = (detail.particulars || '').toLowerCase().includes('opening balance');
+
+        transactions.push({
+          isOpeningEntry,
+          row: {
+            VoucherID: `${voucher.voucher_type}-${voucher.voucher_id}`,
+            Date: new Date(voucher.voucher_date).toLocaleDateString(),
+            Particulars: detail.particulars || '-',
+            Debit: debit.toFixed(2),
+            Credit: credit.toFixed(2),
+            runningBalance: debit - credit,
+          },
+        });
       });
+  });
 
-      // Accumulate totals for Debit, Credit, and Balance
-      totalDebit += debit;
-      totalCredit += credit;
-      totalBalance += balance;
+  // Sort to bring opening entries to top
+  const sortedRows = transactions
+    .sort((a, b) => (a.isOpeningEntry ? -1 : 0))
+    .map(entry => {
+      runningBalance += entry.row.runningBalance;
+      return [
+        entry.row.VoucherID,
+        entry.row.Date,
+        entry.row.Particulars,
+        entry.row.Debit,
+        entry.row.Credit,
+        runningBalance.toFixed(2)
+      ];
     });
-  });
 
+  filteredRows.push(...sortedRows);
+
+  // Draw header info manually
   doc.setFontSize(12);
-  doc.text('Voucher Details', 20, 20);
-
-  autoTable(doc, {
-    startY: 30,
-    head: [['#', 'VoucherID', 'Date', 'Particulars', 'Debit', 'Credit', 'Balance']],
-    body: filteredRows.map((row, i) => [
-      i + 1,                          // Row number
-      row.VoucherID,                  // Voucher ID
-      row.Date,                       // Date
-      row.Particulars,                // Particulars
-      row.Debit,                      // Debit
-      row.Credit,                     // Credit
-      row.Balance,                    // Balance
-    ]),
-    foot: [
-      ['Total:', '', '', '', totalDebit.toFixed(2), totalCredit.toFixed(2), totalBalance.toFixed(2)],
-    ], 
+  let yOffset = 10;
+  headerInfo.forEach(line => {
+    doc.text(line[0], 14, yOffset);
+    yOffset += 6;
   });
 
-  // Save the PDF
-  doc.save('Ledger.pdf');
+  // Add the table with ledger entries
+ autoTable( doc,{
+    startY: yOffset + 2,
+    head: [['Voucher ID', 'Date', 'Particulars', 'Debit', 'Credit', 'Balance']],
+    body: filteredRows,
+    theme: 'grid',
+    styles: { fontSize: 10 },
+  });
+
+  doc.save('ledger.pdf');
 };
+
 
 
 
@@ -479,6 +514,61 @@ const exportPDF = () => {
       return `/Pages/Dashboard/Vouchers/Voucher/${voucher_type}/${id}/${voucher_id}`;
     }
   };
+
+
+  
+const sortedData = mergedData
+  .filter(voucher => {
+    if (voucher.voucher_type !== 'JV') return true;
+
+    const hasOpeningBalance = voucher.details.some(
+      d => d.particulars?.toLowerCase().includes('opening balance')
+    );
+
+    const hasOpeningBalanceForSelected = voucher.details.some(
+      d => d.particulars?.toLowerCase().includes('opening balance') &&
+           String(d.account_code) === String(selectedPartyId)
+    );
+
+    if (!hasOpeningBalance) return true;
+
+    return hasOpeningBalanceForSelected;
+  })
+  .map(voucher => {
+    if (voucher.voucher_type === 'JV') {
+      return {
+        ...voucher,
+        details: voucher.details.filter(
+          d => !d.particulars?.toLowerCase().includes('opening balance') ||
+               String(d.account_code) === String(selectedPartyId)
+        ),
+      };
+    }
+    return voucher;
+  })
+  .sort((a, b) => {
+    const isOpeningA = a.details.some(
+      d => d.particulars?.toLowerCase().includes('opening balance') &&
+           String(d.account_code) === String(selectedPartyId)
+    );
+    const isOpeningB = b.details.some(
+      d => d.particulars?.toLowerCase().includes('opening balance') &&
+           String(d.account_code) === String(selectedPartyId)
+    );
+
+    if (isOpeningA && !isOpeningB) return -1;
+    if (!isOpeningA && isOpeningB) return 1;
+    return 0;
+  });
+
+
+
+
+
+
+
+
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
@@ -505,12 +595,32 @@ const exportPDF = () => {
 />
 
 
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md flex-1"
-          />
+         <input
+  type="date"
+  value={startDate}
+  onChange={(e) => {
+    const newStartDate = e.target.value;
+    setStartDate(newStartDate);
+
+    let debitBefore = 0;
+    let creditBefore = 0;
+    originalData.forEach((voucher) => {
+      voucher.details.forEach((detail) => {
+        const voucherDate = new Date(voucher.voucher_date);
+        const isBeforeStart = newStartDate ? voucherDate < new Date(newStartDate) : false;
+        const isValidAccount = String(detail.account_code) === String(selectedPartyId);
+
+        if (isBeforeStart && isValidAccount) {
+          debitBefore += parseFloat(detail.debit) || 0;
+          creditBefore += parseFloat(detail.credit) || 0;
+        }
+      });
+    });
+
+    setBeforeStartBalance(debitBefore - creditBefore);
+  }}
+  className="px-4 py-2 border border-gray-300 rounded-md flex-1"
+/>
 
           <input
             type="date"
@@ -562,32 +672,50 @@ const exportPDF = () => {
               <th className="px-6 py-3 text-center">Balance</th>
             </tr>
           </thead>
+
+
+
 <tbody>
 {(() => {
   const allRows = [];
-
-  // Store all matching entries
   const filteredRows = [];
 
-  // First, collect all filtered rows (before slicing for pagination)
-  mergedData.forEach((voucher) => {
+  let totalDebit = 0;
+  let totalCredit = 0;
+   let runningBalance=0;
+if (startDate) {
+  allRows.push(
+    <tr key="opening-balance-row" className="bg-yellow-100 text-gray-800 font-medium">
+      <td className="px-3 py-4 text-center">-</td>
+      <td className="px-3 py-4 text-center">-</td>
+      <td className="px-3 py-4 text-center">{new Date(startDate).toLocaleDateString()}</td>
+      <td className="px-3 py-4 text-left">Opening Balance</td>
+      <td className="px-3 py-4 text-center">-</td>
+      <td className="px-3 py-4 text-center">-</td>
+      <td className="px-3 py-4 text-center">{formatCurrencyPK(beforeStartBalance.toFixed(2))}</td>
+    </tr>
+  );
+}
+
+  // Handle pagination
+  const paginatedStartIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedEndIndex = paginatedStartIndex + itemsPerPage;
+
+  let displayIndex = 1;
+
+  sortedData.forEach((voucher) => {
+
     voucher.details
       .filter((detail) => {
-        const debit = parseFloat(detail.debit) || 0;
-        const credit = parseFloat(detail.credit) || 0;
-        const voucherType = voucher.voucher_type;
-
-        const isNonZero = debit !== 0 || credit !== 0;
-        const isValidAccount =
-          voucherType === 'PV' ? true : !["1140001", "1110001"].includes(detail.account_code);
-
-        if (["BR", "BP"].includes(voucherType)) {
-          return isValidAccount && credit !== 0;
-        }
-
-        return isValidAccount && isNonZero;
+        const voucherDate = new Date(voucher.voucher_date);
+        const isAfterStart = startDate ? voucherDate >= new Date(startDate) : true;
+        const isBeforeEnd = endDate ? voucherDate <= new Date(endDate) : true;
+        return isAfterStart && isBeforeEnd && String(detail.account_code) === String(selectedPartyId) && (parseFloat(detail.debit) || parseFloat(detail.credit));
       })
       .forEach((detail) => {
+        const debit = parseFloat(detail.debit) || 0;
+        const credit = parseFloat(detail.credit) || 0;
+
         const query = searchQuery.toLowerCase();
         const matches =
           !searchQuery.trim() ||
@@ -603,15 +731,6 @@ const exportPDF = () => {
       });
   });
 
-  // Calculate total debit, credit, and balance from all filtered data
-  let totalDebit = 0;
-  let totalCredit = 0;
-  let totalBalance = 0;
-  let runningBalance = 0;
-
-  const paginatedStartIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedEndIndex = paginatedStartIndex + itemsPerPage;
-
   filteredRows.forEach(({ voucher, detail }, index) => {
     const debit = parseFloat(detail.debit) || 0;
     const credit = parseFloat(detail.credit) || 0;
@@ -621,32 +740,28 @@ const exportPDF = () => {
 
     runningBalance += debit - credit;
 
-    // Only render rows on current page
     if (index >= paginatedStartIndex && index < paginatedEndIndex) {
       allRows.push(
         <tr key={`${voucher.id}-${index}`} className="border-t">
-          <td className="px-3 py-4 text-center">{index + 1}</td> {/* Sequential row number */}
+          <td className="px-3 py-4 text-center">{displayIndex++}</td>
           <td className="px-3 py-4 text-center">
-             <Link
-                        className='hover:bg-gray-100 px-6 py-3'
-                        href={getVoucherLink(voucher)}
-                      >
-                        {voucher.voucher_type}-{voucher.voucher_id}
-             </Link>
+            <Link href={getVoucherLink(voucher)} className="hover:underline">
+              {voucher.voucher_type}-{voucher.voucher_id}
+            </Link>
           </td>
           <td className="px-3 py-4 text-center">{new Date(voucher.voucher_date).toLocaleDateString()}</td>
           <td className="px-3 py-4 text-left">{detail.particulars || '-'}</td>
           <td className="px-3 py-4 text-center">{formatCurrencyPK(debit.toFixed(2))}</td>
           <td className="px-3 py-4 text-center">{formatCurrencyPK(credit.toFixed(2))}</td>
-          <td className="px-3 py-4 text-center">{formatCurrencyPK(runningBalance.toFixed(2))}</td>
+          <td className="px-3 py-4 text-center">{formatCurrencyPK(typeof runningBalance === 'number' ? runningBalance.toFixed(2) : 'N/A')}</td>
         </tr>
       );
     }
   });
 
-  const totalbalance = totalDebit - totalCredit;
+  const totalbalance = runningBalance;
 
-  // Total summary row
+  // Add summary row
   allRows.push(
     <tr key="summary-row" className="border-t bg-gray-100 font-semibold">
       <td colSpan="4" className="px-3 py-4 text-right">Total:</td>
@@ -669,14 +784,8 @@ const exportPDF = () => {
   return allRows;
 })()}
 
-
-
-
-
-
-
-
 </tbody>
+
 
 
 
@@ -699,7 +808,7 @@ const exportPDF = () => {
 )}
 
       {/* Pagination */}
-{hasSearched && mergedData.length > 0 && (
+{hasSearched && sortedData.length > 0 && (
   <div className="mt-6 flex justify-end items-center space-x-2">
     <button
       className="inline-flex items-center justify-center rounded border w-8 h-8 border-gray-300 bg-white text-gray-900"
