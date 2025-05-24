@@ -85,11 +85,17 @@ function DebtorSummary() {
     setFilteredParties(allParties);
   };
 
-  const getJVParticulars = (accountCode) => {
-    const filtered = voucherDetails.filter(v => v.account_code === accountCode && v.voucher_type === 'JV');
-    const sorted = filtered.sort((a, b) => b.main_id - a.main_id);
-    return sorted[0]?.particulars || '';
-  };
+  // constgetLatestParticularsByAccountCode = (accountCode) => {
+  //   const filtered = voucherDetails.filter(v => v.account_code === accountCode && v.voucher_type === 'JV');
+  //   const sorted = filtered.sort((a, b) => b.main_id - a.main_id);
+  //   return sorted[0]?.particulars || '';
+  // };
+const getLatestParticularsByAccountCode = (accountCode) => {
+  const filtered = voucherDetails.filter(v => v.account_code === accountCode);
+  const sorted = filtered.sort((a, b) => new Date(b.voucher_date) - new Date(a.voucher_date));
+  return sorted[0]?.particulars || '';
+};
+
 
   const getCurrentBalance = (accountCode) => {
     const entries = voucherDetails.filter(v => v.account_code === accountCode);
@@ -108,7 +114,7 @@ const exportToExcel = () => {
     '#': idx + 1,
     'Party Code': party.party_code,
     'Party Name': party.name,
-    'Particulars': getJVParticulars(party.party_code),
+    'Particulars':getLatestParticularsByAccountCode(party.party_code),
     'Amount': getCurrentBalance(party.party_code),
     'Status': getCurrentBalance(party.party_code) < 0 ? 'Cr' : 'Dr'
   }));
@@ -124,7 +130,7 @@ const exportToCSV = () => {
     '#': idx + 1,
     'Party Code': party.party_code,
     'Party Name': party.name,
-    'Particulars': getJVParticulars(party.party_code),
+    'Particulars':getLatestParticularsByAccountCode(party.party_code),
     'Amount': getCurrentBalance(party.party_code),
     'Status': getCurrentBalance(party.party_code) < 0 ? 'Cr' : 'Dr'
   }));
@@ -143,7 +149,7 @@ const exportToPDF = () => {
       idx + 1,
       party.party_code,
       party.name,
-      getJVParticulars(party.party_code),
+     getLatestParticularsByAccountCode(party.party_code),
       getCurrentBalance(party.party_code),
       getCurrentBalance(party.party_code) < 0 ? 'Cr' : 'Dr'
     ]),
@@ -153,24 +159,46 @@ const exportToPDF = () => {
 
 const handlePrint = () => {
   const headerHTML = `
-    <div>
-      <h2>Debtor Summary</h2>
-      <p>Date: ${new Date().toLocaleDateString()}</p>
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h2 style="margin: 0;">Debitor Summary</h2>
+      <p style="margin: 0;">Date: ${new Date().toLocaleDateString()}</p>
     </div>
   `;
 
-  const tableHTML = tableRef.current.innerHTML;
+  const tableHTML = tableRef.current?.outerHTML || '<p>No data available</p>';
   const printWindow = window.open('', '', 'width=900,height=650');
 
   printWindow.document.write(`
     <html>
       <head>
-        <title>Debtor Summary</title>
+        <title>Creditor Final Status</title>
         <style>
-          body { font-family: Arial, sans-serif; padding: 20px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
-          thead { background-color: #f3f4f6; }
+          body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 13px;
+          }
+          th, td {
+            padding: 8px 12px;
+            border: 1px solid #333;
+            text-align: left;
+            vertical-align: top;
+            word-break: break-word;
+          }
+          thead {
+            background-color: #f3f4f6;
+          }
+          tr:nth-child(even) {
+            background-color: #f9f9f9;
+          }
+          h2, p {
+            margin: 0;
+          }
         </style>
       </head>
       <body>
@@ -185,6 +213,7 @@ const handlePrint = () => {
   printWindow.print();
   printWindow.close();
 };
+
 
   if (loading) {
     return (
@@ -201,7 +230,7 @@ const handlePrint = () => {
 const searchedParties = filteredParties.filter((party) => {
   const balance = getCurrentBalance(party.party_code);
   const status = balance < 0 ? 'Cr' : 'Dr';
-  const particulars = getJVParticulars(party.party_code);
+  const particulars =getLatestParticularsByAccountCode(party.party_code);
 
   return (
     party.name.toLowerCase().includes(searchQuery) ||
@@ -266,7 +295,7 @@ const searchedParties = filteredParties.filter((party) => {
           </thead>
           <tbody className="text-sm text-gray-700">
             {searchedParties.map((party, idx) => {
-              const particulars = getJVParticulars(party.party_code);
+              const particulars = getLatestParticularsByAccountCode(party.party_code);
               const balance = getCurrentBalance(party.party_code);
               const latestJVVoucher = getLatestVoucher(party.party_code);
 
@@ -275,7 +304,7 @@ const searchedParties = filteredParties.filter((party) => {
                   <td className="px-4 py-2">{idx + 1}</td>
                   <td className="px-4 py-2">{party.party_code || 'N/A'}</td>
                   <td className="px-4 py-2">
-                    <Link className="text-blue-600" href={`/Pages/Dashboard/Ledger/${party.party_code}/${latestJVVoucher?.main_id || ''}`}>
+                    <Link className="text-blue-600" href={`/Pages/Dashboard/Ledger/${party.party_code}`}>
                       {party.name}
                     </Link>
                   </td>

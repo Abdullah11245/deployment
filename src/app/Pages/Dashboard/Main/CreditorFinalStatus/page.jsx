@@ -136,7 +136,7 @@ const extractWeightAndMonth = (particulars) => {
 
 
   const getJVParticulars = (accountCode) => {
-    const filtered = voucherDetails.filter(v => v.account_code === accountCode && v.voucher_type === 'JV');
+    const filtered = voucherDetails.filter(v => v.account_code === accountCode);
     const sorted = filtered.sort((a, b) => b.main_id - a.main_id);
     return sorted[0]?.particulars || '';
   };
@@ -243,9 +243,10 @@ const extractWeightAndMonth = (particulars) => {
 const handlePrint = () => {
   const headerHTML = `
     <div style="text-align: center; margin-bottom: 20px;">
-      <h2>Creditor Final Status</h2>
-      <p>Date: ${new Date().toLocaleDateString()}</p>
-    </div>`;
+      <h2 style="margin: 0;">Creditor Final Status</h2>
+      <p style="margin: 0;">Date: ${new Date().toLocaleDateString()}</p>
+    </div>
+  `;
 
   const style = `
     <style>
@@ -254,34 +255,43 @@ const handlePrint = () => {
         padding: 20px;
       }
       h2 {
-        margin: 0;
-        font-size: 24px;
+        font-size: 20px;
       }
       table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 20px;
+        margin-top: 10px;
+        font-size: 12px;
       }
       th, td {
-        border: 1px solid #999;
+        border: 1px solid #000;
         padding: 8px;
         text-align: left;
       }
       th {
-        background-color: #f3f3f3;
+        background-color: #f2f2f2;
+        font-weight: bold;
       }
-    </style>`;
+      @media print {
+        .no-print {
+          display: none;
+        }
+      }
+    </style>
+  `;
+
+  const tableHTML = tableRef.current?.outerHTML || "<p>No data available</p>";
 
   const printWindow = window.open('', '_blank');
   printWindow.document.write(`
     <html>
       <head>
-        <title>Print Table</title>
+        <title>Creditor Report</title>
         ${style}
       </head>
       <body>
         ${headerHTML}
-        ${tableRef.current.outerHTML}
+        ${tableHTML}
       </body>
     </html>
   `);
@@ -291,6 +301,7 @@ const handlePrint = () => {
   printWindow.print();
   printWindow.close();
 };
+
 
 
   const exportToCSV = () => {
@@ -389,7 +400,7 @@ const handlePrint = () => {
                   <td className="px-4 py-2">{idx + 1}</td>
                   <td className="px-4 py-2">{s.route?.name || 'N/A'}</td>
                   <td className="px-4 py-2">
-                    <Link href={`/Pages/Dashboard/Ledger/${s.supplier_code}/${getLastPaidJV(s.supplier_code)?.main_id || ''}`}>
+                    <Link href={`/Pages/Dashboard/Ledger/${s.supplier_code}`}>
                       <span className="text-blue-600">{s.name}</span>
                     </Link>
                   </td>

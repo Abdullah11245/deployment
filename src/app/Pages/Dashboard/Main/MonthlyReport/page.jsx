@@ -159,7 +159,7 @@ const handleReset = () => {
 
 const getLastPaidJV = (accountCode) => {
   const jvWithDebit = voucherDetails
-    .filter(v => v.account_code === accountCode && v.voucher_type === 'JV' && Number(v.debit) > 0);
+    .filter(v => v.account_code === accountCode && Number(v.debit) > 0);
 
   if (jvWithDebit.length > 0) {
     const latest = jvWithDebit[0];
@@ -256,7 +256,7 @@ const getCurrentBalance = (accountCode) => {
         <td className="px-4 py-2">
           <Link
             className="text-blue-600"
-            href={`/Pages/Dashboard/Ledger/${supplier.supplier_code}/${latestJVVoucher?.main_id}`}
+            href={`/Pages/Dashboard/Ledger/${supplier.supplier_code}`}
           >
             {supplier.name}
           </Link>

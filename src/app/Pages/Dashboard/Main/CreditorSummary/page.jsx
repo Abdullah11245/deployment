@@ -94,7 +94,7 @@ setFilteredSuppliers(suppliers); // display initially
   // Function to get the latest JV voucher details for a given account_code
   const getJVParticulars = (accountCode) => {
     // Filter vouchers by account_code and type 'JV'
-    const filteredVouchers = voucherDetails.filter(voucher => voucher.account_code === accountCode && voucher.voucher_type === 'JV');
+    const filteredVouchers = voucherDetails.filter(voucher => voucher.account_code === accountCode );
     // Sort the filtered vouchers by main_id (or another date field) in descending order to get the latest voucher
     const sortedVouchers = filteredVouchers.sort((a, b) => b.main_id - a.main_id);
     return sortedVouchers[0]?.particulars || ''; // Return particulars of the latest JV voucher or a default message
@@ -186,13 +186,13 @@ const exportToPDF = () => {
 
 const handlePrint = () => {
   const headerHTML = `
-    <div>
-      <h2>Receipt Report</h2>
-      <p>Date: ${new Date().toLocaleDateString()}</p>
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h2 style="margin: 0;">Creditor Summary</h2>
+      <p style="margin: 0;">Date: ${new Date().toLocaleDateString()}</p>
     </div>
   `;
 
-  const tableHTML = tableRef.current.innerHTML;
+  const tableHTML = tableRef.current?.outerHTML || '<p>No data available</p>';
   const printWindow = window.open('', '', 'width=900,height=650');
 
   printWindow.document.write(`
@@ -200,10 +200,32 @@ const handlePrint = () => {
       <head>
         <title>Creditor Final Status</title>
         <style>
-          body { font-family: Arial, sans-serif; padding: 20px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
-          thead { background-color: #f3f4f6; }
+          body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 13px;
+          }
+          th, td {
+            padding: 8px 12px;
+            border: 1px solid #333;
+            text-align: left;
+            vertical-align: top;
+            word-break: break-word;
+          }
+          thead {
+            background-color: #f3f4f6;
+          }
+          tr:nth-child(even) {
+            background-color: #f9f9f9;
+          }
+          h2, p {
+            margin: 0;
+          }
         </style>
       </head>
       <body>
@@ -218,6 +240,7 @@ const handlePrint = () => {
   printWindow.print();
   printWindow.close();
 };
+
 
 const exportToCSV = () => {
   const ws = XLSX.utils.json_to_sheet(
@@ -335,7 +358,7 @@ const handleBarSearch = (event) => {
           <tbody className="text-sm text-gray-700">
             {filteredSuppliers.map((supplier, idx) => {
               const jvParticulars = getJVParticulars(supplier.supplier_code);
-              const latestJVVoucher = voucherDetails.find(v => v.account_code === supplier.supplier_code && v.voucher_type === 'JV');
+              const latestJVVoucher = voucherDetails.find(v => v.account_code === supplier.supplier_code );
 
              const lastPaid = getLastPaidJV(supplier.supplier_code);
              const balance = getCurrentBalance(supplier.supplier_code);
@@ -346,7 +369,7 @@ const handleBarSearch = (event) => {
 <td className="px-4 py-2">
   <Link
     className='text-blue-600'
-    href={`/Pages/Dashboard/Ledger/${supplier.supplier_code}/${latestJVVoucher?.main_id }`}
+    href={`/Pages/Dashboard/Ledger/${supplier.supplier_code}`}
   >
     {supplier.name}
   </Link>
