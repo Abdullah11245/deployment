@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
 import axios from 'axios';
 import Link from 'next/link';
+import end_points from '../../../api_url';
+
 function Receiptreport() {
   const [supplierOptions, setSupplierOptions] = useState([]);
   const [routeOptions, setRouteOptions] = useState([]);
@@ -26,7 +28,7 @@ const fetchPurchaseDetailsInBatches = async (suppliers, concurrency = 5) => {
     while (queue.length) {
       const supplier = queue.shift();
       try {
-        const response = await axios.get(`https://accounts-management.onrender.com/common/purchaseDetail/${supplier.id}`);
+        const response = await axios.get(`${end_points}/purchaseDetail/${supplier.id}`);
         const purchases = response.data;
 
         const totalQty = [purchases].reduce((sum, p) => sum + Number(p.qty || 0), 0);
@@ -57,7 +59,7 @@ useEffect(() => {
   const fetchData = async () => {
     try {
       // Fetch suppliers
-      const suppliersRes = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
+      const suppliersRes = await axios.get(`${end_points}/suppliers/getAll`);
       const suppliers = suppliersRes.data.suppliers || [];
 
       setSupplierOptions(suppliers.map(s => ({ value: s.supplier_code, label: s.name })));
@@ -86,7 +88,7 @@ useEffect(() => {
           // Send requests for this batch in parallel
           const results = await Promise.allSettled(
             batch.map(supplier =>
-              axios.get(`https://accounts-management.onrender.com/common/voucherDetail/mains/${supplier.supplier_code}`)
+              axios.get(`${end_points}/voucherDetail/mains/${supplier.supplier_code}`)
             )
           );
 
@@ -109,7 +111,7 @@ useEffect(() => {
       setVoucherDetails(allVoucherDetails);
 
       // ✅ Fetch all vouchers
-      const voucherRes = await axios.get(`https://accounts-management.onrender.com/common/voucher/getAll`);
+      const voucherRes = await axios.get(`${end_points}/voucher/getAll`);
       setVouchers(voucherRes.data || []);
 
       // ✅ Fetch purchase details in batches

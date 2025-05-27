@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { json2csv } from 'json-2-csv';
-
+import end_points from '../../../../api_url';
 
 const VoucherList = () => {
   const [vouchers, setVouchers] = useState([]);
@@ -17,13 +17,13 @@ const VoucherList = () => {
   const [searchQuery, setSearchQuery] = useState(''); // State for search query
   const itemsPerPage = 200;
   const router = useRouter();
-
+ 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [voucherRes, detailRes] = await Promise.all([
-          axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/voucherDetail/getAll', { headers: { 'Access-Control-Allow-Origin': '*' } })
+          axios.get(`${end_points}/voucher/getAll`),
+          axios.get(`${end_points}/voucherDetail/getAll`, { headers: { 'Access-Control-Allow-Origin': '*' } })
         ]);
         setVouchers(voucherRes.data || []);
         setVoucherDetails(detailRes.data || []);

@@ -5,6 +5,7 @@ import Select from 'react-select';
 import { useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
 import './Suppliers.css';
+import end_points from '../../../../api_url';
 
 function CreateSupplier() {
   const { id: supplierId } = useParams();
@@ -34,7 +35,7 @@ function CreateSupplier() {
 
   const fetchRoutes = async () => {
     try {
-      const res = await axios.get('https://accounts-management.onrender.com/common/routes/getAll');
+      const res = await axios.get(`${end_points}/routes/getAll`);
       const options = res.data.routes
         .filter(route => route.status === 'A'|| route.status === 1) // ✅ Filter active routes
         .map(route => ({
@@ -51,7 +52,7 @@ function CreateSupplier() {
   const fetchSupplierDetails = async (id) => {
     try {
       setLoading(true);
-      const res = await axios.get(`https://accounts-management.onrender.com/common/suppliers/suppliers/${id}`);
+      const res = await axios.get(`${end_points}/suppliers/suppliers/${id}`);
       const data = res.data.supplier;
     console.log('Supplier Data:', data); // Log the supplier data
       setSupplierName(data.name || '');
@@ -94,7 +95,7 @@ function CreateSupplier() {
 
     try {
       const res = await axios.put(
-        `https://accounts-management.onrender.com/common/suppliers/suppliers/${supplierId}`,
+        `${end_points}/suppliers/suppliers/${supplierId}`,
         payload
       );
 

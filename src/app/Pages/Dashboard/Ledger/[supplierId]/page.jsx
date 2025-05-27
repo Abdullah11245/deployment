@@ -8,6 +8,8 @@ import autoTable from 'jspdf-autotable';
 import { json2csv } from 'json-2-csv';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import end_points from '../../../api_url';
+
 function RouteList() {
   const [mergedData, setMergedData] = useState([]);
   const [originalData, setOriginalData] = useState([]);
@@ -37,11 +39,11 @@ useEffect(() => {
         partiesRes,
         suppliersRes
       ] = await Promise.all([
-        axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
-        axios.get(`https://accounts-management.onrender.com/common/voucherDetail/mains/${supplierId}`),
-        axios.get('https://accounts-management.onrender.com/common/routes/getAll'),
-        axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
-        axios.get('https://accounts-management.onrender.com/common/suppliers/getAll'),
+        axios.get(`${end_points}/voucher/getAll`),
+        axios.get(`${end_points}/voucherDetail/mains/${supplierId}`),
+        axios.get(`${end_points}/routes/getAll`),
+        axios.get(`${end_points}/parties/getAll`),
+        axios.get(`${end_points}/suppliers/getAll`),
       ]);
 
       const vouchers = voucherRes.data || [];
@@ -285,8 +287,8 @@ useEffect(() => {
 ];
 
 async function getNameByCode(code) {
-  const supplierUrl = `https://accounts-management.onrender.com/common/suppliers/supplier/${code}`;
-  const partyUrl = `https://accounts-management.onrender.com/common/parties/partybyCode/${code}`;
+  const supplierUrl = `${end_points}/suppliers/supplier/${code}`;
+  const partyUrl = `${end_points}/parties/partybyCode/${code}`;
 
   try {
     // Try fetching the supplier first

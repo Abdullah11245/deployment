@@ -7,6 +7,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { json2csv } from 'json-2-csv';
 import Link from 'next/link';
+import end_points from '../../../../api_url';
 
 function RouteList() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -14,7 +15,7 @@ function RouteList() {
   const [endDate, setEndDate] = useState('');
   const [selectedValue, setSelectedValue] = useState([]);
   const [selectedItem, setSelectedItem] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [sales, setSales] = useState([]);
   const [filteredSales, setFilteredSales] = useState([]);
   const [saleDetails, setSaleDetails] = useState([]);
@@ -37,12 +38,12 @@ const [vouchers, setVouchers] = useState([]);
 useEffect(() => {
   const fetchInitialData = async () => {
     try {
-      const [saleRes, detailRes, itemRes,partiesRes, voucherRes] = await Promise.all([
-        axios.get('https://accounts-management.onrender.com/common/sale/getAll'),
-        axios.get('https://accounts-management.onrender.com/common/saleDetail/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
-        axios.get('https://accounts-management.onrender.com/common/items/getAll'),
-        axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
+      const [saleRes, detailRes, partiesRes, itemRes, voucherRes] = await Promise.all([
+        axios.get(`${end_points}/sale/getAll`),
+        axios.get(`${end_points}/saleDetail/getAll`),
+        axios.get(`${end_points}/parties/getAll`),
+        axios.get(`${end_points}/items/getAll`),
+        axios.get(`${end_points}/voucher/getAll`),
       ]);
 
       const fetchedSales = saleRes.data || [];
@@ -51,21 +52,26 @@ useEffect(() => {
       setSaleDetails(detailRes.data || []);
       setVouchers((voucherRes.data || []).filter(v => v.voucher_type === 'SV'));
 
-      // Fetch each party individually if needed
+      // ✅ Setup partyOptions for Select dropdown
+      const partyOpts = (partiesRes.data || []).map(party => ({
+        value: party.id,
+        label: party.name,
+      }));
+      setPartyOptions(partyOpts);
+
+      // ✅ Setup partyMap for mapping party_id to name
       const partyIds = [...new Set(fetchedSales.map(sale => sale.party_id))];
       const partyMapTemp = {};
 
-     for (const id of partyIds) {
-  try {
-    const res = await axios.get(`https://accounts-management.onrender.com/common/parties/parties/${id}`);
-    partyMapTemp[id] = res.data.name;
-  } catch (err) {
-    console.error(`Error fetching party ${id}:`, err);
-    partyMapTemp[id] = 'Unknown';
-  }
-}
-
-
+      for (const id of partyIds) {
+        try {
+          const res = await axios.get(`${end_points}/parties/parties/${id}`);
+          partyMapTemp[id] = res.data.name;
+        } catch (err) {
+          console.error(`Error fetching party ${id}:`, err);
+          partyMapTemp[id] = 'Unknown';
+        }
+      }
       setPartyMap(partyMapTemp);
 
       const saleItems = itemRes.data
@@ -278,7 +284,7 @@ useEffect(() => {
 
   return (
    <div className="container mx-auto px-4 py-8">
-      <h2 className="text-xl font-semibold text-gray-700 border-b pb-4 mb-4">Customers Wise Report</h2>
+      <h2 className="text-xl font-semibold text-gray-700 border-b pb-4 mb-4">Sales Report</h2>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
@@ -374,7 +380,7 @@ useEffect(() => {
                       </Link>
                       
                       </td>  
-                      <td className="px-6 py-4 text-sm">{partyMap[sale.party_id] }</td>
+                      <td className="px-6 py-4 text-sm">{sale.party_name }</td>
 
                       <td>{sale.notes}</td>
                                         <td className="px-6 py-4 text-sm w-20">

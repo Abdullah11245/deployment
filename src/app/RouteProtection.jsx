@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import end_points from './api_url';
 
 export default function ProtectedRoute({ children }) {
   const [isChecking, setIsChecking] = useState(true);
@@ -18,7 +19,7 @@ export default function ProtectedRoute({ children }) {
         if (!token) throw new Error('Token missing');
 
         // Check with backend if token is still valid
-        const response = await axios.post('https://accounts-management.onrender.com/common/user/expiryCheck', {
+        const response = await axios.post(`${end_points}/user/expiryCheck`, {
           token: token,
         });
 
@@ -29,7 +30,6 @@ export default function ProtectedRoute({ children }) {
         // Token is valid
         setIsChecking(false);
       } catch (error) {
-        console.error('Auth check failed:', error);
         localStorage.removeItem('user');
         router.push('/Pages/Login');
       }

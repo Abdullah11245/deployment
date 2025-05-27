@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import end_points from '../../../api_url';
 
 const ItemsTable = () => {
   const [items, setItems] = useState([]);
@@ -18,7 +19,7 @@ const ItemsTable = () => {
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const response = await axios.get('https://accounts-management.onrender.com/common/items/getAll');
+        const response = await axios.get(`${end_points}/items/getAll`);
         if (response.data) {
           setItems(response.data);
         }

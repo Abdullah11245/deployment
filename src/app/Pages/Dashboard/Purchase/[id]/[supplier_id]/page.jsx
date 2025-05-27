@@ -7,6 +7,7 @@ import './Purchase.css';
 import SupplierTable from './Suppliertable'; // Make sure this path is correct
 import { useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../../api_url';
 
 function EditPurchase() {
   const { id: purchaseId, supplier_id } = useParams();
@@ -33,8 +34,8 @@ function EditPurchase() {
     const fetchRoutesAndItems = async () => {
       try {
         const [routeRes, itemRes] = await Promise.all([
-          axios.get('https://accounts-management.onrender.com/common/routes/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/items/getAll'),
+          axios.get(`${end_points}/routes/getAll`),
+          axios.get(`${end_points}/items/getAll`),
         ]);
         const filteredRoutes = routeRes?.data?.routes.filter(route => route.status === 'A') || [];
 
@@ -65,7 +66,7 @@ function EditPurchase() {
     if (purchaseId && routes.length > 0 && items.length > 0) {
       const fetchPurchase = async () => {
         try {
-          const res = await axios.get(`https://accounts-management.onrender.com/common/purchase/purchases/${purchaseId}`);
+          const res = await axios.get(`${end_points}/purchase/purchases/${purchaseId}`);
           const purchase = res.data;
 
           setPurchaseDate(formatDate(purchase.purchase_date));
@@ -84,7 +85,7 @@ function EditPurchase() {
 
           if (supplier_id) {
             const detailRes = await axios.get(
-              `https://accounts-management.onrender.com/common/purchaseDetail/${purchaseId}/${supplier_id}`
+              `${end_points}/purchaseDetail/${purchaseId}/${supplier_id}`
             );
 
             const detail = detailRes.data;
@@ -109,7 +110,7 @@ function EditPurchase() {
 
   const fetchSuppliers = async (selectedRouteId) => {
     try {
-      const res = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
+      const res = await axios.get(`${end_points}/suppliers/getAll`);
       let allSuppliers = res.data?.suppliers || [];
       let filtered = allSuppliers.filter(s => s?.route?.id === selectedRouteId);
 
@@ -146,7 +147,7 @@ function EditPurchase() {
 
     try {
       await axios.put(
-        `https://accounts-management.onrender.com/common/purchase/purchases/${purchaseId}`,
+        `${end_points}/purchase/purchases/${purchaseId}`,
         payload
       );
 
@@ -159,7 +160,7 @@ function EditPurchase() {
         };
 
         await axios.put(
-          `https://accounts-management.onrender.com/common/purchaseDetail/${purchaseId}/${supplier_id}`,
+          `${end_points}/purchaseDetail/${purchaseId}/${supplier_id}`,
           detailPayload
         );
       }

@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { json2csv } from 'json-2-csv';
+import end_points from '../../../api_url';
 
 function RouteList() {
   const [routes, setRoutes] = useState([]);
@@ -19,7 +20,7 @@ function RouteList() {
   useEffect(() => {
     const fetchRoutes = async () => {
       try {
-        const response = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
+        const response = await axios.get(`${end_points}/suppliers/getAll`);
         console.log( response.data.suppliers); // Log the response data
        if (response.status === 200) {
   const sortedSuppliers = response.data.suppliers.sort((a, b) =>

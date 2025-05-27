@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../../api_url';
 
 function EditParty() {
   const { id } = useParams();
@@ -25,7 +26,7 @@ function EditParty() {
 
   const fetchParty = async () => {
     try {
-      const res = await axios.get(`https://accounts-management.onrender.com/common/parties/parties/${id}`);
+      const res = await axios.get(`${end_points}/parties/parties/${id}`);
       const data = res.data;
 
       setFormData({
@@ -70,7 +71,7 @@ function EditParty() {
     setIsSubmitting(true);
     try {
       const response = await axios.put(
-        `https://accounts-management.onrender.com/common/parties/parties/${id}`,
+        `${end_points}/parties/parties/${id}`,
         payload
       );
 

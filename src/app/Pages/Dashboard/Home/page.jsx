@@ -2,6 +2,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import end_points from '../../../api_url';
+
 const Dashboard = () => {
   const [suppliersCount, setSuppliersCount] = useState(0);
   const [itemsCount, setItemsCount] = useState(0);
@@ -10,8 +12,8 @@ const Dashboard = () => {
     const fetchCounts = async () => {
       try {
         const [suppliersRes, itemsRes] = await Promise.all([
-          fetch('https://accounts-management.onrender.com/common/suppliers/getAll'),
-          fetch('https://accounts-management.onrender.com/common/items/getAll')
+          fetch(`${end_points}/suppliers/getAll`),
+          fetch(`${end_points}/items/getAll`)
         ]);
 
         if (!suppliersRes.ok || !itemsRes.ok) {

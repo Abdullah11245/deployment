@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { json2csv } from 'json-2-csv';
+import end_points from '../../../api_url';
 
 function Diary() {
   const [data, setData] = useState([]);
@@ -21,7 +22,7 @@ function Diary() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('https://accounts-management.onrender.com/common/diaryVoucher/getAll');
+        const res = await fetch(`${end_points}/diaryVoucher/getAll`);
         const result = await res.json();
         setData(result);
   
@@ -31,7 +32,7 @@ function Diary() {
   
         const supplierResponses = await Promise.all(
           uniqueSupplierCodes.map(code =>
-            fetch(`https://accounts-management.onrender.com/common/suppliers/supplier/${code}`)
+            fetch(`${end_points}/suppliers/supplier/${code}`)
               .then(res => res.ok ? res.json() : null)
               .catch(() => null)
           )
@@ -44,7 +45,7 @@ function Diary() {
   
         const bankResponses = await Promise.all(
           uniqueBankCodes.map(code =>
-            fetch(`https://accounts-management.onrender.com/common/banks/bank/${code}`)
+            fetch(`${end_points}/banks/bank/${code}`)
               .then(res => res.ok ? res.json() : null)
               .catch(() => null)
           )

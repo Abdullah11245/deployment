@@ -5,6 +5,7 @@ import VoucherDetailTable from './CP_CRtable';
 import Select from 'react-select';
 import './Sale.css';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../../api_url';
 
 const voucherTypeOptions = [
   { value: 'CP', label: 'CP' },
@@ -22,7 +23,7 @@ const CreateVoucher = () => {
   // Fetch vouchers and calculate ID
   const fetchAndSetCustomVoucherId = async (selectedType) => {
     try {
-      const res = await axios.get('https://accounts-management.onrender.com/common/voucher/getAll');
+      const res = await axios.get(`${end_points}/voucher/getAll`);
       const allVouchers = res?.data || [];
       const filtered = allVouchers.filter(v => v.voucher_type === selectedType);
   
@@ -61,7 +62,7 @@ const CreateVoucher = () => {
     };
   
     try {
-      const res = await axios.post('https://accounts-management.onrender.com/common/voucher/create', voucherPayload);
+      const res = await axios.post(`${end_points}/voucher/create`, voucherPayload);
       const voucherId = res?.data?.id;
   
       if (!voucherId) throw new Error('Voucher creation failed.');
@@ -104,8 +105,8 @@ const CreateVoucher = () => {
       
         }
 
-        await axios.post('https://accounts-management.onrender.com/common/voucherDetail/create', debitEntry);
-        await axios.post('https://accounts-management.onrender.com/common/voucherDetail/create', creditEntry);
+        await axios.post(`${end_points}/voucherDetail/create`, debitEntry);
+        await axios.post(`${end_points}/voucherDetail/create`, creditEntry);
       }
         
   setLoading(false)

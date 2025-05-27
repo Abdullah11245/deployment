@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../api_url';
 
 function UserTable() {
   const [users, setUsers] = useState([]);
@@ -17,7 +18,7 @@ function UserTable() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get('https://accounts-management.onrender.com/common/user/getAll');
+        const response = await axios.get(`${end_points}/user/getAll`);
         setUsers(response.data || []);
       } catch (error) {
         console.error('Error fetching users:', error);
@@ -48,7 +49,7 @@ function UserTable() {
     setLoading(true); // Start loading when the delete operation begins
   
     try {
-      const response = await axios.delete(`https://accounts-management.onrender.com/common/user/${selectedUser.id}`);
+      const response = await axios.delete(`${end_points}/user/${selectedUser.id}`);
       if (response.status === 200) {
         setUsers((prevUsers) => prevUsers.filter((u) => u.id !== selectedUser.id));
         toast.success(`${selectedUser.firstname} deleted successfully.`);

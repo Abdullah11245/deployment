@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import end_points from '../../../api_url';
 
 const Purchase = () => {
   const [mergedData, setMergedData] = useState([]);
@@ -31,8 +32,8 @@ const Purchase = () => {
     const fetchData = async () => {
       try {
         const [detailsRes, purchasesRes] = await Promise.all([
-          axios.get('https://accounts-management.onrender.com/common/purchaseDetail/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/purchase/getAll'),
+          axios.get(`${end_points}/purchaseDetail/getAll`),
+          axios.get(`${end_points}/purchase/getAll`),
         ]);
 
         const details = detailsRes.data || [];
@@ -86,7 +87,7 @@ const Purchase = () => {
 
           const responses = await Promise.all(
             uniqueSupplierIds.map((id) =>
-              axios.get(`https://accounts-management.onrender.com/common/suppliers/suppliers/${id}`)
+              axios.get(`${end_points}/suppliers/suppliers/${id}`)
             )
           );
 

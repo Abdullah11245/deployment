@@ -6,6 +6,7 @@ import SaleDetailTable from './SaledetailTable';
 import './Sale.css';
 import { useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../../../../api_url';
 
 function EditSale() {
   const { id, voucher_id } = useParams();
@@ -26,7 +27,7 @@ function EditSale() {
   useEffect(() => {
     const fetchVoucherDetails = async () => {
       try {
-        const response = await axios.get(`https://accounts-management.onrender.com/common/voucherDetail/main/${id}`);
+        const response = await axios.get(`${end_points}/voucherDetail/main/${id}`);
         setVoucherDetails(response.data);
       } catch (error) {
         console.error('Error fetching voucher details:', error);
@@ -39,7 +40,7 @@ function EditSale() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const saleResponse = await axios.get(`https://accounts-management.onrender.com/common/sale/sales/${voucher_id}`);
+        const saleResponse = await axios.get(`${end_points}/sale/sales/${voucher_id}`);
         const saleData = saleResponse.data;
         setSaleDate(saleData.sale_date?.split('T')[0]); // Keeps only 'YYYY-MM-DD'
         setPartyId(saleData.party_id);
@@ -47,7 +48,7 @@ function EditSale() {
         setTaxAmount(saleData.tax_amount);
         setNotes(saleData.notes);
 
-        const partiesResponse = await axios.get('https://accounts-management.onrender.com/common/parties/getAll');
+        const partiesResponse = await axios.get(`${end_points}/parties/getAll`);
         const activeParties = partiesResponse.data.filter(party => party.status === 1);
         const partyOptions = activeParties.map(party => ({
           value: party.id,
@@ -62,7 +63,7 @@ function EditSale() {
           setPartyName(selectedParty.label);
         }
 
-        const saleDetailsResponse = await axios.get(`https://accounts-management.onrender.com/common/saleDetail/${voucher_id}`);
+        const saleDetailsResponse = await axios.get(`${end_points}/saleDetail/${voucher_id}`);
         setSaleDetails(saleDetailsResponse.data);
         setLoading(false)
       } catch (error) {
@@ -101,7 +102,7 @@ setLoading(true)
   
     try {
     
-      await axios.put(`https://accounts-management.onrender.com/common/sale/sales/${id}`, payload);
+      await axios.put(`${end_points}/sale/sales/${id}`, payload);
   
       const voucherPayload = {
         voucher_id: id,
@@ -109,7 +110,7 @@ setLoading(true)
         voucher_date: saleDate,
         note: notes,
       };
-      await axios.put(`https://accounts-management.onrender.com/common/voucher/${id}`, voucherPayload);
+      await axios.put(`${end_points}/voucher/${id}`, voucherPayload);
       for (let i = 0; i < saleDetails.length; i++) {
         const detail = saleDetails[i];
         const particulars = `${detail.vehicle_no}: ${detail.itemLabel} ${detail.weight}KG@${detail.rate}`;
@@ -131,9 +132,9 @@ setLoading(true)
           credit: grandTotal,
         };
   
-        await axios.put(`https://accounts-management.onrender.com/common/voucherDetail/update/SV/${voucher_id}/${i}`, debitEntry);
+        await axios.put(`${end_points}/voucherDetail/update/SV/${voucher_id}/${i}`, debitEntry);
   
-        await axios.put(`https://accounts-management.onrender.com/common/voucherDetail/update/SV/${voucher_id}/${i + 1}`, creditEntry);
+        await axios.put(`${end_points}/voucherDetail/update/SV/${voucher_id}/${i + 1}`, creditEntry);
       }
   
       // Update sale details (loop through saleDetails array)
@@ -149,7 +150,7 @@ setLoading(true)
           adjustment: parseFloat(detail.adjustment),
         };
   
-        await axios.put(`https://accounts-management.onrender.com/common/saleDetail/${voucher_id}/${detail.item_id}`, detailPayload);
+        await axios.put(`${end_points}/saleDetail/${voucher_id}/${detail.item_id}`, detailPayload);
       }
        setLoading(false)
       toast.success('Sale updated successfully');

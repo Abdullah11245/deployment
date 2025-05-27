@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../api_url';
 
 
 function CreateBank() {
@@ -35,7 +36,7 @@ function CreateBank() {
 
     try {
       const response = await axios.post(
-        'https://accounts-management.onrender.com/common/banks/create',
+        `${end_points}/banks/create`,
         payload
       );
 

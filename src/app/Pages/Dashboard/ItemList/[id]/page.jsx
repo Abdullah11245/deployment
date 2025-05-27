@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../api_url';
 
 function EditItem() {
   const { id } = useParams(); 
@@ -17,7 +18,7 @@ function EditItem() {
     const fetchItem = async () => {
       setIsLoading(true); 
       try {
-        const response = await axios.get(`https://accounts-management.onrender.com/common/items/items/${id}`);
+        const response = await axios.get(`${end_points}/items/items/${id}`);
         const data = response.data;
 
         setName(data.name || '');
@@ -48,7 +49,7 @@ function EditItem() {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.put(`https://accounts-management.onrender.com/common/items/items/${id}`, payload);
+      const response = await axios.put(`${end_points}/items/items/${id}`, payload);
 
       if (response.data?.message === 'Item updated successfully') {
         toast.success('Item updated successfully');

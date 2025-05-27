@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast'; // Import toast
+import end_points from '../../../api_url';
 
 function UserTable() {
   const [formData, setFormData] = useState({
@@ -22,7 +23,7 @@ function UserTable() {
     const fetchSystem = async () => {
       setLoading(true); // Start loading while fetching data
       try {
-        const res = await fetch('https://accounts-management.onrender.com/common/system/get');
+        const res = await fetch(`${end_points}/system/get`);
         const data = await res.json();
 
         if (data !== undefined && data !== null && data !== '') {
@@ -60,7 +61,7 @@ function UserTable() {
 
     try {
       setLoading(true); // Start loading while uploading image
-      const res = await fetch('https://accounts-management.onrender.com/common/auth/upload', {
+      const res = await fetch(`${end_points}/auth/upload`, {
         method: 'POST',
         body: imageFormData,
       });
@@ -107,8 +108,8 @@ function UserTable() {
     try {
       const res = await fetch(
         systemId
-          ? `https://accounts-management.onrender.com/common/system/${systemId}`
-          : 'https://accounts-management.onrender.com/common/system/create',
+          ? `${end_points}/system/${systemId}`
+          : `${end_points}/system/create`,
         {
           method: systemId ? 'PUT' : 'POST',
           headers: { 'Content-Type': 'application/json' },

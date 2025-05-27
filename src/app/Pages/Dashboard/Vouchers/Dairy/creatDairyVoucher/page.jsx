@@ -4,6 +4,7 @@ import axios from 'axios';
 import Select from 'react-select';
 import './Sale.css';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../api_url';
 
 const CreateDiaryVoucher = () => {
   const [loading, setLoading] = useState(true);
@@ -26,7 +27,7 @@ const CreateDiaryVoucher = () => {
   useEffect(() => {
     const fetchBanks = async () => {
       try {
-        const res = await axios.get('https://accounts-management.onrender.com/common/banks/getAll');
+        const res = await axios.get(`${end_points}/banks/getAll`);
         setBanks(res.data || []);
       } catch (err) {
         console.error('Failed to fetch banks:', err);
@@ -35,7 +36,7 @@ const CreateDiaryVoucher = () => {
 
     const fetchSuppliers = async () => {
       try {
-        const res = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
+        const res = await axios.get(`${end_points}/suppliers/getAll`);
         setSuppliers(res.data.suppliers || []);
       } catch (err) {
         console.error('Failed to fetch suppliers:', err);
@@ -52,7 +53,7 @@ const CreateDiaryVoucher = () => {
     useEffect(() => {
       const fetchData = async () => {
         try {
-          const res = await fetch('https://accounts-management.onrender.com/common/diaryVoucher/getAll');
+          const res = await fetch(`${end_points}/diaryVoucher/getAll`);
           const result = await res.json();
           setData(result.length);
         } catch (err) {
@@ -86,7 +87,7 @@ const CreateDiaryVoucher = () => {
     try {
       // 1. Create Diary Voucher
       const diaryRes = await axios.post(
-        'https://accounts-management.onrender.com/common/diaryVoucher/create',
+        `${end_points}/diaryVoucher/create`,
         formData
       );
 
@@ -101,7 +102,7 @@ const CreateDiaryVoucher = () => {
         note: formData.notes,
       };
 
-      const voucherRes = await axios.post('https://accounts-management.onrender.com/common/voucher/create', voucherPayload);
+      const voucherRes = await axios.post(`${end_points}/voucher/create`, voucherPayload);
       const voucherId = voucherRes.data?.id;
 
       const bank = banks.find(b => b.account_code === formData.bank_code);
@@ -131,8 +132,8 @@ const CreateDiaryVoucher = () => {
       };
 
       // Post both entries
-      await axios.post('https://accounts-management.onrender.com/common/voucherDetail/create', debitEntry);
-      await axios.post('https://accounts-management.onrender.com/common/voucherDetail/create', creditEntry);
+      await axios.post(`${end_points}/voucherDetail/create`, debitEntry);
+      await axios.post(`${end_points}/voucherDetail/create`, creditEntry);
 
       // Success
       setLoading(false);

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../api_url';
 
 function EditRoute() {
   const [name, setName] = useState('');
@@ -16,7 +17,7 @@ function EditRoute() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(`https://accounts-management.onrender.com/common/routes/routes/${id}`);
+        const res = await axios.get(`${end_points}/routes/routes/${id}`);
         const { name, status } = res.data.route;
         setName(name);
         setStatus(String(status));
@@ -36,7 +37,7 @@ function EditRoute() {
     const payload = { name, status };
 
     try {
-      const res = await axios.put(`https://accounts-management.onrender.com/common/routes/routes/${id}`, payload);
+      const res = await axios.put(`${end_points}/routes/routes/${id}`, payload);
       console.log(res.data.message)
       if (res.data && res.data.message === 'Route updated successfully') {
         toast.success('Route updated successfully!'); // Show success toast

@@ -4,6 +4,7 @@ import axios from 'axios';
 import Select from 'react-select';
 import { useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../../../../api_url';
 
 const EditDiaryVoucher = () => {
   const { id, voucher_id } = useParams(); // id = diary voucher ID
@@ -31,9 +32,9 @@ console.log(voucher_id)
     const fetchInitialData = async () => {
       try {
         const [banksRes, suppliersRes, diaryVoucherRes] = await Promise.all([
-          axios.get('https://accounts-management.onrender.com/common/banks/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/suppliers/getAll'),
-          axios.get(`https://accounts-management.onrender.com/common/diaryVoucher/diary/${voucher_id}`),
+          axios.get(`${end_points}/banks/getAll`),
+          axios.get(`${end_points}/suppliers/getAll`),
+          axios.get(`${end_points}/diaryVoucher/diary/${voucher_id}`),
         ]);
         setBanks(banksRes.data || []);
         setSuppliers(suppliersRes.data.suppliers || []);
@@ -84,7 +85,7 @@ console.log(voucher_id)
     try {
       // 1. Update Diary Voucher
       await axios.put(
-        `https://accounts-management.onrender.com/common/diaryVoucher/diary/${voucher_id}`,
+        `${end_points}/diaryVoucher/diary/${voucher_id}`,
         formData
       );
 
@@ -97,7 +98,7 @@ console.log(voucher_id)
       };
 
       await axios.put(
-        `https://accounts-management.onrender.com/common/voucher/${voucher_id}`,
+        `${end_points}/voucher/${voucher_id}`,
         voucherPayload
       );
 
@@ -126,7 +127,7 @@ console.log(voucher_id)
 
       for (let i = 0; i < details.length; i++) {
         await axios.put(
-          `https://accounts-management.onrender.com/common/voucherDetail/update/${voucher_type}/${id}/${i}`,
+          `${end_points}/voucherDetail/update/${voucher_type}/${id}/${i}`,
           {
             main_id: id,
             ...details[i],

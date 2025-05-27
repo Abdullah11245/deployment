@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
+import end_points from '../../../../../api_url';
 
 const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) => {
   const [mainOptions, setMainOptions] = useState([]);
@@ -14,7 +15,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
     const fetchOptions = async () => {
       try {
         // Always fetch banks
-        const bankRes = await fetch('https://accounts-management.onrender.com/common/banks/getAll');
+        const bankRes = await fetch(`${end_points}/banks/getAll`);
         const bankData = await bankRes.json();
         setBankOptions(
           bankData.map((bank) => ({
@@ -25,7 +26,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
 
         // Fetch either customers or suppliers based on type
         if (voucherType =='BR') {
-          const res = await fetch('https://accounts-management.onrender.com/common/parties/getAll');
+          const res = await fetch(`${end_points}/parties/getAll`);
           const data = await res.json();
           console.log(data.data);
           setMainOptions(
@@ -35,7 +36,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
             }))
           );
         } else if (voucherType == 'BP') {
-          const res = await fetch('https://accounts-management.onrender.com/common/suppliers/getAll');
+          const res = await fetch(`${end_points}/suppliers/getAll`);
           const data = await res.json();
           setMainOptions(
             data.suppliers.map((s) => ({

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../api_url';
 
 import './Sale.css';
 
@@ -32,7 +33,7 @@ const CreateUserForm = () => {
 
     try {
       const res = await axios.post(
-        'https://accounts-management.onrender.com/common/user/register',
+        `${end_points}/user/register`,
         formData
       );
 

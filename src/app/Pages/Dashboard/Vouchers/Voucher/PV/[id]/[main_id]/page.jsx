@@ -6,6 +6,8 @@ import './Sale.css';
 import SupplierTable from './table';
 import toast, { Toaster } from 'react-hot-toast';
 import { useParams } from 'next/navigation';
+import end_points from '../../../../../../../api_url';
+
 function CreatePurchase() {
   const [purchaseDate, setPurchaseDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -32,8 +34,8 @@ function CreatePurchase() {
     const fetchRoutesAndItems = async () => {
       try {
         const [routeResponse, itemResponse] = await Promise.all([
-          axios.get('https://accounts-management.onrender.com/common/routes/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/items/getAll'),
+          axios.get(`${end_points}/routes/getAll`),
+          axios.get(`${end_points}/items/getAll`),
         ]);
         const filteredRoutes = routeResponse?.data?.routes.filter(route => route.status === 'A') || [];
         const filteredItems = itemResponse?.data?.filter(item => item.type == 'Purchase') || [];
@@ -62,7 +64,7 @@ function CreatePurchase() {
   useEffect(() => {
     const fetchPurchaseData = async () => {
       try {
-        const response = await axios.get(`https://accounts-management.onrender.com/common/purchase/purchases/${purchaseId}`);
+        const response = await axios.get(`${end_points}/purchase/purchases/${purchaseId}`);
         const data = response.data;
         setPurchaseData(data); 
   
@@ -81,7 +83,7 @@ function CreatePurchase() {
               const inputs = await Promise.all(
                 suppliers.map(async (supplier) => {
                   const detail = await axios.get(
-                    `https://accounts-management.onrender.com/common/purchaseDetail/${purchaseId}/${supplier.id}`,
+                    `${end_points}/purchaseDetail/${purchaseId}/${supplier.id}`,
                     {headers: {
                       'Access-Control-Allow-Origin': '*'
                     }}
@@ -126,7 +128,7 @@ function CreatePurchase() {
 
   const fetchSuppliers = async (selectedRouteId) => {
     try {
-      const response = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
+      const response = await axios.get(`${end_points}/suppliers/getAll`);
       const allSuppliers = response?.data?.suppliers || [];
       
       const filteredSuppliers = allSuppliers?.filter(supplier => 
@@ -166,13 +168,13 @@ function CreatePurchase() {
   
     try {
       // 1. Update Purchase
-      await axios.put(`https://accounts-management.onrender.com/common/purchase/purchases/${purchaseId}`, purchasePayload);
+      await axios.put(`${end_points}/purchase/purchases/${purchaseId}`, purchasePayload);
   
       // 2. Update Purchase Details
       await Promise.all(supplierInputs.map((input, index) => {
         const supplierId = suppliers[index]?.id;
         return axios.put(
-          `https://accounts-management.onrender.com/common/purchaseDetail/${purchaseId}/${supplierId}`,
+          `${end_points}/purchaseDetail/${purchaseId}/${supplierId}`,
           {
             qty: parseFloat(input.qty_mann || 0),
             rate: parseFloat(input.rate || 0),
@@ -180,12 +182,12 @@ function CreatePurchase() {
         );
       }));
   
-      const voucherMain = await axios.get(`https://accounts-management.onrender.com/common/voucher/${main_id}`)
+      const voucherMain = await axios.get(`${end_points}/voucher/${main_id}`)
       ;
       const voucherId = voucherMain?.data?.id;
 
          console.log(voucherId)
-      await axios.put(`https://accounts-management.onrender.com/common/voucher/${voucherId}`, {
+      await axios.put(`${end_points}/voucher/${voucherId}`, {
         voucher_id: purchaseId,
         voucher_type: 'PV',
         voucher_date: purchaseDate,
@@ -228,7 +230,7 @@ for (const detail of filteredVoucherDetail) {
 
   try {
     const res = await axios.put(
-      `https://accounts-management.onrender.com/common/voucherDetail/update/${voucher_type}/${purchaseId}/${index}`,
+      `${end_points}/voucherDetail/update/${voucher_type}/${purchaseId}/${index}`,
       rest
     );
   } catch (error) {
@@ -249,7 +251,7 @@ const debitEntry = {
 try {
   const voucher_type='PV'
   const debitRes = await axios.put(
-    `https://accounts-management.onrender.com/common/voucherDetail/update/${voucher_type}/${purchaseId}/${allVoucherDetails.length}`,
+    `${end_points}/voucherDetail/update/${voucher_type}/${purchaseId}/${allVoucherDetails.length}`,
     debitEntry
   );
   console.log('Debit entry update response:', debitRes.data);
@@ -304,6 +306,7 @@ try {
       <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
         <h2 className="text-xl font-semibold text-gray-700">Create New Purchase</h2>
       </div>
+            <Toaster position="top-right" reverseOrder={false} />
 
       <div className="flex items-center justify-center p-12">
         <div className="mx-auto w-full bg-white">

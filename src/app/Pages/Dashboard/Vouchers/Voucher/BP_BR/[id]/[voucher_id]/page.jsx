@@ -6,6 +6,7 @@ import Select from 'react-select';
 import { useParams } from 'next/navigation';
 import './Sale.css';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../../../../api_url';
 
 const voucherTypeOptions = [
   { value: 'BP', label: 'BP' },
@@ -27,10 +28,10 @@ const EditVoucher = () => {
 
       try {
         // Fetch voucher metadata (to populate the form)
-        const voucherRes = await axios.get(`https://accounts-management.onrender.com/common/voucher/${id}`);
+        const voucherRes = await axios.get(`${end_points}/voucher/${id}`);
         
         // Fetch voucher details data
-        const detailRes = await axios.get(`https://accounts-management.onrender.com/common/voucherDetail/main/${id}`);
+        const detailRes = await axios.get(`${end_points}/voucherDetail/main/${id}`);
         
         const voucherData = voucherRes?.data;
         const voucherDetailsData = detailRes?.data || [];
@@ -114,7 +115,7 @@ const EditVoucher = () => {
     };
 
     try {
-      await axios.put(`https://accounts-management.onrender.com/common/voucher/${id}`, voucherPayload);
+      await axios.put(`${end_points}/voucher/${id}`, voucherPayload);
 
       // Update each detail
       let detailIndex = 0;
@@ -140,7 +141,7 @@ for (const detail of voucherDetails) {
   try {
     // Debit entry at current index
     await axios.put(
-      `https://accounts-management.onrender.com/common/voucherDetail/update/${voucherType.value}/${voucher_id}/${detailIndex}`,
+      `${end_points}/voucherDetail/update/${voucherType.value}/${voucher_id}/${detailIndex}`,
       debitEntry
     );
 
@@ -148,7 +149,7 @@ for (const detail of voucherDetails) {
 
    
     await axios.put(
-      `https://accounts-management.onrender.com/common/voucherDetail/update/${voucherType.value}/${voucher_id}/${detailIndex}`,
+      `${end_points}/voucherDetail/update/${voucherType.value}/${voucher_id}/${detailIndex}`,
       creditEntry
     );
 

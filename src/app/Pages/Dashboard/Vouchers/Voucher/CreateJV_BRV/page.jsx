@@ -5,6 +5,7 @@ import VoucherDetailTable from './JV_BRVtable';
 import Select from 'react-select';
 import './Sale.css';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../../api_url';
 
 const voucherTypeOptions = [
   { value: 'JV', label: 'JV' },
@@ -22,7 +23,7 @@ const CreateVoucher = () => {
   // Fetch vouchers and calculate ID
   const fetchAndSetCustomVoucherId = async (selectedType) => {
     try {
-      const res = await axios.get('https://accounts-management.onrender.com/common/voucher/getAll');
+      const res = await axios.get(`${end_points}/voucher/getAll`);
       const allVouchers = res?.data || [];
       const filtered = allVouchers.filter(v => v.voucher_type === selectedType);
       const newId = filtered.length + 1;
@@ -88,7 +89,7 @@ const handleSubmit = async (e) => {
 
   try {
     const res = await axios.post(
-      'https://accounts-management.onrender.com/common/voucher/create',
+      `${end_points}/voucher/create`,
       voucherPayload
     );
     const voucherId = res?.data?.id;
@@ -108,7 +109,7 @@ const handleSubmit = async (e) => {
 
     for (const entry of processedEntries) {
       await axios.post(
-        'https://accounts-management.onrender.com/common/voucherDetail/create',
+        `${end_points}/voucherDetail/create`,
         entry
       );
     }

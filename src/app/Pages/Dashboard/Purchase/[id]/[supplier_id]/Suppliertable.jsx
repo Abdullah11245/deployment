@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 
 const SupplierTable = ({ supplier = [], supplierInputs = [], setSupplierInputs }) => {
-  console.log('Supplier Inputs:', supplierInputs);
+ 
 
   // Ensure supplierInputs is initialized when supplier changes
   useEffect(() => {

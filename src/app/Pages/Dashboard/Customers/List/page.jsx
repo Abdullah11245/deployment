@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../api_url';
 
 const RoutesTable = () => {
   const [routes, setRoutes] = useState([]);
@@ -17,7 +18,7 @@ const RoutesTable = () => {
     const fetchRoutes = async () => {
       setLoading(true); // Start loading
       try {
-        const response = await axios.get('https://accounts-management.onrender.com/common/parties/getAll');
+        const response = await axios.get(`${end_points}/parties/getAll`);
         console.log(response.data);
         setRoutes(response.data);
       } catch (error) {

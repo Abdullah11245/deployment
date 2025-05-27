@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../api_url';
 
 function CreateRoute() {
   const [selectedDate, setSelectedDate] = useState('');
@@ -20,7 +21,7 @@ function CreateRoute() {
     try {
       setUploading(true);
       const response = await axios.post(
-        'https://accounts-management.onrender.com/common/auth/upload',
+        `${end_points}/auth/upload`,
         formData,
         {
           headers: {
@@ -73,7 +74,7 @@ function CreateRoute() {
 
     try {
       const response = await axios.post(
-        'https://accounts-management.onrender.com/common/monthlyPurchase/create',
+        `${end_points}/monthlyPurchase/create`,
         payload
       );
   console.log(payload)

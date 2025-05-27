@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
+import end_points from '../../../../../../../api_url';
 
 const SaleDetailTable = ({
   saleDetails = [],
@@ -23,7 +24,7 @@ const SaleDetailTable = ({
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const response = await fetch('https://accounts-management.onrender.com/common/items/getAll');
+        const response = await fetch(`${end_points}/items/getAll`);
         const data = await response.json();
 
         const saleItems = data

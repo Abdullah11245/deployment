@@ -6,6 +6,7 @@ import Select from 'react-select';
 import SaleDetailTable from './SaledetailTable';
 import './Sale.css';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../../../api_url';
 
 function CreateSale() {
   const { id: saleId, item_id: itemId } = useParams(); // Get both IDs from URL
@@ -23,7 +24,7 @@ function CreateSale() {
   useEffect(() => {
     const fetchParties = async () => {
       try {
-        const response = await axios.get('https://accounts-management.onrender.com/common/parties/getAll');
+        const response = await axios.get(`${end_points}/parties/getAll`);
         const partyOptions = response.data.map(party => ({
           value: party.id,
           label: party.name,
@@ -45,7 +46,7 @@ function CreateSale() {
       try {
         // Fetch sale
         const { data: saleData } = await axios.get(
-          `https://accounts-management.onrender.com/common/sale/sales/${saleId}`
+          `${end_points}/sale/sales/${saleId}`
         );
 
         setSaleDate(new Date(saleData.sale_date).toISOString().slice(0, 16));
@@ -56,7 +57,7 @@ function CreateSale() {
 
         // Fetch sale detail
         const detailRes = await axios.get(
-          `https://accounts-management.onrender.com/common/saleDetail/${saleId}/${itemId}`
+          `${end_points}/saleDetail/${saleId}/${itemId}`
         );
         const detail = detailRes.data;
 
@@ -109,7 +110,7 @@ function CreateSale() {
     try {
       // Update sale
       await axios.put(
-        `https://accounts-management.onrender.com/common/sale/sales/${saleId}`,
+        `${end_points}/sale/sales/${saleId}`,
         payload
       );
 
@@ -127,7 +128,7 @@ function CreateSale() {
       };
 
       await axios.put(
-        `https://accounts-management.onrender.com/common/saleDetail/${saleId}/${detail.itemId}`,
+        `${end_points}/saleDetail/${saleId}/${detail.itemId}`,
         detailPayload
       );
 
@@ -158,6 +159,7 @@ function CreateSale() {
       <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
         <h2 className="text-xl font-semibold text-gray-700">Edit Sale</h2>
       </div>
+<Toaster position="top-right" reverseOrder={false} />      
 
       <div className="flex items-center justify-center p-12">
         <div className="mx-auto w-full bg-white">

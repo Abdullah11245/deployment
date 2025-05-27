@@ -4,6 +4,8 @@ import React, { useState,useEffect } from 'react';
 import './Bar.css'
 import Link from 'next/link';
 import axios from 'axios';
+import end_points from '../../api_url';
+
 const Sidebar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dropdownOpenone, setDropdownOpenone] = useState(false);
@@ -16,7 +18,7 @@ const Sidebar = () => {
     const fetchSystemData = async () => {
       try {
         // Fetch data from the API
-        const response = await axios.get('https://accounts-management.onrender.com/common/system/get');
+        const response = await axios.get(`${end_points}/system/get`);
           setSystemData(response.data.name); // Set the first item in the state
         
       } catch (error) {

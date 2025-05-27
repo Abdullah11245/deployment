@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { json2csv } from 'json-2-csv';
+import end_points from '../../../../api_url';
 
 function Receiptreport() {
   const [routes, setRoutes] = useState([]);
@@ -30,10 +31,10 @@ function Receiptreport() {
     const fetchData = async () => {
       try {
         const [voucherRes, detailRes, partiesRes, banksRes] = await Promise.all([
-          axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/voucherDetail/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/suppliers/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/banks/getAll')
+          axios.get(`${end_points}/voucher/getAll`),
+          axios.get(`${end_points}/voucherDetail/getAll`),
+          axios.get(`${end_points}/suppliers/getAll`),
+          axios.get(`${end_points}/banks/getAll`)
         ]);
   
         const voucherData = voucherRes.data || [];
@@ -45,14 +46,14 @@ function Receiptreport() {
           uniqueCodes.map(async (code) => {
             try {
               // Try fetching supplier first
-              const supplierRes = await axios.get(`https://accounts-management.onrender.com/common/suppliers/supplier/${code}`);
+              const supplierRes = await axios.get(`${end_points}/suppliers/supplier/${code}`);
               if (supplierRes.data?.name) {
                 partyNameMap[code] = supplierRes.data.name;
               }
             } catch (err) {
               // Supplier not found, try fetching party instead
               try {
-                const partyRes = await axios.get(`https://accounts-management.onrender.com/common/parties/partybyCode/${code}`);
+                const partyRes = await axios.get(`${end_points}/parties/partybyCode/${code}`);
                 if (partyRes.data?.name) {
                   partyNameMap[code] = partyRes.data.name;
                 }

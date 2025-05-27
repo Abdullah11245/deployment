@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import end_points from '../../../api_url';
 
 function Receiptreport() {
   const [routes, setRoutes] = useState([]);
@@ -25,8 +26,8 @@ function Receiptreport() {
     const fetchData = async () => {
       try {
         const [voucherRes, detailRes] = await Promise.all([
-          axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/voucherDetail/getAll'),
+          axios.get(`${end_points}/voucher/getAll`),
+          axios.get(`${end_points}/voucherDetail/getAll`),
         ]);
 
         setRoutes(voucherRes.data || []);
@@ -51,9 +52,9 @@ useEffect(() => {
 
     try {
       const [partyRes, bankRes, supplierRes] = await Promise.all([
-        axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
-        axios.get('https://accounts-management.onrender.com/common/banks/getAll'),
-        axios.get('https://accounts-management.onrender.com/common/suppliers/getAll'), // slower but included
+        axios.get(`${end_points}/parties/getAll`),
+        axios.get(`${end_points}/banks/getAll`),
+        axios.get(`${end_points}/suppliers/getAll`), // slower but included
       ]);
 
       const partyMap = {};

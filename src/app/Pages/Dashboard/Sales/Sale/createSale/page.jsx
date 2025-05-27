@@ -4,6 +4,8 @@ import axios from 'axios';
 import Select from 'react-select';
 import SaleDetailTable from './SaledetailTable';
 import './Sale.css';
+import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../../api_url';
 
 function CreateSale() {
   const [saleDate, setSaleDate] = useState('');
@@ -22,7 +24,7 @@ function CreateSale() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const partiesResponse = await axios.get('https://accounts-management.onrender.com/common/parties/getAll');
+        const partiesResponse = await axios.get(`${end_points}/parties/getAll`);
         const activeParties = partiesResponse.data.filter(party => party.status === 1);
         const partyOptions = activeParties.map(party => ({
           value: party.id,
@@ -31,8 +33,7 @@ function CreateSale() {
         }));
         setParties(partyOptions);
 
-        const saleIdResponse = await axios.get('https://accounts-management.onrender.com/common/sale/latest-id');
-       console.log(saleIdResponse)
+        const saleIdResponse = await axios.get(`${end_points}/sale/latest-id`);
         setLatestSaleId(saleIdResponse.data.latest_sale_id +1); 
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -81,7 +82,7 @@ function CreateSale() {
     };
   
     try {
-      const response = await axios.post('https://accounts-management.onrender.com/common/sale/create', payload);
+      const response = await axios.post(`${end_points}/sale/create`, payload);
   
       if (response.data?.message === 'Sale created successfully') {
         const saleId = response.data?.result?.insertId;
@@ -92,9 +93,9 @@ function CreateSale() {
           voucher_date: saleDate,
           note: notes, 
         };
-      console.log("Voucher Payload:", voucherPayload); // Debugging line
+    
         const voucherResponse = await axios.post(
-          'https://accounts-management.onrender.com/common/voucher/create',
+          `${end_points}/voucher/create`,
           voucherPayload
         );
         const voucherId = voucherResponse.data?.id;
@@ -118,14 +119,15 @@ function CreateSale() {
           };
           try {
             await axios.post(
-              'https://accounts-management.onrender.com/common/voucherDetail/create',
+              `${end_points}/voucherDetail/create`,
               debitEntry
             );
         
             await axios.post(
-              'https://accounts-management.onrender.com/common/voucherDetail/create',
+              `${end_points}/voucherDetail/create`,
               creditEntry
             );
+            
           } catch (error) {
             console.error("Error creating voucher detail for item:", detail, error);
           }
@@ -143,12 +145,12 @@ function CreateSale() {
             rate: parseFloat(detail.rate),
             adjustment: parseFloat(detail.adjustment),
           };
-          return axios.post('https://accounts-management.onrender.com/common/saleDetail/create', detailPayload);
+          return axios.post(`${end_points}/saleDetail/create`, detailPayload);
         });
   
       const res=  await Promise.all(saleDetailRequests);
       res.forEach((r, i) => {
-        console.log(`Sale Detail ${i + 1}:`, r.data);
+      
       });
         setSaleDate('');
         setPartyId(null);
@@ -157,13 +159,13 @@ function CreateSale() {
         setNotes('');
         setSaleDetails([]);
   
-        alert('Sale, voucher, and details saved successfully');
+       toast.success("Voucher created successfully");
       } else {
-        alert('Failed to create sale');
+        toast.error('Failed to create sale');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error while submitting the form');
+      toast.error('Error while submitting the form');
     }
   };
   
@@ -183,7 +185,7 @@ function CreateSale() {
       <div className="flex justify-between items-center mb-0 border-b-2 pb-4 px-4">
         <h2 className="text-xl font-semibold text-gray-700">Create New Sale</h2>
       </div>
-
+              <Toaster position="top-right" reverseOrder={false} />
       <div className="flex items-center justify-center p-4">
       
         <div className="mx-auto w-full bg-white">

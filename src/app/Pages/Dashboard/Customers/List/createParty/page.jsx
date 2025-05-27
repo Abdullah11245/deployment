@@ -1,5 +1,5 @@
 'use client';
-
+import end_points from '../../../../../api_url';
 import React, { useState } from 'react';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
@@ -42,7 +42,7 @@ function CreateParty() {
 
     try {
       const response = await axios.post(
-        'https://accounts-management.onrender.com/common/parties/create',
+        `${end_points}/parties/create`,
         payload
       );
 

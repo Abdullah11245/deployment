@@ -7,6 +7,8 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useRef } from 'react';
+import end_points from '../../../api_url';
+
 function Receiptreport() {
   const [supplierOptions, setSupplierOptions] = useState([]);
   const [routeOptions, setRouteOptions] = useState([]);
@@ -25,7 +27,7 @@ function Receiptreport() {
     const fetchData = async () => {
       try {
         // Fetch suppliers
-        const suppliersRes = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
+        const suppliersRes = await axios.get(`${end_points}/suppliers/getAll`);
         const suppliers = suppliersRes.data.suppliers || [];
 
         setSupplierOptions(suppliers.map(s => ({ value: s.supplier_code, label: s.name })));
@@ -54,7 +56,7 @@ setFilteredSuppliers(suppliers); // display initially
             // Send requests for this batch in parallel
             const results = await Promise.allSettled(
               batch.map(supplier =>
-                axios.get(`https://accounts-management.onrender.com/common/voucherDetail/mains/${supplier.supplier_code}`)
+                axios.get(`${end_points}/voucherDetail/mains/${supplier.supplier_code}`)
               )
             );
 
@@ -78,7 +80,7 @@ setFilteredSuppliers(suppliers); // display initially
         console.log(allVoucherDetails);
 
         // ✅ Fetch all vouchers
-        const voucherRes = await axios.get(`https://accounts-management.onrender.com/common/voucher/getAll`);
+        const voucherRes = await axios.get(`${end_points}/voucher/getAll`);
         setVouchers(voucherRes.data || []);
 
       } catch (error) {

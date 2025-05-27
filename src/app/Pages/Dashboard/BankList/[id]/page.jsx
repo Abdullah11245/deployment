@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../api_url';
 
 function EditBank() {
   const { id } = useParams(); // Get bank id from the route
@@ -22,9 +23,9 @@ function EditBank() {
 
   const fetchBank = async () => {
     try {
-      const response = await axios.get(`https://accounts-management.onrender.com/common/banks/banks/${id}`);
+      const response = await axios.get(`${end_points}/banks/banks/${id}`);
       const data = response.data;
-
+   
       setAccountTitle(data.account_title || '');
       setAccountNumber(data.account_number || '');
       setAddress(data.address || '');
@@ -55,7 +56,7 @@ function EditBank() {
 
     setIsSubmitting(true); // Start submitting state
     try {
-      const response = await axios.put(`https://accounts-management.onrender.com/common/banks/banks/${id}`, payload);
+      const response = await axios.put(`${end_points}/banks/banks/${id}`, payload);
       if (response.data?.message === 'Bank updated successfully') {
         toast.success(' Bank updated successfully');
       } else {
@@ -135,6 +136,7 @@ function EditBank() {
                 value={accountCode}
                 onChange={(e) => setAccountCode(e.target.value)}
                 placeholder="Account Code"
+                disabled
                 className="w-full rounded-md border border-[#e0e0e0] py-3 px-6 text-base text-[#6B7280] focus:border-[#6A64F1] focus:shadow-md"
               />
             </div>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../api_url';
 
 
 function PostDairy() {
@@ -21,7 +22,7 @@ function PostDairy() {
   useEffect(() => {
     const fetchRoutes = async () => {
       try {
-        const response = await axios.get('https://accounts-management.onrender.com/common/diaryVoucher/getAll');
+        const response = await axios.get(`${end_points}/diaryVoucher/getAll`);
         if (response.status === 200) {
           setRoutes(response.data);
         }
@@ -44,7 +45,7 @@ function PostDairy() {
   const toggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'A' ? 'P' : 'A';
     try {
-      const response = await axios.put(`https://accounts-management.onrender.com/common/diaryVoucher/diary/${id}`, {
+      const response = await axios.put(`${end_points}/diaryVoucher/diary/${id}`, {
         dv_status: newStatus
       });
 

@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useRef } from 'react';
+import end_points from '../../../api_url';
 
 function DebtorSummary() {
   const [partyOptions, setPartyOptions] = useState([]);
@@ -22,7 +23,7 @@ function DebtorSummary() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const partiesRes = await axios.get('https://accounts-management.onrender.com/common/parties/getAll');
+        const partiesRes = await axios.get(`${end_points}/parties/getAll`);
         const parties = partiesRes.data || [];
 
         setPartyOptions(parties.map(p => ({ value: p.party_code, label: p.name })));
@@ -35,7 +36,7 @@ function DebtorSummary() {
             const batch = parties.slice(i, i + batchSize);
             const results = await Promise.allSettled(
               batch.map(party =>
-                axios.get(`https://accounts-management.onrender.com/common/voucherDetail/mains/${party.party_code}`)
+                axios.get(`${end_points}/voucherDetail/mains/${party.party_code}`)
               )
             );
 
@@ -54,7 +55,7 @@ function DebtorSummary() {
         const allVoucherDetails = await fetchVoucherDetailsInBatches(parties);
         setVoucherDetails(allVoucherDetails);
 
-        const voucherRes = await axios.get(`https://accounts-management.onrender.com/common/voucher/getAll`);
+        const voucherRes = await axios.get(`${end_points}/voucher/getAll`);
         setVouchers(voucherRes.data || []);
       } catch (error) {
         console.error('Error fetching data:', error);

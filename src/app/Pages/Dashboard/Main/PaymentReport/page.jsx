@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { json2csv } from 'json-2-csv';
+import end_points from '../../../api_url';
 
 function Receiptreport() {
   const [routes, setRoutes] = useState([]);
@@ -29,10 +30,10 @@ function Receiptreport() {
     const fetchData = async () => {
       try {
         const [voucherRes, detailRes, partiesRes, banksRes] = await Promise.all([
-          axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/voucherDetail/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/banks/getAll')
+          axios.get(`${end_points}/voucher/getAll`),
+          axios.get(`${end_points}/voucherDetail/getAll`),
+          axios.get(`${end_points}/parties/getAll`),
+          axios.get(`${end_points}/banks/getAll`)
         ]);
        console.log('Voucher Data:', voucherRes.data);
         console.log('Detail Data:', detailRes.data);
@@ -46,7 +47,7 @@ function Receiptreport() {
         await Promise.all(
           uniqueCodes.map(async (code) => {
             try {
-              const res = await axios.get(`https://accounts-management.onrender.com/common/parties/partybyCode/${code}`);
+              const res = await axios.get(`${end_points}/parties/partybyCode/${code}`);
               if (res.data?.name) {
                 partyNameMap[code] = res.data.name;
               }
@@ -229,47 +230,67 @@ function Receiptreport() {
     doc.save('receipt_report.pdf');
   };
 
-  const handlePrint = () => {
-    const printContent = tableRef.current.innerHTML;
-    const printWindow = window.open('', '', 'width=900,height=650');
+const handlePrint = () => {
+  const headerHTML = `
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h2 style="margin: 0;">Payment Report</h2>
+      <p style="margin: 0;">Date: ${new Date().toLocaleDateString()}</p>
+    </div>
+  `;
 
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Receipt Report</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 20px;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 20px;
-            }
-            th, td {
-              padding: 8px 12px;
-              border: 1px solid #ddd;
-              font-size: 14px;
-              text-align: left;
-            }
-            thead {
-              background-color: #f3f4f6;
-            }
-          </style>
-        </head>
-        <body>
-          <h2>Receipt Report</h2>
-          ${printContent}
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
-  };
+  const style = `
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      h2 {
+        font-size: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+      th, td {
+        border: 1px solid #000;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+      }
+      @media print {
+        .no-print {
+          display: none;
+        }
+      }
+    </style>
+  `;
 
+  const tableHTML = tableRef.current?.outerHTML || "<p>No data available</p>";
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Creditor Report</title>
+        ${style}
+      </head>
+      <body>
+        ${headerHTML}
+        ${tableHTML}
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.close();
+};
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-white">

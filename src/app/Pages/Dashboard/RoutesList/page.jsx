@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import end_points from '../../../api_url';
 
 function RouteList() {
   const [routes, setRoutes] = useState([]);
@@ -14,7 +15,7 @@ function RouteList() {
   useEffect(() => {
   const fetchRoutes = async () => {
   try {
-    const response = await axios.get('https://accounts-management.onrender.com/common/routes/getAll');
+    const response = await axios.get(`${end_points}/routes/getAll`);
     if (response.status === 200) {
       const sortedRoutes = response.data.routes.sort((a, b) => a.name.localeCompare(b.name));
       setRoutes(sortedRoutes);

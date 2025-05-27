@@ -6,6 +6,7 @@ import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import end_points from '../../../api_url';
 
 function Receiptreport() {
   const [supplierOptions, setSupplierOptions] = useState([]);
@@ -53,7 +54,7 @@ const extractWeightAndMonth = (particulars) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const suppliersRes = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
+        const suppliersRes = await axios.get(`${end_points}/suppliers/getAll`);
         const suppliers = suppliersRes.data.suppliers || [];
 
         setSupplierOptions(suppliers.map(s => ({ value: s.supplier_code, label: s.name })));
@@ -69,7 +70,7 @@ const extractWeightAndMonth = (particulars) => {
             const batch = suppliers.slice(i, i + batchSize);
             const results = await Promise.allSettled(
               batch.map(s =>
-                axios.get(`https://accounts-management.onrender.com/common/voucherDetail/mains/${s.supplier_code}`)
+                axios.get(`${end_points}/voucherDetail/mains/${s.supplier_code}`)
               )
             );
             results.forEach((res, idx) => {
@@ -86,7 +87,7 @@ const extractWeightAndMonth = (particulars) => {
         const allVoucherDetails = await fetchVoucherDetailsInBatches(suppliers);
         setVoucherDetails(allVoucherDetails);
 
-        const voucherRes = await axios.get('https://accounts-management.onrender.com/common/voucher/getAll');
+        const voucherRes = await axios.get(`${end_points}/voucher/getAll`);
         setVouchers(voucherRes.data || []);
 
         const calculateAverageFromParticulars = () => {

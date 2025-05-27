@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import end_points from '../../api_url';
+
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +20,7 @@ const LoginPage = () => {
   
     setLoading(true);
     try {
-      const response = await axios.post('https://accounts-management.onrender.com/common/user/login', {
+      const response = await axios.post(`${end_points}/user/login`, {
         email,
         password,
       },

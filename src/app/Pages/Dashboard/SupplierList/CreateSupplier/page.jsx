@@ -4,6 +4,7 @@ import axios from 'axios';
 import Select from 'react-select';
 import toast, { Toaster } from 'react-hot-toast'; // ✅ Toast import
 import './Suppliers.css';
+import end_points from '../../../../api_url';
 
 function CreateSupplier() {
   const [status, setStatus] = useState(1);
@@ -19,14 +20,14 @@ function CreateSupplier() {
   const [email, setEmail] = useState('');
   const [supplierCode, setSupplierCode] = useState('');
 
-  const [loading, setLoading] = useState(false); // ✅ Loading state for form submission
+  const [loading, setLoading] = useState(false); 
 
   useEffect(() => {
     setIsClient(true);
   
     const fetchRoutes = async () => {
       try {
-        const response = await axios.get('https://accounts-management.onrender.com/common/routes/getAll');
+        const response = await axios.get(`${end_points}/routes/getAll`);
         const data = response.data;
   
         if (data?.routes) {
@@ -75,7 +76,7 @@ function CreateSupplier() {
 
     try {
       const response = await axios.post(
-        'https://accounts-management.onrender.com/common/suppliers/create',
+        `${end_points}/suppliers/create`,
         payload
       );
 

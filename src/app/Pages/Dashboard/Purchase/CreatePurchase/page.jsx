@@ -5,6 +5,7 @@ import Select from 'react-select'; // For dropdowns
 import './Purchase.css';
 import SupplierTable from './Suppliertable';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../api_url';
 
 function CreatePurchase() {
   const [purchaseDate, setPurchaseDate] = useState('');
@@ -30,12 +31,11 @@ function CreatePurchase() {
     const fetchRoutesAndItems = async () => {
       try {
         const [routeResponse, itemResponse,purchaseRes] = await Promise.all([
-          axios.get('https://accounts-management.onrender.com/common/routes/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/items/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/purchase/getAll')
+          axios.get(`${end_points}/routes/getAll`),
+          axios.get(`${end_points}/items/getAll`),
+          axios.get(`${end_points}/purchase/getAll`)
         ]);
-        console.log(purchaseRes.data.length)
-     setPurchaseId(purchaseRes.data.length)
+        setPurchaseId(purchaseRes.data.length)
         const filteredRoutes = routeResponse?.data?.routes.filter(route => route.status === 'A') || [];
         const filteredItems = itemResponse?.data?.filter(item => item.type == 'Purchase') || [];
 
@@ -52,9 +52,9 @@ function CreatePurchase() {
             label: item.name,
           })) || []
         );
-        setLoading(false); // Set loading to false after fetching data
+        setLoading(false); 
       } catch (error) {
-        setLoading(false); // Set loading to false even if there's an error
+        setLoading(false); 
         console.error('Error fetching routes or items:', error);
       }
     };
@@ -64,12 +64,12 @@ function CreatePurchase() {
 
   const handleRouteChange = async (selectedOption) => {
     setRouteId(selectedOption);
-    await fetchSuppliers(selectedOption?.value); // Fetch suppliers for the selected route
+    await fetchSuppliers(selectedOption?.value); 
   };
 
   const fetchSuppliers = async (selectedRouteId) => {
     try {
-      const response = await axios.get('https://accounts-management.onrender.com/common/suppliers/getAll');
+      const response = await axios.get(`${end_points}/suppliers/getAll`);
       const allSuppliers = response?.data?.suppliers || [];
   
       const filteredSuppliers = allSuppliers?.filter(supplier => 
@@ -77,17 +77,14 @@ function CreatePurchase() {
       );
   
       setSuppliers(filteredSuppliers);
-      setHasSuppliers(filteredSuppliers.length > 0); // Check if suppliers exist for the selected route
+      setHasSuppliers(filteredSuppliers.length > 0); 
     } catch (error) {
       console.error('Error fetching suppliers:', error);
     }
   };
 
   const handleQuantityChange = (index, value) => {
-    // Round the value if it's fractional (i.e., contains a decimal)
-    const roundedValue = Math.round(parseFloat(value));  // Rounds to the nearest integer
-
-    // Update the supplierInputs with the rounded value
+    const roundedValue = Math.round(parseFloat(value));  
     const newSupplierInputs = [...supplierInputs];
     newSupplierInputs[index].qty_mann = roundedValue;
     setSupplierInputs(newSupplierInputs);
@@ -110,7 +107,7 @@ function CreatePurchase() {
   
     try {
       // 1. Create Purchase
-      const purchaseResponse = await axios.post('https://accounts-management.onrender.com/common/purchase/create', purchasePayload);
+      const purchaseResponse = await axios.post(`${end_points}/purchase/create`, purchasePayload);
   
       if (purchaseResponse.data?.message === 'Purchase created successfully') {
         const purchaseId = purchaseResponse.data?.result?.insertId || purchaseResponse.data?.id;
@@ -123,7 +120,7 @@ function CreatePurchase() {
             qty: parseFloat(input.qty_mann || 0),
             rate: parseFloat(input.rate || 0),
           };
-          return axios.post('https://accounts-management.onrender.com/common/purchaseDetail/create', detailPayload);
+          return axios.post(`${end_points}/purchaseDetail/create`, detailPayload);
         });
   
         await Promise.all(purchaseDetailRequests);
@@ -139,10 +136,9 @@ function CreatePurchase() {
           note: note,
         };
     
-        const debitVoucherResponse = await axios.post('https://accounts-management.onrender.com/common/voucher/create', debitVoucherPayload);
+        const debitVoucherResponse = await axios.post(`${end_points}/voucher/create`, debitVoucherPayload);
         if (debitVoucherResponse.data?.message === 'Voucher created successfully') {
           const voucher = debitVoucherResponse.data?.id;
-           console.log('Voucher created successfully:', voucher);
           const allVoucherDetails = supplierInputs.map((input, index) => {
             const supplier = suppliers[index];
             const creditAmount = parseFloat(input.qty_mann || 0) * parseFloat(input.rate || 0);
@@ -162,11 +158,10 @@ function CreatePurchase() {
         
           const responses = [];
         
-          // STEP 2: Post all credit entries
           for (const detail of allVoucherDetails) {
             try {
               const res = await axios.post(
-                'https://accounts-management.onrender.com/common/voucherDetail/create',
+                `${end_points}/voucherDetail/create`,
                 detail
               );
               responses.push(res.data);
@@ -186,7 +181,7 @@ function CreatePurchase() {
         
           try {
             const debitRes = await axios.post(
-              'https://accounts-management.onrender.com/common/voucherDetail/create',
+              `${end_points}/voucherDetail/create`,
               debitEntry
             );
             setLoading(false);
@@ -236,7 +231,7 @@ function CreatePurchase() {
       <div className="flex justify-between items-center mb-0 border-b-2 pb-4">
         <h2 className="text-xl font-semibold text-gray-700">Create New Purchase</h2>
       </div>
-<Toaster position="top-center" reverseOrder={false} />
+       <Toaster position="top-center" reverseOrder={false} />
       <div className="flex items-center justify-center p-12">
     
         <div className="mx-auto w-full bg-white">
@@ -250,7 +245,6 @@ function CreatePurchase() {
             />
           </div>
           <form onSubmit={handleSubmit}>
-            {/* Purchase Date and End Date */}
             <div className="flex space-x-4 mb-5">
               <div className="w-1/2">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Purchase Date</label>
@@ -280,7 +274,6 @@ function CreatePurchase() {
               </div>
             </div>
 
-            {/* Name in Urdu and Route */}
             <div className="flex space-x-4 mb-5">
               <div className="w-1/2">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Name in Urdu</label>
@@ -308,21 +301,19 @@ function CreatePurchase() {
               </div>
             </div>
 
-            {/* Item and Note */}
             <div className="flex space-x-4 mb-5">
               <div className="w-1/2">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Item</label>
                 <Select
-  options={items}
-  value={selectedItem?.label ? { label: selectedItem.label, value: selectedItem.id } : null} // Using both id and label
-  onChange={(selectedOption) => setSelectedItem({ id: selectedOption?.value, label: selectedOption?.label })}  // Set both id and label
-  placeholder="Select Item"
-  className="w-full rounded-md"
-/>
+                  options={items}
+                  value={selectedItem?.label ? { label: selectedItem.label, value: selectedItem.id } : null} // Using both id and label
+                  onChange={(selectedOption) => setSelectedItem({ id: selectedOption?.value, label: selectedOption?.label })}  // Set both id and label
+                  placeholder="Select Item"
+                  className="w-full rounded-md"
+                />
               </div>
             </div>
 
-            {/* Status */}
             <div className="mb-5">
               <label className="mb-3 block text-base font-medium text-[#07074D]">Status</label>
               <div className="flex items-center space-x-6">

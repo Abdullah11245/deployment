@@ -8,6 +8,8 @@ import autoTable from 'jspdf-autotable';
 import { json2csv } from 'json-2-csv';
 import Select from 'react-select'; // For dropdowns
 import Link from 'next/link';
+import end_points from '../../../api_url';
+
 const numberToWords = (num) => {
   const a = [
     '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
@@ -61,12 +63,12 @@ const [searchQuery, setSearchQuery] = useState('');
           supplierRes,
           banksRes,
         ] = await Promise.all([
-          axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/voucherDetail/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/routes/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/suppliers/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/banks/getAll')
+          axios.get(`${end_points}/voucher/getAll`),
+          axios.get(`${end_points}/voucherDetail/getAll`),
+          axios.get(`${end_points}/routes/getAll`),
+          axios.get(`${end_points}/parties/getAll`),
+          axios.get(`${end_points}/suppliers/getAll`),
+          axios.get(`${end_points}/banks/getAll`)
         ]);
         
 
@@ -607,7 +609,7 @@ const sortedData = mergedData
     originalData.forEach((voucher) => {
       voucher.details.forEach((detail) => {
         const voucherDate = new Date(voucher.voucher_date);
-        const isBeforeStart = newStartDate ? voucherDate < new Date(newStartDate) : false;
+        const isBeforeStart = newStartDate ? voucherDate <= new Date(newStartDate) : false;
         const isValidAccount = String(detail.account_code) === String(selectedPartyId);
 
         if (isBeforeStart && isValidAccount) {

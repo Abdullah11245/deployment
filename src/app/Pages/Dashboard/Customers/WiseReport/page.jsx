@@ -7,6 +7,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { json2csv } from 'json-2-csv';
 import Link from 'next/link';
+import end_points from '../../../../api_url';
 
 function RouteList() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -35,11 +36,11 @@ function RouteList() {
     const fetchInitialData = async () => {
       try {
         const [voucherRes, detailRes, partyRes, itemRes, saleDetailRes] = await Promise.all([
-          axios.get('https://accounts-management.onrender.com/common/voucher/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/voucherDetail/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/parties/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/items/getAll'),
-          axios.get('https://accounts-management.onrender.com/common/saleDetail/getAll'), // New call
+          axios.get(`${end_points}/voucher/getAll`),
+          axios.get(`${end_points}/voucherDetail/getAll`),
+          axios.get(`${end_points}/parties/getAll`),
+          axios.get(`${end_points}/items/getAll`),
+          axios.get(`${end_points}/saleDetail/getAll`), // New call
         ]);
 
         const allVouchers = voucherRes.data || [];

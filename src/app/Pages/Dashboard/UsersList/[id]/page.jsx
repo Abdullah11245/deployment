@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../api_url';
 
 const CreateUserForm = () => {
   const { id } = useParams();
@@ -31,7 +32,7 @@ const CreateUserForm = () => {
     setLoading(true);
     try {
       const res = await axios.put(
-        `https://accounts-management.onrender.com/common/user/${id}`,
+        `${end_points}/user/${id}`,
         formData
       );
       if (res?.data) {

@@ -5,6 +5,7 @@ import VoucherDetailTable from './JV_BRVtable'; // same table used in create
 import Select from 'react-select';
 import { useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../../../../api_url';
 
 const voucherTypeOptions = [
   { value: 'JV', label: 'JV' },
@@ -23,8 +24,8 @@ const EditVoucher = () => {
   useEffect(() => {
     const fetchVoucherData = async () => {
       try {
-        const voucherRes = await axios.get(`https://accounts-management.onrender.com/common/voucher/${id}`);
-        const detailRes = await axios.get(`https://accounts-management.onrender.com/common/voucherDetail/main/${id}`);
+        const voucherRes = await axios.get(`${end_points}/voucher/${id}`);
+        const detailRes = await axios.get(`${end_points}/voucherDetail/main/${id}`);
 
         const voucher = voucherRes.data;
         const details = detailRes.data || [];
@@ -93,7 +94,7 @@ setLoading(false)
     };
 
     try {
-      await axios.put(`https://accounts-management.onrender.com/common/voucher/${id}`, payload);
+      await axios.put(`${end_points}/voucher/${id}`, payload);
 
        setLoading(true);
         for (let i = 0; i < voucherDetails.length; i++) {
@@ -108,7 +109,7 @@ setLoading(false)
           };
         
           await axios.put(
-            `https://accounts-management.onrender.com/common/voucherDetail/update/${voucherType.value}/${customVoucherId}/${i}`,
+            `${end_points}/voucherDetail/update/${voucherType.value}/${customVoucherId}/${i}`,
             entry
           );
         }

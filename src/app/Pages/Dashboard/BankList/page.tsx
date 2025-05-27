@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import end_points from '../../../api_url';
 
 const BankList = () => {
   const router = useRouter();
@@ -18,7 +19,7 @@ const BankList = () => {
   useEffect(() => {
     const fetchBanks = async () => {
       try {
-        const response = await axios.get('https://accounts-management.onrender.com/common/banks/getAll');
+        const response = await axios.get(`${end_points}/banks/getAll`);
         setBanks(response.data || []);
       } catch (error) {
         console.error('Error fetching banks:', error);

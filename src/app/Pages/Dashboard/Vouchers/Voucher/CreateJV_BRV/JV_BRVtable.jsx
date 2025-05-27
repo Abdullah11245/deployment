@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
+import end_points from '../../../../../api_url';
 
 const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
   const [accountOptions, setAccountOptions] = useState([]);
@@ -15,9 +16,9 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
     const fetchAllData = async () => {
       try {
         const [suppliersRes, banksRes, partiesRes] = await Promise.all([
-          fetch('https://accounts-management.onrender.com/common/suppliers/getAll'),
-          fetch('https://accounts-management.onrender.com/common/banks/getAll'),
-          fetch('https://accounts-management.onrender.com/common/parties/getAll'),
+          fetch(`${end_points}/suppliers/getAll`),
+          fetch(`${end_points}/banks/getAll`),
+          fetch(`${end_points}/parties/getAll`),
         ]);
 
         const [suppliersData, banksData, partiesData] = await Promise.all([

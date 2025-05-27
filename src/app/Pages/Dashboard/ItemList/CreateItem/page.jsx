@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
+import end_points from '../../../../api_url';
 
 
 function CreateItem() {
@@ -29,10 +30,9 @@ function CreateItem() {
 
     try {
       const response = await axios.post(
-        'https://accounts-management.onrender.com/common/items/create',
+        `${end_points}/items/create`,
         payload
       );
-      console.log(response.data);
 
       if (response.data?.message === 'Item created successfully') {
         toast.success('Item created successfully!'); // Show success toast
