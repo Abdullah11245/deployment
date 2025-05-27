@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
-import end_points from '../../../api_url';
+import end_points from '../../../../api_url';
 
 
 function PostDairy() {
