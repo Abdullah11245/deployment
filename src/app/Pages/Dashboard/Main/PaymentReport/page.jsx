@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { json2csv } from 'json-2-csv';
-import end_points from '../../../api_url';
+import end_points from '../../../../api_url';
 
 function Receiptreport() {
   const [routes, setRoutes] = useState([]);

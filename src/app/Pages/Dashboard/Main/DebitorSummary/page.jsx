@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useRef } from 'react';
-import end_points from '../../../api_url';
+import end_points from '../../../../api_url';
 
 function DebtorSummary() {
   const [partyOptions, setPartyOptions] = useState([]);

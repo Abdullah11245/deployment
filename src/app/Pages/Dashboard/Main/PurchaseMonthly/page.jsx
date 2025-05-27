@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-import end_points from '../../../api_url';
+import end_points from '../../../../api_url';
 
 function RouteList() {
   const [routes, setRoutes] = useState([]);

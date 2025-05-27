@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
-import end_points from '../../../api_url';
+import end_points from '../../../../../api_url';
 
 function CreateRoute() {
   const [selectedDate, setSelectedDate] = useState('');

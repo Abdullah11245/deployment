@@ -6,7 +6,7 @@ import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import end_points from '../../../api_url';
+import end_points from '../../../../api_url';
 
 function Receiptreport() {
   const [supplierOptions, setSupplierOptions] = useState([]);

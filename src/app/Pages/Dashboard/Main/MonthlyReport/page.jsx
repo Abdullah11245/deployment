@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
 import axios from 'axios';
 import Link from 'next/link';
-import end_points from '../../../api_url';
+import end_points from '../../../../api_url';
 
 function Receiptreport() {
   const [supplierOptions, setSupplierOptions] = useState([]);
