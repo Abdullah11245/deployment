@@ -8,7 +8,7 @@ import autoTable from 'jspdf-autotable';
 import { json2csv } from 'json-2-csv';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import end_points from '../../../api_url';
+import end_points from '../../../../api_url';
 
 function RouteList() {
   const [mergedData, setMergedData] = useState([]);

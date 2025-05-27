@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
-import end_points from '../../../api_url';
+import end_points from '../../../../api_url';
 
 const CreateUserForm = () => {
   const { id } = useParams();

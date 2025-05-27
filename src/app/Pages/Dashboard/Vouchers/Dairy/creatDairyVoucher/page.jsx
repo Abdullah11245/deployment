@@ -4,7 +4,7 @@ import axios from 'axios';
 import Select from 'react-select';
 import './Sale.css';
 import toast, { Toaster } from 'react-hot-toast';
-import end_points from '../../../api_url';
+import end_points from '../../../../../api_url';
 
 const CreateDiaryVoucher = () => {
   const [loading, setLoading] = useState(true);
