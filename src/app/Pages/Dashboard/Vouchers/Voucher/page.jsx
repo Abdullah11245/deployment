@@ -329,7 +329,7 @@ const VoucherList = () => {
           <thead className="bg-gray-500">
             <tr className='text-white '>
               <th className="px-6 py-3 text-left text-sm font-medium  uppercase">#</th>
-              <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Voucher Type</th>
+              <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Type</th>
               <th className="px-6 py-3 text-left text-sm font-medium  uppercase"> Date</th>
               <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Particulars</th>
               <th className="px-6 py-3 text-left text-sm font-medium  uppercase"> Debit</th>

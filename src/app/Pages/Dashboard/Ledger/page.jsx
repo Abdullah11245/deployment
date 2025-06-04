@@ -354,88 +354,140 @@ const exportExcel = () => {
 
 
 const exportPDF = () => {
- const doc = new jsPDF();
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
 
+  const partyLabel = partyOptions.find(p => p.value === selectedPartyId)?.label || '';
+  const formattedStart = startDate || 'dd-mm-yyyy';
+  const formattedEnd = endDate || today;
+  const accountCode = selectedPartyId || '';
+
+  // --- HEADER ---
+  doc.setFontSize(18);
+  doc.setFont(undefined, 'normal');
+  doc.text(partyLabel, pageWidth / 2, 20, { align: 'center' });
+
+  doc.setFontSize(12);
+  doc.setLineWidth(0.5);
+  doc.rect((pageWidth - 100) / 2, 25, 100, 10);
+  doc.text('Ledger of Account', pageWidth / 2, 32, { align: 'center' });
+
+  doc.setFontSize(12);
+  doc.text(`From: ${formattedStart} To: ${formattedEnd}`, pageWidth / 2, 45, { align: 'center' });
+
+  let yOffset = 60;
+
+  // --- DATA PROCESSING ---
   let runningBalance = beforeStartBalance || 0;
   const filteredRows = [];
 
-  const headerInfo = [
-    ['Ledger of Account'],
-    [`From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || 'dd-mm-yyyy'}`],
-    [`Account Title: ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''}`],
-    [`Account Code: ${selectedPartyId || ''}`],
-  ];
-
-  // Add opening balance row if applicable
   if (startDate) {
     filteredRows.push([
-      '-', // Voucher ID
-      new Date(startDate).toLocaleDateString(),
-      'Opening Balance',
-      '-', // Debit
-      '-', // Credit
-      runningBalance.toFixed(2),
+      '-', new Date(startDate).toLocaleDateString(),
+      'Opening Balance', '-', '-', runningBalance.toFixed(2)
     ]);
   }
 
   const transactions = [];
 
-  sortedData.forEach((voucher) => {
+  sortedData.forEach(voucher => {
     voucher.details
-      .filter(detail => String(detail.account_code) === String(selectedPartyId))
-      .forEach((detail) => {
+      .filter(detail => {
+        const voucherDate = new Date(voucher.voucher_date);
+        const isAfterStart = startDate ? voucherDate >= new Date(startDate) : true;
+        const isBeforeEnd = endDate ? voucherDate <= new Date(endDate) : true;
+        return isAfterStart && isBeforeEnd &&
+               String(detail.account_code) === String(selectedPartyId) &&
+               (parseFloat(detail.debit) || parseFloat(detail.credit));
+      })
+      .forEach(detail => {
         const debit = parseFloat(detail.debit) || 0;
         const credit = parseFloat(detail.credit) || 0;
-        const isOpeningEntry = (detail.particulars || '').toLowerCase().includes('opening balance');
+        const balanceChange = debit - credit;
 
         transactions.push({
-          isOpeningEntry,
-          row: {
-            VoucherID: `${voucher.voucher_type}-${voucher.voucher_id}`,
-            Date: new Date(voucher.voucher_date).toLocaleDateString(),
-            Particulars: detail.particulars || '-',
-            Debit: debit.toFixed(2),
-            Credit: credit.toFixed(2),
-            runningBalance: debit - credit,
-          },
+          VoucherID: `${voucher.voucher_type}-${voucher.voucher_id}`,
+          Date: new Date(voucher.voucher_date).toLocaleDateString(),
+          Particulars: detail.particulars || '-',
+          Debit: debit.toFixed(2),
+          Credit: credit.toFixed(2),
+          Balance: balanceChange
         });
       });
   });
 
-  // Sort to bring opening entries to top
-  const sortedRows = transactions
-    .sort((a, b) => (a.isOpeningEntry ? -1 : 0))
-    .map(entry => {
-      runningBalance += entry.row.runningBalance;
-      return [
-        entry.row.VoucherID,
-        entry.row.Date,
-        entry.row.Particulars,
-        entry.row.Debit,
-        entry.row.Credit,
-        runningBalance.toFixed(2)
-      ];
-    });
-
-  filteredRows.push(...sortedRows);
-
-  // Draw header info manually
-  doc.setFontSize(12);
-  let yOffset = 10;
-  headerInfo.forEach(line => {
-    doc.text(line[0], 14, yOffset);
-    yOffset += 6;
+  transactions.forEach(tx => {
+    runningBalance += tx.Balance;
+    filteredRows.push([
+      tx.VoucherID,
+      tx.Date,
+      tx.Particulars,
+      tx.Debit,
+      tx.Credit,
+      runningBalance.toFixed(2)
+    ]);
   });
 
-  // Add the table with ledger entries
- autoTable( doc,{
-    startY: yOffset + 2,
-    head: [['Voucher ID', 'Date', 'Particulars', 'Debit', 'Credit', 'Balance']],
+  const totalDebit = transactions.reduce((sum, t) => sum + parseFloat(t.Debit), 0);
+  const totalCredit = transactions.reduce((sum, t) => sum + parseFloat(t.Credit), 0);
+  const finalBalance = runningBalance;
+
+  // --- TABLE ---
+  autoTable(doc, {
+    startY: yOffset,
+    head: [['Type', 'Date', 'Particulars', 'Debit', 'Credit', 'Balance']],
     body: filteredRows,
     theme: 'grid',
     styles: { fontSize: 10 },
   });
 
+  // --- SUMMARY SECTION (Aligned to Table Columns) ---
+  const summaryStartY = doc.lastAutoTable.finalY + 10;
+
+  const tableColumnWidths = [30, 30, 60, 25, 25, 25]; // Must match your table column layout
+  const tableStartX = 14;
+
+  // Calculate column X positions
+  const colPositions = tableColumnWidths.reduce((acc, width, index) => {
+    const lastX = acc.length ? acc[acc.length - 1] : tableStartX;
+    acc.push(lastX + width);
+    return acc;
+  }, []);
+
+  // Top border
+  doc.setLineWidth(0.5);
+  doc.line(14, summaryStartY, pageWidth - 14, summaryStartY);
+
+  const summaryY = summaryStartY + 8;
+  doc.setFontSize(10);
+
+  // "Total" in Type column
+  doc.setFont(undefined, 'bold');
+  doc.text('Total', tableStartX + 2, summaryY);
+
+  // Balance in Words (in Particulars column, left-aligned)
+  const balanceInWords = `${numberToWords(Math.abs(Math.round(finalBalance)))} ${finalBalance < 0 ? 'Credit' : 'Debit'}`;
+  let wrappedText = doc.splitTextToSize(balanceInWords, tableColumnWidths[2] - 4);
+  if (wrappedText.length > 2) wrappedText = wrappedText.slice(0, 2);
+
+  doc.setFont(undefined, 'italic');
+  const particularsStartX = tableStartX + tableColumnWidths[0] + tableColumnWidths[1] + 2;
+  wrappedText.forEach((line, i) => {
+    doc.text(line, particularsStartX, summaryY + (i * 5), { align: 'left' });
+  });
+
+  // Debit, Credit, Balance values aligned to their columns
+  doc.setFont(undefined, 'bold');
+  doc.text(formatCurrencyPK(totalDebit.toFixed(2)), colPositions[2] + 2, summaryY);
+  doc.text(formatCurrencyPK(totalCredit.toFixed(2)), colPositions[3] + 2, summaryY);
+
+  const balanceText = `${formatCurrencyPK(Math.abs(finalBalance).toFixed(2))} ${finalBalance < 0 ? 'Cr' : 'Dr'}`;
+  doc.text(balanceText, colPositions[4] + 2, summaryY);
+
+  // Bottom border
+  doc.line(14, summaryY + 6, pageWidth - 14, summaryY + 6);
+
+  // --- SAVE PDF ---
   doc.save('ledger.pdf');
 };
 
@@ -446,43 +498,133 @@ const exportPDF = () => {
 
 
 
-  const handlePrint = () => {
-    const headerHTML = `
-      <div>
-        <h2>Ledger of Account</h2>
-        <p>From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || 'dd-mm-yyyy'}</p>
-        <p>Account Title: ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''}</p>
-        <p>Account Code: ${selectedPartyId || ''}</p>
-      </div>
-    `;
 
-    const tableHTML = tableRef.current.innerHTML;
-    const printWindow = window.open('', '', 'width=900,height=650');
 
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Receipt Report</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
-            thead { background-color: #f3f4f6; }
-          </style>
-        </head>
-        <body>
-          ${headerHTML}
-          ${tableHTML}
-        </body>
-      </html>
-    `);
 
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
-  };
+//   const handlePrint = () => {
+//    const headerHTML = `
+//   <div style="text-align: center; margin-bottom: 20px; flex-direction: column; align-items: center;">
+//     <p style="font-size: 24px; margin-bottom: 20px; ">
+//       ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''} ()
+//     </p>
+//     <div style="border: 2px solid black; padding: 8px; display: inline-block; text-align:center; font-size: 18px; ">
 
+//     Ledger of Account
+//     </div>
+//     <p style="margin-top: 20px;">
+//       From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || today}
+//     </p>
+   
+//   </div>
+// `;
+
+
+//     const tableHTML = tableRef.current.innerHTML;
+//     const printWindow = window.open('', '', 'width=900,height=650');
+
+//     printWindow.document.write(`
+//       <html>
+//         <head>
+//           <title>Receipt Report</title>
+//           <style>
+//             body { font-family: Arial, sans-serif; padding: 20px; }
+//             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+//             th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
+//             thead { background-color: #f3f4f6; }
+//           </style>
+//         </head>
+//         <body>
+//           ${headerHTML}
+//           ${tableHTML}
+//         </body>
+//       </html>
+//     `);
+
+//     printWindow.document.close();
+//     printWindow.focus();
+//     printWindow.print();
+//     printWindow.close();
+//   };
+
+const handlePrint = () => {
+ const headerHTML = `
+  <div style="text-align: center; margin-bottom: 20px; flex-direction: column; align-items: center;">
+    <p style="font-size: 24px; margin-bottom: 20px; ">
+      ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''} ()
+    </p>
+    <div style="border: 2px solid black; padding: 8px; display: inline-block; text-align:center; font-size: 18px; ">
+
+    Ledger of Account
+    </div>
+    <p style="margin-top: 20px;">
+      From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || today}
+    </p>
+   
+  </div>
+`;
+
+  const tableHTML = tableRef.current.innerHTML;
+
+  // Compute the total values (copy logic from your component if needed)
+  let totalDebit = 0;
+  let totalCredit = 0;
+  let runningBalance = 0;
+
+  sortedData.forEach((voucher) => {
+    voucher.details
+      .filter((detail) => {
+        const voucherDate = new Date(voucher.voucher_date);
+        const isAfterStart = startDate ? voucherDate >= new Date(startDate) : true;
+        const isBeforeEnd = endDate ? voucherDate <= new Date(endDate) : true;
+        return isAfterStart && isBeforeEnd && String(detail.account_code) === String(selectedPartyId) && (parseFloat(detail.debit) || parseFloat(detail.credit));
+      })
+      .forEach((detail) => {
+        const debit = parseFloat(detail.debit) || 0;
+        const credit = parseFloat(detail.credit) || 0;
+        totalDebit += debit;
+        totalCredit += credit;
+        runningBalance += debit - credit;
+      });
+  });
+
+  const totalSummaryHTML = `
+    <div style=" font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+   <div style="font-weight: bold;  border-top: 2px solid #000; border-bottom: 2px solid #000;  padding: 10px 0;">Total</div>
+     <div style=" font-style: italic; font-size: 14px;  border-top: 2px solid #000; border-bottom: 2px solid #000;  padding: 10px 0;">
+       <strong>${numberToWords(Math.abs(Math.round(runningBalance)))} ${runningBalance < 0 ? 'Credit' : 'Debit'}</strong>
+    </div>
+      <div style=" border-top: 2px solid #000; border-bottom: 2px solid #000;  padding: 10px 0;"> ${formatCurrencyPK(totalDebit.toFixed(2))}</div>
+      <div style=" border-top: 2px solid #000; border-bottom: 2px solid #000;  padding: 10px 0;"> ${formatCurrencyPK(totalCredit.toFixed(2))}</div>
+      <div style=" border-top: 2px solid #000; border-bottom: 2px solid #000;  padding: 10px 0;"> ${formatCurrencyPK(Math.abs(runningBalance).toFixed(2))} ${runningBalance < 0 ? 'Cr' : 'Dr'}</div>
+    </div>
+   
+  `;
+
+  const printWindow = window.open('', '', 'width=900,height=650');
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Ledger Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
+          thead { background-color: #f3f4f6; }
+        </style>
+      </head>
+      <body>
+        ${headerHTML}
+        ${tableHTML}
+        ${totalSummaryHTML}
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.close();
+};
 
   const totalPages = Math.ceil(mergedData.length / itemsPerPage);
 

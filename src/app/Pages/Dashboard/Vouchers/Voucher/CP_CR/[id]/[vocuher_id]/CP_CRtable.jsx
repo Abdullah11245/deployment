@@ -110,8 +110,8 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
       <table className="min-w-full border border-gray-200">
         <thead className="bg-gray-100 text-gray-600">
           <tr>
-            <th className="px-4 py-2 text-left">#</th>
-            <th className="px-4 py-2 text-left">Account Code</th>
+            <th className="px-4 py-2 text-left"></th>
+            <th className="px-4 py-2 text-left">Account </th>
             <th className="px-4 py-2 text-left">Particulars</th>
             {voucherType === 'CP' ? (
               <th className="px-4 py-2 text-right">Debit</th>
@@ -123,17 +123,24 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                 <th className="px-4 py-2 text-right">Credit</th>
               </>
             )}
-            <th className="px-4 py-2 text-center">Actions</th>
+              <th className="px-4 py-2 text-left"></th>
           </tr>
         </thead>
         <tbody>
           {voucherDetails.map((row, index) => (
             <tr key={index} className="border-t">
-              <td className="px-4 py-2">{index + 1}</td>
-
-              <td className="px-4 py-2">
+             <td className="px-4 py-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => removeRow(index)}
+                  className="text-red-500 hover:text-red-700 font-bold"
+                >
+                  ✕
+                </button>
+              </td>
+              <td className="px-4 py-2 w-52">
                 <Select
-                  className="w-full"
+                  className="w-52"
                   options={accountOptions}
                   value={
                     row.account_code
@@ -168,7 +175,6 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                 <td className="px-4 py-2 text-right">
                   <input
                     type="number"
-                    step="0.01"
                     value={row.debit}
                     onChange={(e) => handleInputChange(index, 'debit', e.target.value)}
                     className="w-24 border rounded px-2 py-1 text-right"
@@ -179,7 +185,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                 <td className="px-4 py-2 text-right">
                   <input
                     type="number"
-                    step="0.01"
+  
                     value={row.credit}
                     onChange={(e) => handleInputChange(index, 'credit', e.target.value)}
                     className="w-24 border rounded px-2 py-1 text-right"
@@ -191,7 +197,6 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                   <td className="px-4 py-2 text-right">
                     <input
                       type="number"
-                      step="0.01"
                       value={row.debit}
                       onChange={(e) => handleInputChange(index, 'debit', e.target.value)}
                       className="w-24 border rounded px-2 py-1 text-right"
@@ -201,7 +206,6 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                   <td className="px-4 py-2 text-right">
                     <input
                       type="number"
-                      step="0.01"
                       value={row.credit}
                       onChange={(e) => handleInputChange(index, 'credit', e.target.value)}
                       className="w-24 border rounded px-2 py-1 text-right"
@@ -211,15 +215,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                 </>
               )}
 
-              <td className="px-4 py-2 text-center">
-                <button
-                  type="button"
-                  onClick={() => removeRow(index)}
-                  className="text-red-500 hover:text-red-700 font-bold"
-                >
-                  ✕
-                </button>
-              </td>
+              
             </tr>
           ))}
 

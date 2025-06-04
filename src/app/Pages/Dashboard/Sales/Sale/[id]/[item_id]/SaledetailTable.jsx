@@ -96,7 +96,7 @@ const SaleDetailTable = ({
               <td className="px-4 py-2 w-48">
                 <Select
                   options={items}
-                  value={items.find(item => item.value === detail.itemId) || null}
+                  value={items.find(item => item.value === detail.item_id) || null}
                   onChange={(val) => handleInputChange(index, 'itemId', val)}
                   placeholder="Select Item"
                 />

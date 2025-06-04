@@ -140,7 +140,18 @@ setLoading(false)
                   <Toaster position="top-right" reverseOrder={false} />
 
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-3 gap-6 mb-6">
+        <div className='grid grid-cols-2 gap-6 mb-6'>
+ <div>
+            <label className="block text-gray-700 font-medium mb-2">Custom Voucher ID</label>
+            <input
+              type="text"
+              value={customVoucherId}
+              readOnly
+              className="w-full bg-gray-100 border border-gray-300 rounded-md px-4 py-2 cursor-not-allowed"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block text-gray-700 font-medium mb-2">Voucher Type</label>
             <Select
@@ -162,18 +173,17 @@ setLoading(false)
             />
           </div>
 
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">Custom Voucher ID</label>
-            <input
-              type="text"
-              value={customVoucherId}
-              readOnly
-              className="w-full bg-gray-100 border border-gray-300 rounded-md px-4 py-2 cursor-not-allowed"
-            />
-          </div>
+         
         </div>
 
-        <div className="mb-6">
+       
+
+        <VoucherDetailTable
+          voucherDetails={voucherDetails}
+          setVoucherDetails={setVoucherDetails}
+          voucherType={voucherType.value}
+        />
+ <div className="mb-6 mt-6">
           <label className="block text-gray-700 font-medium mb-2">Note</label>
           <textarea
             value={note}
@@ -182,13 +192,6 @@ setLoading(false)
             placeholder="Enter notes..."
           />
         </div>
-
-        <VoucherDetailTable
-          voucherDetails={voucherDetails}
-          setVoucherDetails={setVoucherDetails}
-          voucherType={voucherType.value}
-        />
-
         <div className="mt-8">
           <button
             type="submit"

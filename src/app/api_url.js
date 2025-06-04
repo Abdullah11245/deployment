@@ -1,2 +1,2 @@
-const end_points= 'http://biofuelpod.com/ams-apis/common'
+const end_points= 'https://biofuelpod.com/ams-apis/common'
 export default end_points

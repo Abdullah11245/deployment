@@ -60,6 +60,7 @@ function CreateSale() {
           `${end_points}/saleDetail/${saleId}/${itemId}`
         );
         const detail = detailRes.data;
+        console.log('Sale Detail:', detail);
 
         const formattedDetail = {
           itemId: detail.item_id,

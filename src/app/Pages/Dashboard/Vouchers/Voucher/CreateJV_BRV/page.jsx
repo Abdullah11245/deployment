@@ -183,7 +183,13 @@ const handleSubmit = async (e) => {
           </div>
         </div>
 
-        <div className="mb-6">
+       
+
+        <VoucherDetailTable
+          voucherDetails={voucherDetails}
+          setVoucherDetails={setVoucherDetails}
+        />
+ <div className="mb-6 mt-6">
           <label className="block text-gray-700 font-medium mb-2">Note</label>
           <textarea
             value={note}
@@ -192,13 +198,6 @@ const handleSubmit = async (e) => {
             placeholder="Enter notes..."
           />
         </div>
-
-        {/* Voucher Details Table */}
-        <VoucherDetailTable
-          voucherDetails={voucherDetails}
-          setVoucherDetails={setVoucherDetails}
-        />
-
         <div className="mt-8">
           <button
             type="submit"

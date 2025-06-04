@@ -117,26 +117,35 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
       <table className="min-w-full border border-gray-200">
         <thead className="bg-gray-500 text-white">
           <tr>
-            <th className="px-4 py-2 text-left">#</th>
-            <th className="px-4 py-2 text-left">Account Code</th>
-            <th className="px-4 py-2 text-left">Particulars</th>
+            <th className="px-2 py-2 text-left"></th>
+            <th className="px-2 py-2 text-left">Account</th>
+            <th className="px-2 py-2 text-left">Particulars</th>
             {voucherType === 'CP' ? (
-              <th className="px-4 py-2 text-right">Debit</th>
+              <th className="px-2 py-2 text-left">Debit</th>
             ) : voucherType === 'CR' ? (
-              <th className="px-4 py-2 text-right">Credit</th>
+              <th className="px-2 py-2 text-left">Credit</th>
             ) : (
               <>
-                <th className="px-4 py-2 text-right">Debit</th>
-                <th className="px-4 py-2 text-right">Credit</th>
+                <th className="px-2 py-2 text-left">Debit</th>
+                <th className="px-2 py-2 text-left">Credit</th>
               </>
             )}
-            <th className="px-4 py-2 text-center">Actions</th>
+             <th className="px-2 py-2 "></th>
+             <th className="px-2 py-2 "></th>
           </tr>
         </thead>
         <tbody>
           {voucherDetails.map((row, index) => (
             <tr key={index} className="border-t">
-              <td className="px-4 py-2">{index + 1}</td>
+              <td className="px-4 py-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => removeRow(index)}
+                  className="text-red-500 hover:text-red-700 font-bold"
+                >
+                  ✕
+                </button>
+              </td>
 
               <td className="px-4 py-2">
                 <Select
@@ -161,7 +170,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                 />
               </td>
 
-              <td className="px-4 py-2">
+              <td className="px-2 py-2">
                 <input
                   type="text"
                   value={row.particulars}
@@ -172,7 +181,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
               </td>
 
               {voucherType === 'CP' ? (
-                <td className="px-4 py-2 text-right">
+                <td className="px-4 py-2 text-left w-32">
                   <input
                     type="text"
                     value={row.debit}
@@ -182,7 +191,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                   />
                 </td>
               ) : voucherType === 'CR' ? (
-                <td className="px-4 py-2 text-right">
+                <td className="px-4 py-2  w-32">
                   <input
                     type="text"
                     value={row.credit}
@@ -193,7 +202,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                 </td>
               ) : (
                 <>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-2  w-32">
                     <input
                       type="text"
                       value={row.debit}
@@ -203,10 +212,9 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                     />
                   </td>
 
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-2 text-right w-32">
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
                       value={row.credit}
                       onChange={(e) => handleInputChange(index, 'credit', e.target.value)}
                       className="w-32 border rounded px-2 py-3 text-right"
@@ -216,15 +224,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                 </>
               )}
 
-              <td className="px-4 py-2 text-center">
-                <button
-                  type="button"
-                  onClick={() => removeRow(index)}
-                  className="text-red-500 hover:text-red-700 font-bold"
-                >
-                  ✕
-                </button>
-              </td>
+              
             </tr>
           ))}
 

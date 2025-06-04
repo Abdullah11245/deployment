@@ -13,31 +13,29 @@ const voucherTypeOptions = [
 ];
 
 const CreateVoucher = () => {
-  const [voucherType, setVoucherType] = useState(voucherTypeOptions[0]); // 👈 Default to "BP"
+  const [voucherType, setVoucherType] = useState(voucherTypeOptions[0]); // Default to "BP"
   const [voucherDate, setVoucherDate] = useState('');
   const [note, setNote] = useState('');
   const [voucherDetails, setVoucherDetails] = useState([]);
   const [customVoucherId, setCustomVoucherId] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Fetch vouchers and calculate ID
+  // Fetch vouchers and calculate next custom ID
   const fetchAndSetCustomVoucherId = async (selectedType) => {
     try {
       const res = await axios.get(`${end_points}/voucher/getAll`);
       const allVouchers = res?.data || [];
       const filtered = allVouchers.filter(v => v.voucher_type === selectedType);
-  
+
       const maxId = filtered.reduce((max, v) => Math.max(max, parseInt(v.voucher_id) || 0), 0);
       setCustomVoucherId(maxId + 1);
-      setLoading(false)
+      setLoading(false);
     } catch (err) {
       console.error('Error fetching vouchers:', err);
       setCustomVoucherId('');
-      setLoading(false)
-
+      setLoading(false);
     }
   };
-  
 
   useEffect(() => {
     fetchAndSetCustomVoucherId('BP');
@@ -53,13 +51,11 @@ const CreateVoucher = () => {
   };
 
   const handleSubmit = async (e) => {
-    setLoading(true)
     e.preventDefault();
-
-  
+    setLoading(true);
 
     const voucherPayload = {
-      voucher_id: customVoucherId, // 👈 Include custom ID
+      voucher_id: customVoucherId,
       voucher_type: voucherType.value,
       voucher_date: voucherDate,
       note,
@@ -68,59 +64,52 @@ const CreateVoucher = () => {
     try {
       const res = await axios.post(`${end_points}/voucher/create`, voucherPayload);
       const voucherId = res?.data?.id;
-      
+
       if (!voucherId) throw new Error('Voucher creation failed.');
+
+      const isBP = voucherType.value === 'BP';
 
       for (const detail of voucherDetails) {
         const debitEntry = {
           main_id: voucherId,
           account_code: detail.account_code,
-          particulars:`${detail.particulars} from ${detail.bank_name}`, 
+          particulars: `${detail.particulars} ${isBP ? 'of' : 'from'} ${detail.bank_name}`,
           debit: detail.debit,
           credit: 0,
         };
-      
+
         const creditEntry = {
           main_id: voucherId,
-          account_code: detail.bank_account_code, 
-          particulars: ` ${detail.particulars} into ${detail.party_name}`,
+          account_code: detail.bank_account_code,
+          particulars: `${detail.particulars} ${isBP ? 'into' : 'from'} ${detail.party_name}`,
           debit: 0,
           credit: detail.credit,
         };
-      
+
         try {
-          await axios.post(
-            `${end_points}/voucherDetail/create`,
-            debitEntry
-          );
-      
-          await axios.post(
-            `${end_points}/voucherDetail/create`,
-            creditEntry
-          );
-          setLoading(false)
+          await axios.post(`${end_points}/voucherDetail/create`, debitEntry);
+          await axios.post(`${end_points}/voucherDetail/create`, creditEntry);
         } catch (error) {
-          setLoading(false)
           console.error("Error creating voucher detail for item:", detail, error);
         }
       }
-      
-
 
       toast.success('Voucher and details created successfully!');
 
+      // Reset form
       setVoucherType(voucherTypeOptions[0]);
       setVoucherDate('');
       setNote('');
       setVoucherDetails([]);
       fetchAndSetCustomVoucherId('BP');
+      setLoading(false);
     } catch (err) {
       console.error(err);
-      setLoading(false)
+      setLoading(false);
       toast.error('An error occurred while creating the voucher.');
     }
   };
-  
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -133,22 +122,24 @@ const CreateVoucher = () => {
       </div>
     );
   }
+
   return (
     <div className="mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
-            <Toaster position="top-right" reverseOrder={false} />
-      
+      <Toaster position="top-right" reverseOrder={false} />
+
       <h2 className="text-2xl font-semibold mb-4 text-gray-700">Create New Voucher</h2>
 
       <form onSubmit={handleSubmit}>
-      <div className='mb-6 w-32'>
-            <label className="block text-gray-700 font-medium mb-2">Voucher ID</label>
-            <input
-              type="text"
-              value={customVoucherId}
-              readOnly
-              className="w-full bg-gray-100 border border-gray-300 rounded-md px-4 py-2 cursor-not-allowed text-gray-600"
-            />
-          </div>
+        <div className='mb-6 w-32'>
+          <label className="block text-gray-700 font-medium mb-2">Voucher ID</label>
+          <input
+            type="text"
+            value={customVoucherId}
+            readOnly
+            className="w-full bg-gray-100 border border-gray-300 rounded-md px-4 py-2 cursor-not-allowed text-gray-600"
+          />
+        </div>
+
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block text-gray-700 font-medium mb-2">Voucher Type</label>
@@ -172,11 +163,16 @@ const CreateVoucher = () => {
               className="w-full border border-gray-300 rounded-md px-4 py-2"
             />
           </div>
-
-         
         </div>
 
-        <div className="mb-6">
+        
+        <VoucherDetailTable
+          voucherDetails={voucherDetails}
+          setVoucherDetails={setVoucherDetails}
+          voucherType={voucherType.value}
+        />
+
+   <div className="mb-6 mt-6">
           <label className="block text-gray-700 font-medium mb-2">Note</label>
           <textarea
             value={note}
@@ -185,12 +181,6 @@ const CreateVoucher = () => {
             placeholder="Enter notes..."
           />
         </div>
-
-        <VoucherDetailTable
-          voucherDetails={voucherDetails}
-          setVoucherDetails={setVoucherDetails}
-          voucherType={voucherType.value}
-        />
 
         <div className="mt-8">
           <button

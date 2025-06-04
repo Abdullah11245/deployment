@@ -121,50 +121,58 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
       <table className="min-w-full border border-gray-200 ">
         <thead className="bg-gray-500 text-white">
           <tr>
-            <th className="px-4 py-2 text-left">#</th>
+            <th className="px-4 py-2 text-left"></th>
             <th className="px-4 py-2 text-left">
-              {voucherType === 'BR' ? 'Customer' : voucherType === 'BP' ? 'Supplier' : 'Account'}
+Account
             </th>
-            <th className="px-4 py-2 text-left">Bank</th>
+            <th className="px-4 py-2 text-left">Account</th>
             <th className="px-4 py-2 text-left">Particulars</th>
             <th className="px-4 py-2 text-right">Debit</th>
             <th className="px-4 py-2 text-right">Credit</th>
-            <th className="px-4 py-2 text-center">Actions</th>
+            {/* <th className="px-4 py-2 text-center">Actions</th> */}
           </tr>
         </thead>
         <tbody>
           {voucherDetails.map((row, index) => (
-            <tr key={index} className="border-t">
-              <td className="px-4 py-2">{index + 1}</td>
+            <tr key={index} className="border-t space-x-4">
+               <td className="px-2 py-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => removeRow(index)}
+                  className="text-red-500 hover:text-red-700 font-bold"
+                >
+                  ✕
+                </button>
+              </td>
 
-              {/* Customer / Supplier Dropdown */}
-              <td className="px-4 py-2 w-64">
+            
+              <td className="px-2 py-2 w-48">
                 <Select
                   value={mainOptions.find((opt) => opt.value === row.account_code) || null}
                   onChange={(selected) =>
                     handleInputChange(index, 'account_code', selected?.value || '')
                   }
                   options={mainOptions}
-                  placeholder="Select"
+                  placeholder="Account"
                   isClearable
                 />
               </td>
 
-              {/* Bank Dropdown */}
-              <td className="px-4 py-2 w-64">
+             
+              <td className="px-2 py-2 w-48">
               <Select
   value={bankOptions.find((opt) => opt.value === row.bank_account_code) ||''}
   onChange={(selected) =>
     handleInputChange(index, 'bank_account_code', selected?.value || '')
   }
   options={bankOptions}
-  placeholder="Select Bank"
+  placeholder="Account"
   isClearable
 />
 
               </td>
 
-              <td className="px-4 py-2">
+              <td className="px-2 py-2">
                 <input
                   type="text"
                   value={row.particulars}
@@ -174,35 +182,27 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                 />
               </td>
 
-              <td className="px-4 py-2 text-right">
+              <td className="px-2 py-2 w-28  text-right">
                 <input
                   type="text"
                   value={row.debit}
                   onChange={(e) => handleInputChange(index, 'debit', e.target.value)}
-                  className="w-28 border rounded px-2 py-3 text-right"
+                  className="border w-28  rounded px-2 py-3 text-right"
                   placeholder="0"
                 />
               </td>
 
-              <td className="px-4 py-2 text-right">
+              <td className="px-2 py-2 w-28 text-right">
                 <input
                   type="text"
                   value={row.credit}
                   onChange={(e) => handleInputChange(index, 'credit', e.target.value)}
-                  className="w-28 border rounded px-2 py-3 text-right"
+                  className=" border w-28  rounded px-2 py-3 text-right"
                   placeholder="0"
                 />
               </td>
 
-              <td className="px-4 py-2 text-center">
-                <button
-                  type="button"
-                  onClick={() => removeRow(index)}
-                  className="text-red-500 hover:text-red-700 font-bold"
-                >
-                  ✕
-                </button>
-              </td>
+             
             </tr>
           ))}
           <tr className="bg-gray-50 border-t font-semibold">

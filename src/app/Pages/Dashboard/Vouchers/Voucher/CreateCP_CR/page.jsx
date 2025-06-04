@@ -179,22 +179,22 @@ const CreateVoucher = () => {
          
         </div>
 
-        <div className="mb-6">
-          <label className="block text-gray-700 font-medium mb-2">Note</label>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-4 py-2 min-h-64"
-            placeholder="Enter notes..."
-          />
-        </div>
+       
 
         <VoucherDetailTable
           voucherDetails={voucherDetails}
           setVoucherDetails={setVoucherDetails}
           voucherType={voucherType.value}
         />
-
+ <div className="mb-6 mt-6">
+          <label className="block text-gray-700 font-medium mb-2">Note</label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-4 py-2 "
+            placeholder="Enter notes..."
+          />
+        </div>
         <div className="mt-8">
           <button
             type="submit"

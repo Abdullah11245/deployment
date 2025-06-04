@@ -120,20 +120,26 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
       <table className="min-w-full border border-gray-200">
         <thead className="bg-gray-100 text-gray-600">
           <tr>
-            <th className="px-4 py-2 text-left">#</th>
-            <th className="px-4 py-2 text-left">Account Code</th>
+            <th className="px-4 py-2 text-left"></th>
+            <th className="px-4 py-2 text-left">Account</th>
             <th className="px-4 py-2 text-left">Particulars</th>
             <th className="px-4 py-2 text-right">Debit</th>
             <th className="px-4 py-2 text-right">Credit</th>
-            <th className="px-4 py-2 text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
           {voucherDetails.map((row, index) => (
             <tr key={index} className="border-t">
-              <td className="px-4 py-2">{index + 1}</td>
-
-              <td className="px-4 py-2">
+ <td className="px-4 py-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => removeRow(index)}
+                  className="text-red-500 hover:text-red-700 font-bold"
+                >
+                  ✕
+                </button>
+              </td>
+              <td className="px-4 py-2 w-52">
                 <Select
                   value={accountOptions.find(opt => opt.value === row.account_code) || null}
                   onChange={(selected) =>
@@ -148,7 +154,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
                     )
                   }
                   options={accountOptions}
-                  className="react-select-container"
+                  className="w-52 react-select-container"
                   classNamePrefix="react-select"
                   placeholder="Select Account"
                   isClearable
@@ -165,7 +171,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
                 />
               </td>
 
-              <td className="px-4 py-2 text-right">
+              <td className="px-4 py-2 text-left w-24">
                 <input
                   type="number"
                   step="0.01"
@@ -176,7 +182,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
                 />
               </td>
 
-              <td className="px-4 py-2 text-right">
+              <td className="px-4 py-2 text-left w-24">
                 <input
                   type="number"
                   step="0.01"
@@ -187,15 +193,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
                 />
               </td>
 
-              <td className="px-4 py-2 text-center">
-                <button
-                  type="button"
-                  onClick={() => removeRow(index)}
-                  className="text-red-500 hover:text-red-700 font-bold"
-                >
-                  ✕
-                </button>
-              </td>
+             
             </tr>
           ))}
 

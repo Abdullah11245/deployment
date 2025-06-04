@@ -123,106 +123,104 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails }) => {
   );
 
   return (
-    <div className="overflow-x-auto bg-white shadow-md rounded-md mt-8">
-      <table className="min-w-full border border-gray-200">
-        <thead className="bg-gray-500 text-gray-600">
-          <tr className='text-white'>
-            <th className="px-4 py-2 text-left">#</th>
-            <th className="px-4 py-2 text-left">Account Code</th>
-            <th className="px-4 py-2 text-left">Particulars</th>
-            <th className="px-4 py-2 text-right">Debit</th>
-            <th className="px-4 py-2 text-right">Credit</th>
-            <th className="px-4 py-2 text-center">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {voucherDetails.map((row, index) => (
-            <tr key={index} className="border-t">
-              <td className="px-4 py-2">{index + 1}</td>
+   <div className="overflow-x-auto bg-white shadow-md rounded-md mt-8">
+  <table className="min-w-full table-auto border border-gray-200">
+    <thead className="bg-gray-500 text-gray-600">
+      <tr className="text-white">
+        <th className="px-2 py-2 text-left w-8"></th>
+        <th className="px-2 py-2 text-left min-w-48">Account</th>
+        <th className="px-2 py-2 text-left w-full">Particulars</th>
+        <th className="px-2 py-2 text-left min-w-24">Debit</th>
+        <th className="px-2 py-2 text-left min-w-24">Credit</th>
+      </tr>
+    </thead>
+    <tbody>
+      {voucherDetails.map((row, index) => (
+        <tr key={index} className="border-t">
+          <td className="px-4 py-2 text-center ">
+            <button
+              type="button"
+              onClick={() => removeRow(index)}
+              className="text-red-500 hover:text-red-700 font-bold"
+            >
+              ✕
+            </button>
+          </td>
 
-              <td className="px-4 py-2">
-                <Select
-                  value={accountOptions.find(opt => opt.value === row.account_code) || null}
-                  onChange={(selected) =>
-                    handleInputChange(
-                      index,
-                      'account_code',
-                      selected?.value || '',
-                      'title',
-                      selected?.title || '',
-                      'label',
-                      selected?.label || ''
-                    )
-                  }
-                  options={accountOptions}
-                  className="react-select-container"
-                  classNamePrefix="react-select"
-                  placeholder="Select Account"
-                  isClearable
-                />
-              </td>
+          <td className="px-2 py-2 min-w-56 border-black">
+            <Select
+              value={accountOptions.find(opt => opt.value === row.account_code) || null}
+              onChange={(selected) =>
+                handleInputChange(
+                  index,
+                  'account_code',
+                  selected?.value || '',
+                  'title',
+                  selected?.title || '',
+                  'label',
+                  selected?.label || ''
+                )
+              }
+              options={accountOptions}
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder="Select Account"
+              isClearable
+            />
+          </td>
 
-              <td className="px-4 py-2">
-                <input
-                  type="text"
-                  value={row.particulars}
-                  onChange={(e) => handleInputChange(index, 'particulars', e.target.value, '', '', '', '')}
-                  className="w-full border rounded px-2 py-3"
-                  placeholder="e.g. Purchase of materials"
-                />
-              </td>
+          <td className="px-2 py-2 w-full">
+            <input
+              type="text"
+              value={row.particulars}
+              onChange={(e) => handleInputChange(index, 'particulars', e.target.value, '', '', '', '')}
+              className="w-full border border-black rounded px-2 py-2"
+              placeholder="e.g. Purchase of materials"
+            />
+          </td>
 
-              <td className="px-4 py-2 text-right">
-                <input
-                  type="text"
-                  value={row.debit}
-                  onChange={(e) => handleInputChange(index, 'debit', e.target.value, '', '', '', '')}
-                  className="w-28 border rounded px-2 py-3 text-right"
-                  placeholder="0"
-                />
-              </td>
+          <td className="px-2 py-2 text-right min-w-24">
+            <input
+              type="text"
+              value={row.debit}
+              onChange={(e) => handleInputChange(index, 'debit', e.target.value, '', '', '', '')}
+              className="w-full border border-black rounded px-2 py-2 text-right"
+              placeholder="0"
+            />
+          </td>
 
-              <td className="px-4 py-2 text-right">
-                <input
-                  type="text"
-                  value={row.credit}
-                  onChange={(e) => handleInputChange(index, 'credit', e.target.value, '', '', '', '')}
-                  className="w-28 border rounded px-2 py-3 text-right"
-                  placeholder="0"
-                />
-              </td>
+          <td className="px-2 py-2 text-right min-w-24">
+            <input
+              type="text"
+              value={row.credit}
+              onChange={(e) => handleInputChange(index, 'credit', e.target.value, '', '', '', '')}
+              className="w-full border border-black rounded px-2 py-2 text-right"
+              placeholder="0"
+            />
+          </td>
+        </tr>
+      ))}
 
-              <td className="px-4 py-2 text-center">
-                <button
-                  type="button"
-                  onClick={() => removeRow(index)}
-                  className="text-red-500 hover:text-red-700 font-bold"
-                >
-                  ✕
-                </button>
-              </td>
-            </tr>
-          ))}
+      <tr className="bg-gray-50 border-t font-semibold">
+        <td colSpan="3" className="px-2 py-2 text-right">Totals</td>
+        <td className="px-2 py-2 text-right">{formatCurrencyPK(totalDebit.toFixed(2))}</td>
+        <td className="px-2 py-2 text-right">{formatCurrencyPK(totalCredit.toFixed(2))}</td>
+      </tr>
+    </tbody>
+  </table>
 
-          <tr className="bg-gray-50 border-t font-semibold">
-            <td colSpan="3" className="px-4 py-2 text-right">Totals</td>
-            <td className="px-4 py-2 text-right">{formatCurrencyPK(totalDebit.toFixed(2))}</td>
-            <td className="px-4 py-2 text-right">{formatCurrencyPK(totalCredit.toFixed(2))}</td>
-            <td />
-          </tr>
-        </tbody>
-      </table>
+  <div className="p-4 flex justify-end">
+    <button
+      type="button"
+      onClick={addRow}
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+    >
+      Add Row
+    </button>
+  </div>
+</div>
 
-      <div className="p-4 flex justify-end">
-        <button
-          type="button"
-          onClick={addRow}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Add Row
-        </button>
-      </div>
-    </div>
+
   );
 };
 

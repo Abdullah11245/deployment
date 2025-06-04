@@ -40,14 +40,16 @@ function EditSale() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Fetch main sale info
         const saleResponse = await axios.get(`${end_points}/sale/sales/${voucher_id}`);
         const saleData = saleResponse.data;
-        setSaleDate(saleData.sale_date?.split('T')[0]); // Keeps only 'YYYY-MM-DD'
+        setSaleDate(saleData.sale_date?.split('T')[0] || ''); // Format YYYY-MM-DD
         setPartyId(saleData.party_id);
         setTaxPercentage(saleData.tax_percentage);
         setTaxAmount(saleData.tax_amount);
         setNotes(saleData.notes);
 
+        // Fetch parties list
         const partiesResponse = await axios.get(`${end_points}/parties/getAll`);
         const activeParties = partiesResponse.data.filter(party => party.status === 1);
         const partyOptions = activeParties.map(party => ({
@@ -57,17 +59,38 @@ function EditSale() {
         }));
         setParties(partyOptions);
 
+        // Set selected party details
         const selectedParty = partyOptions.find(p => p.value === saleData.party_id);
         if (selectedParty) {
           setPartyCode(selectedParty.party_code);
           setPartyName(selectedParty.label);
         }
 
+        // Fetch sale details (handle single object or array)
         const saleDetailsResponse = await axios.get(`${end_points}/saleDetail/${voucher_id}`);
-        setSaleDetails(saleDetailsResponse.data);
-        setLoading(false)
+          console.log('Fetched sale details:', saleDetailsResponse.data);
+        const rawDetails = saleDetailsResponse.data;
+        let detailsArray = [];
+
+        if (Array.isArray(rawDetails)) {
+          detailsArray = rawDetails;
+        } else if (rawDetails && typeof rawDetails === 'object') {
+          detailsArray = [rawDetails]; // wrap single object into array
+        } else {
+          console.error('Unexpected saleDetails format:', rawDetails);
+          detailsArray = [];
+        }
+
+        // Add original_item_id for tracking item changes
+        const withOriginalIds = detailsArray.map(detail => ({
+          ...detail,
+          original_item_id: detail.item_id,
+        }));
+
+        setSaleDetails(withOriginalIds);
+        setLoading(false);
       } catch (error) {
-        setLoading(false)
+        setLoading(false);
         console.error('Error fetching data:', error);
       }
     };
@@ -76,34 +99,42 @@ function EditSale() {
   }, [id, voucher_id]);
 
   useEffect(() => {
-    if (!saleDetails) return;
+    if (!saleDetails || saleDetails.length === 0) return;
 
-    const weight = parseFloat(saleDetails.weight) || 0;
-    const rate = parseFloat(saleDetails.rate) || 0;
-    const adjustment = parseFloat(saleDetails.adjustment) || 0;
+    // Calculate subtotal and tax amounts from saleDetails
+    let totalSum = 0;
+    saleDetails.forEach(detail => {
+      const weight = parseFloat(detail.weight) || 0;
+      const rate = parseFloat(detail.rate) || 0;
+      const adjustment = parseFloat(detail.adjustment) || 0;
+      const freight = parseFloat(detail.frieght) || 0;
 
-    const total = weight * rate + adjustment;
-    setGrandTotal(total);
+      const total = weight * rate + adjustment - freight;
+      totalSum += total;
+    });
 
-    const tax = (parseFloat(taxPercentage) || 0) * total / 100;
+    setGrandTotal(totalSum);
+
+    const tax = (parseFloat(taxPercentage) || 0) * totalSum / 100;
     setTaxAmount(tax.toFixed(2));
   }, [saleDetails, taxPercentage]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-setLoading(true)    
-    const payload = {
-      sale_date: saleDate,
-      party_id: partyId,
-      tax_percentage: parseFloat(taxPercentage),
-      tax_amount: parseFloat(taxAmount),
-      notes,
-    };
-  
+    setLoading(true);
+
     try {
-    
+      // Update main sale record
+      const payload = {
+        sale_date: saleDate,
+        party_id: partyId,
+        tax_percentage: parseFloat(taxPercentage),
+        tax_amount: parseFloat(taxAmount),
+        notes,
+      };
       await axios.put(`${end_points}/sale/sales/${id}`, payload);
-  
+
+      // Update voucher main record
       const voucherPayload = {
         voucher_id: id,
         voucher_type: 'SV',
@@ -111,11 +142,12 @@ setLoading(true)
         note: notes,
       };
       await axios.put(`${end_points}/voucher/${id}`, voucherPayload);
+
+      // Update voucher detail entries
       for (let i = 0; i < saleDetails.length; i++) {
         const detail = saleDetails[i];
-        const particulars = `${detail.vehicle_no}: ${detail.itemLabel} ${detail.weight}KG@${detail.rate}`;
-         console.log(detail)
-         console.log(partyName)
+        const particulars = `${detail.vehicle_no}: ${detail.itemLabel || ''} ${detail.weight}KG@${detail.rate}`;
+
         const debitEntry = {
           main_id: id,
           account_code: partyCode,
@@ -123,43 +155,43 @@ setLoading(true)
           debit: grandTotal,
           credit: 0,
         };
-  
+
         const creditEntry = {
           main_id: id,
           account_code: '1140001',
-          particulars: `Sale of ${detail.itemLabel} to ${partyName}`,
+          particulars: `Sale of ${detail.itemLabel || ''} to ${partyName}`,
           debit: 0,
           credit: grandTotal,
         };
-  
+
         await axios.put(`${end_points}/voucherDetail/update/SV/${voucher_id}/${i}`, debitEntry);
-  
         await axios.put(`${end_points}/voucherDetail/update/SV/${voucher_id}/${i + 1}`, creditEntry);
       }
-  
-      // Update sale details (loop through saleDetails array)
       for (let i = 0; i < saleDetails.length; i++) {
         const detail = saleDetails[i];
         const detailPayload = {
           item_id: detail.item_id,
           vehicle_no: detail.vehicle_no,
           frieght: parseFloat(detail.frieght || 0),
-          uom: parseFloat(detail.uom),
+          uom: detail.uom,
           weight: parseFloat(detail.weight),
           rate: parseFloat(detail.rate),
           adjustment: parseFloat(detail.adjustment),
         };
-  
-        await axios.put(`${end_points}/saleDetail/${voucher_id}/${detail.item_id}`, detailPayload);
+
+        // Use detail.original_item_id for the URL if needed (depends on your API)
+        await axios.put(`${end_points}/saleDetail/${voucher_id}/${detail.original_item_id}`, detailPayload);
       }
-       setLoading(false)
+
+      setLoading(false);
       toast.success('Sale updated successfully');
     } catch (error) {
-      setLoading(false)
+      setLoading(false);
       toast.error('Failed to update sale');
+      console.error('Update sale error:', error);
     }
   };
-  
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -172,35 +204,35 @@ setLoading(true)
       </div>
     );
   }
+
   return (
     <div className="container mx-auto px-2 py-8">
-                  <Toaster position="top-right" reverseOrder={false} />
-      
+      <Toaster position="top-right" reverseOrder={false} />
+
       <div className="flex justify-between items-center mb-0 border-b-2 pb-4 px-4">
         <h2 className="text-xl font-semibold text-gray-700">Edit Sale</h2>
       </div>
-     
+
       <div className="flex items-center justify-center p-4">
-     
         <div className="mx-auto w-full bg-white">
-        <div>
-              <label className="mb-3 block text-base font-medium text-[#07074D]">Sale ID</label>
-              <div className='w-36 h-12 bg-gray-200 rounded-md flex items-center justify-center mb-6'>
-                <h2 className="text-xl  text-gray-700">{voucher_id }</h2>
-              </div>
-        </div>
+          <div>
+            <label className="mb-3 block text-base font-medium text-[#07074D]">Sale ID</label>
+            <div className="w-36 h-12 bg-gray-200 rounded-md flex items-center justify-center mb-6">
+              <h2 className="text-xl text-gray-700">{voucher_id}</h2>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit}>
             <div className="flex items-center space-x-4 mb-5">
               <div className="mb-5 w-full">
                 <label className="mb-3 block text-base font-medium text-[#07074D]">Sale Date</label>
                 <input
-  type="date"
-  value={saleDate || ''}
-  onChange={(e) => setSaleDate(e.target.value)}
-  required
-  className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-blue-300 focus:shadow-md"
-/>
-
+                  type="date"
+                  value={saleDate || ''}
+                  onChange={(e) => setSaleDate(e.target.value)}
+                  required
+                  className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-blue-300 focus:shadow-md"
+                />
               </div>
 
               <div className="mb-5 w-full">
@@ -220,36 +252,12 @@ setLoading(true)
               </div>
             </div>
 
-            {/* <div className="flex items-center space-x-4 mb-5">
-              <div className="w-full">
-                <label className="mb-3 block text-base font-medium text-[#07074D]">Tax Percentage (%)</label>
-                <input
-                  type="number"
-                  value={taxPercentage}
-                  onChange={(e) => setTaxPercentage(e.target.value)}
-                  required
-                  className="w-full rounded-md border border-[#e0e0e0] py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-                />
-              </div> */}
-
-              {/* <div className="w-full">
-                <label className="mb-3 block text-base font-medium text-[#07074D]">Tax Amount</label>
-                <input
-                  type="number"
-                  value={taxAmount}
-                  readOnly
-                  required
-                  className="w-full bg-gray-100 cursor-not-allowed rounded-md border border-[#e0e0e0] py-3 px-6 text-base font-medium text-[#6B7280]"
-                />
-              </div> */}
-            {/* </div> */}
-
             <div className="mb-5 w-full">
-            <SaleDetailTable
+              <SaleDetailTable
                 saleDetails={saleDetails}
                 setSaleDetails={setSaleDetails}
                 taxPercentage={taxPercentage}
-                setTaxPercentage={setTaxPercentage} // ✅ Add this
+                setTaxPercentage={setTaxPercentage}
                 taxAmount={taxAmount}
                 setGrandTotal={setGrandTotal}
               />
@@ -260,16 +268,16 @@ setLoading(true)
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder='Notes'
+                placeholder="Notes"
                 required
-                className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-3 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md  min-h-36 max-w-1/2"
+                className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-3 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md min-h-36 max-w-1/2"
               />
             </div>
 
             <div className="w-full mt-8">
               <button
                 type="submit"
-                className="hover:shadow-form rounded-md bg-[#3B82F6] w-1/2 py-3 px-8 text-center text-base font-semibold text-white outline-none"
+                className="hover:shadow-form rounded-md bg-[#3B82F6] w-1/4 py-3 text-base font-semibold text-white outline-none"
               >
                 Update Sale
               </button>

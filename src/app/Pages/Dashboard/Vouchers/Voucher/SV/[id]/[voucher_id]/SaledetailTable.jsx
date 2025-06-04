@@ -26,7 +26,7 @@ const SaleDetailTable = ({
       try {
         const response = await fetch(`${end_points}/items/getAll`);
         const data = await response.json();
-
+       console.log('Fetched items:', data);
         const saleItems = data
           .filter(item => item.type === 'Sale')
           .map(item => ({
@@ -44,10 +44,17 @@ const SaleDetailTable = ({
   }, []);
 
   const handleInputChange = (index, field, value) => {
+    const fieldMap = {
+      itemId: 'item_id',
+      vehicleNo: 'vehicle_no',
+    };
+
+    const mappedField = fieldMap[field] || field;
+
     const updated = [...normalizedDetails];
     const updatedItem = {
       ...updated[index],
-      [field]: field === 'itemId' ? value.value : value,
+      [mappedField]: field === 'itemId' ? value.value : value,
     };
 
     if (field === 'itemId') {
@@ -110,7 +117,7 @@ const SaleDetailTable = ({
                   type="text"
                   className="border rounded px-2 py-2 w-24"
                   placeholder='Vehicle'
-                  value={detail?.vehicle_no}
+                  value={detail?.vehicle_no || ''}
                   onChange={(e) => handleInputChange(index, 'vehicleNo', e.target.value)}
                 />
               </td>
@@ -119,8 +126,8 @@ const SaleDetailTable = ({
                 <input
                   type="text"
                   className="border rounded px-2 py-2 w-24"
-                  placeholder='Frieght'
-                  value={detail?.frieght}
+                  placeholder='Freight'
+                  value={detail?.frieght || ''}
                   onChange={(e) => handleInputChange(index, 'frieght', e.target.value)}
                 />
               </td>
@@ -130,7 +137,7 @@ const SaleDetailTable = ({
                   type="text"
                   className="border rounded px-2 py-2 w-24"
                   placeholder='UOM'
-                  value={detail?.uom}
+                  value={detail?.uom || ''}
                   onChange={(e) => handleInputChange(index, 'uom', e.target.value)}
                 />
               </td>
@@ -140,7 +147,7 @@ const SaleDetailTable = ({
                   type="text"
                   className="border rounded px-2 py-2 w-24"
                   placeholder='Weight'
-                  value={detail?.weight}
+                  value={detail?.weight || ''}
                   onChange={(e) => handleInputChange(index, 'weight', e.target.value)}
                 />
               </td>
@@ -150,7 +157,7 @@ const SaleDetailTable = ({
                   type="text"
                   className="border rounded px-2 py-2 w-24"
                   placeholder='Rate'
-                  value={detail?.rate}
+                  value={detail?.rate || ''}
                   onChange={(e) => handleInputChange(index, 'rate', e.target.value)}
                 />
               </td>
@@ -159,8 +166,8 @@ const SaleDetailTable = ({
                 <input
                   type="text"
                   className="border rounded px-2 py-2 w-28"
-                  value={detail?.adjustment}
                   placeholder='Adjustment'
+                  value={detail?.adjustment || ''}
                   onChange={(e) => handleInputChange(index, 'adjustment', e.target.value)}
                 />
               </td>
