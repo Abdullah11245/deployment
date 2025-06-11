@@ -12,8 +12,19 @@ const voucherTypeOptions = [
   { value: 'CR', label: 'CR' },
 ];
 
+// Helper to get initial voucher type from localStorage
+const getInitialVoucherType = () => {
+  const storedType = localStorage.getItem('voucherType');
+  if (storedType) {
+    const cleanedType = storedType.replace('.', '').toUpperCase(); // "C.R" -> "CR"
+    const matchedOption = voucherTypeOptions.find(option => option.value === cleanedType);
+    return matchedOption || voucherTypeOptions[0];
+  }
+  return voucherTypeOptions[0]; // fallback to CP
+};
+
 const CreateVoucher = () => {
-  const [voucherType, setVoucherType] = useState(voucherTypeOptions[0]); // 👈 Default to "BP"
+  const [voucherType, setVoucherType] = useState(getInitialVoucherType());
   const [voucherDate, setVoucherDate] = useState('');
   const [note, setNote] = useState('');
   const [voucherDetails, setVoucherDetails] = useState([]);
@@ -29,19 +40,21 @@ const CreateVoucher = () => {
   
       const maxId = filtered.reduce((max, v) => Math.max(max, parseInt(v.voucher_id) || 0), 0);
       setCustomVoucherId(maxId + 1);
-      setLoading(false)
+      setLoading(false);
     } catch (err) {
-      setLoading(false)
+      setLoading(false);
       setCustomVoucherId('');
     }
   };
 
+  // Initial fetch
   useEffect(() => {
-    fetchAndSetCustomVoucherId('CP');
+    fetchAndSetCustomVoucherId(voucherType.value);
   }, []);
 
   const handleVoucherTypeChange = (selectedOption) => {
     setVoucherType(selectedOption);
+    localStorage.setItem('voucherType', selectedOption.value); // Optional: update localStorage
     if (selectedOption?.value) {
       fetchAndSetCustomVoucherId(selectedOption.value);
     } else {
@@ -51,25 +64,24 @@ const CreateVoucher = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
-  setLoading(true)
-  
+    setLoading(true);
+
     const voucherPayload = {
       voucher_id: customVoucherId,
       voucher_type: voucherType.value,
       voucher_date: voucherDate,
       note,
     };
-  
+
     try {
       const res = await axios.post(`${end_points}/voucher/create`, voucherPayload);
       const voucherId = res?.data?.id;
-  
+
       if (!voucherId) throw new Error('Voucher creation failed.');
-  
+
       for (const detail of voucherDetails) {
         let debitEntry, creditEntry;
-      
+
         if (voucherType.value === 'CP') {
           debitEntry = {
             main_id: voucherId,
@@ -78,16 +90,15 @@ const CreateVoucher = () => {
             debit: parseFloat(detail.debit || 0),
             credit: 0,
           };
-      
+
           creditEntry = {
             main_id: voucherId,
-            account_code:'1110001',
+            account_code: '1110001',
             particulars: `${detail.particulars}`,
             debit: 0,
             credit: parseFloat(detail.debit || 0),
           };
         } else if (voucherType.value === 'CR') {
-         
           creditEntry = {
             main_id: voucherId,
             account_code: detail.account_code,
@@ -102,14 +113,13 @@ const CreateVoucher = () => {
             debit: parseFloat(detail.credit || 0),
             credit: 0,
           };
-      
         }
 
         await axios.post(`${end_points}/voucherDetail/create`, debitEntry);
         await axios.post(`${end_points}/voucherDetail/create`, creditEntry);
       }
-        
-  setLoading(false)
+
+      setLoading(false);
       toast.success('Voucher and details created successfully!');
       setVoucherType(voucherTypeOptions[0]);
       setVoucherDate('');
@@ -117,12 +127,12 @@ const CreateVoucher = () => {
       setVoucherDetails([]);
       fetchAndSetCustomVoucherId(voucherTypeOptions[0].value);
     } catch (err) {
-      setLoading(false)
+      setLoading(false);
       console.error('An error occurred while creating the voucher:', err);
       toast.error('An error occurred while creating the voucher.');
     }
   };
-  
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -135,24 +145,24 @@ const CreateVoucher = () => {
       </div>
     );
   }
+
   return (
     <div className="mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
-            <Toaster position="top-right" reverseOrder={false} />
-      
+      <Toaster position="top-right" reverseOrder={false} />
       <h2 className="text-2xl font-semibold mb-4 text-gray-700">Create New Voucher</h2>
 
       <form onSubmit={handleSubmit}>
-      <div className='mb-6 w-32'>
-            <label className="block text-gray-700 font-medium mb-2">Voucher ID</label>
-            <input
-              type="text"
-              value={customVoucherId}
-              readOnly
-              className="w-full bg-gray-100 border border-gray-300 rounded-md px-4 py-2 cursor-not-allowed text-gray-600"
-            />
-          </div>
-        <div className="grid grid-cols-2 gap-6 mb-6">
+        <div className="mb-6 w-32">
+          <label className="block text-gray-700 font-medium mb-2">Voucher ID</label>
+          <input
+            type="text"
+            value={customVoucherId}
+            readOnly
+            className="w-full bg-gray-100 border border-gray-300 rounded-md px-4 py-2 cursor-not-allowed text-gray-600"
+          />
+        </div>
 
+        <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block text-gray-700 font-medium mb-2">Voucher Type</label>
             <Select
@@ -175,26 +185,24 @@ const CreateVoucher = () => {
               className="w-full border border-gray-300 rounded-md px-4 py-2"
             />
           </div>
-
-         
         </div>
-
-       
 
         <VoucherDetailTable
           voucherDetails={voucherDetails}
           setVoucherDetails={setVoucherDetails}
           voucherType={voucherType.value}
         />
- <div className="mb-6 mt-6">
+
+        <div className="mb-6 mt-6">
           <label className="block text-gray-700 font-medium mb-2">Note</label>
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-4 py-2 "
+            className="w-full border border-gray-300 rounded-md px-4 py-2"
             placeholder="Enter notes..."
           />
         </div>
+
         <div className="mt-8">
           <button
             type="submit"

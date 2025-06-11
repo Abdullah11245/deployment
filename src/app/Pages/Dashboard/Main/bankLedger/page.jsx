@@ -8,7 +8,7 @@ import autoTable from 'jspdf-autotable';
 import { json2csv } from 'json-2-csv';
 import Select from 'react-select'; // For dropdowns
 import Link from 'next/link';
-import end_points from '../../../api_url';
+import end_points from '../../../../api_url';
 
 const numberToWords = (num) => {
   const a = [
@@ -670,47 +670,47 @@ const handlePrint = () => {
   
 const sortedData = mergedData
   .filter(voucher => {
-    if (voucher.voucher_type !== 'JV') return true;
+    if (voucher.voucher_type == 'BP' || voucher.voucher_type =='BR') return true;
 
-    const hasOpeningBalance = voucher.details.some(
-      d => d.particulars?.toLowerCase().includes('opening balance')
-    );
+    // const hasOpeningBalance = voucher.details.some(
+    //   d => d.particulars?.toLowerCase().includes('opening balance')
+    // );
 
-    const hasOpeningBalanceForSelected = voucher.details.some(
-      d => d.particulars?.toLowerCase().includes('opening balance') &&
-           String(d.account_code) === String(selectedPartyId)
-    );
+    // const hasOpeningBalanceForSelected = voucher.details.some(
+    //   d => d.particulars?.toLowerCase().includes('opening balance') &&
+    //        String(d.account_code) === String(selectedPartyId)
+    // );
 
-    if (!hasOpeningBalance) return true;
+    // if (!hasOpeningBalance) return true;
 
-    return hasOpeningBalanceForSelected;
+    // return hasOpeningBalanceForSelected;
   })
-  .map(voucher => {
-    if (voucher.voucher_type === 'JV') {
-      return {
-        ...voucher,
-        details: voucher.details.filter(
-          d => !d.particulars?.toLowerCase().includes('opening balance') ||
-               String(d.account_code) === String(selectedPartyId)
-        ),
-      };
-    }
-    return voucher;
-  })
-  .sort((a, b) => {
-    const isOpeningA = a.details.some(
-      d => d.particulars?.toLowerCase().includes('opening balance') &&
-           String(d.account_code) === String(selectedPartyId)
-    );
-    const isOpeningB = b.details.some(
-      d => d.particulars?.toLowerCase().includes('opening balance') &&
-           String(d.account_code) === String(selectedPartyId)
-    );
+  // .map(voucher => {
+  //   if (voucher.voucher_type === 'JV') {
+  //     return {
+  //       ...voucher,
+  //       details: voucher.details.filter(
+  //         d => !d.particulars?.toLowerCase().includes('opening balance') ||
+  //              String(d.account_code) === String(selectedPartyId)
+  //       ),
+  //     };
+  //   }
+  //   return voucher;
+  // })
+  // .sort((a, b) => {
+  //   const isOpeningA = a.details.some(
+  //     d => d.particulars?.toLowerCase().includes('opening balance') &&
+  //          String(d.account_code) === String(selectedPartyId)
+  //   );
+  //   const isOpeningB = b.details.some(
+  //     d => d.particulars?.toLowerCase().includes('opening balance') &&
+  //          String(d.account_code) === String(selectedPartyId)
+  //   );
 
-    if (isOpeningA && !isOpeningB) return -1;
-    if (!isOpeningA && isOpeningB) return 1;
-    return 0;
-  });
+  //   if (isOpeningA && !isOpeningB) return -1;
+  //   if (!isOpeningA && isOpeningB) return 1;
+  //   return 0;
+  // });
 
 
 

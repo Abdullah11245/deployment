@@ -12,21 +12,30 @@ const voucherTypeOptions = [
   { value: 'BR', label: 'BR' },
 ];
 
+// Get initial voucher type from localStorage
+const getInitialVoucherType = () => {
+  const storedType = localStorage.getItem('voucherType');
+  if (storedType) {
+    const cleanedType = storedType.replace('.', '').toUpperCase(); // e.g. "B.R" → "BR"
+    const matched = voucherTypeOptions.find(option => option.value === cleanedType);
+    return matched || voucherTypeOptions[0];
+  }
+  return voucherTypeOptions[0];
+};
+
 const CreateVoucher = () => {
-  const [voucherType, setVoucherType] = useState(voucherTypeOptions[0]); // Default to "BP"
+  const [voucherType, setVoucherType] = useState(getInitialVoucherType());
   const [voucherDate, setVoucherDate] = useState('');
   const [note, setNote] = useState('');
   const [voucherDetails, setVoucherDetails] = useState([]);
   const [customVoucherId, setCustomVoucherId] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Fetch vouchers and calculate next custom ID
   const fetchAndSetCustomVoucherId = async (selectedType) => {
     try {
       const res = await axios.get(`${end_points}/voucher/getAll`);
       const allVouchers = res?.data || [];
       const filtered = allVouchers.filter(v => v.voucher_type === selectedType);
-
       const maxId = filtered.reduce((max, v) => Math.max(max, parseInt(v.voucher_id) || 0), 0);
       setCustomVoucherId(maxId + 1);
       setLoading(false);
@@ -37,12 +46,14 @@ const CreateVoucher = () => {
     }
   };
 
+  // Initial fetch using cleaned localStorage value
   useEffect(() => {
-    fetchAndSetCustomVoucherId('BP');
+    fetchAndSetCustomVoucherId(voucherType.value);
   }, []);
 
   const handleVoucherTypeChange = (selectedOption) => {
     setVoucherType(selectedOption);
+    localStorage.setItem('voucherType', selectedOption.value); // Save cleaned type to localStorage
     if (selectedOption?.value) {
       fetchAndSetCustomVoucherId(selectedOption.value);
     } else {
@@ -95,13 +106,12 @@ const CreateVoucher = () => {
       }
 
       toast.success('Voucher and details created successfully!');
-
       // Reset form
       setVoucherType(voucherTypeOptions[0]);
       setVoucherDate('');
       setNote('');
       setVoucherDetails([]);
-      fetchAndSetCustomVoucherId('BP');
+      fetchAndSetCustomVoucherId(voucherTypeOptions[0].value);
       setLoading(false);
     } catch (err) {
       console.error(err);
@@ -165,14 +175,13 @@ const CreateVoucher = () => {
           </div>
         </div>
 
-        
         <VoucherDetailTable
           voucherDetails={voucherDetails}
           setVoucherDetails={setVoucherDetails}
           voucherType={voucherType.value}
         />
 
-   <div className="mb-6 mt-6">
+        <div className="mb-6 mt-6">
           <label className="block text-gray-700 font-medium mb-2">Note</label>
           <textarea
             value={note}
