@@ -234,15 +234,15 @@ useEffect(() => {
       {/* Table */}
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg">
         <table className="min-w-full border-collapse">
-          <thead className="bg-gray-100">
+          <thead className="bg-gray-500">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Voucher #</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Party</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Particulars</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Debit</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Credit</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase">#</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase">Voucher</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase">Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase">Party</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase">Particulars</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase">Debit</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase">Credit</th>
             </tr>
           </thead>
           <tbody>

@@ -213,7 +213,7 @@ function CreateSale() {
 
               {/* Party Dropdown */}
               <div className="mb-5 w-full">
-                <label className="mb-3 block text-base font-medium text-[#07074D]">Party</label>
+                <label className="mb-3 block text-base font-medium text-black">Party</label>
                   <Select
                   options={parties}
                   value={parties.find(p => p.value === partyId)}
@@ -223,7 +223,7 @@ function CreateSale() {
                     setPartyName(selectedOption.label);
                   }}
                   placeholder="Select Party"
-                  className="w-full rounded-md"
+                  className="w-full rounded-md text-black"
                   required
                 />
 

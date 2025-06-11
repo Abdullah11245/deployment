@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
+import end_points from '../../../../../api_url';
 
 const SaleDetailTable = ({
   saleDetails = [],
@@ -16,7 +17,7 @@ const SaleDetailTable = ({
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const response = await fetch('https://accounts-management.onrender.com/common/items/getAll');
+        const response = await fetch(`${end_points}/items/getAll`);
         const data = await response.json();
 
         const saleItems = data
@@ -113,13 +114,14 @@ const SaleDetailTable = ({
                   value={items.find(item => item.value === detail.itemId) || null}
                   onChange={(val) => handleInputChange(index, 'itemId', val)}
                   placeholder="Select Item"
+                  className='text-black'
                 />
               </td>
 
               <td className="px-4 py-2">
                 <input
                   type="text"
-                  className="border rounded px-2 py-2 w-24"
+                  className="border rounded px-2 py-2 w-24 text-black"
                   value={detail?.vehicleNo}
                   placeholder='Vehicle'
                   onChange={(e) => handleInputChange(index, 'vehicleNo', e.target.value)}
@@ -129,7 +131,7 @@ const SaleDetailTable = ({
               <td className="px-4 py-2">
                 <input
                   type="text"
-                  className="border rounded px-2 py-2 w-24"
+                  className="border rounded px-2 py-2 w-24 text-black"
                   placeholder='Frieght'
                   value={detail?.frieght}
                   onChange={(e) => handleInputChange(index, 'frieght', e.target.value)}
@@ -139,7 +141,7 @@ const SaleDetailTable = ({
               <td className="px-4 py-2">
                 <input
                   type="text"
-                  className="border rounded px-2 py-2 w-24"
+                  className="border rounded px-2 py-2 w-24 text-black"
                   placeholder='UOM'
                   value={detail?.uom}
                   onChange={(e) => handleInputChange(index, 'uom', e.target.value)}
@@ -149,7 +151,7 @@ const SaleDetailTable = ({
               <td className="px-4 py-2">
                 <input
                   type="text"
-                  className="border rounded px-2 py-2 w-24"
+                  className="border rounded px-2 py-2 w-24 text-black"
                   placeholder='Weight'
                   value={detail?.weight}
                   onChange={(e) => handleInputChange(index, 'weight', e.target.value)}
@@ -159,7 +161,7 @@ const SaleDetailTable = ({
               <td className="px-4 py-2">
                 <input
                   type="text"
-                  className="border rounded px-2 py-2 w-24"
+                  className="border rounded px-2 py-2 w-24 text-black"
                   placeholder='Rate'
                   value={detail?.rate}
                   onChange={(e) => handleInputChange(index, 'rate', e.target.value)}
@@ -169,32 +171,32 @@ const SaleDetailTable = ({
               <td className="px-4 py-2">
                 <input
                   type="text"
-                  className="border rounded px-2 py-2 w-28"
+                  className="border rounded px-2 py-2 w-28 text-black"
                   placeholder='Adjustment'
                   value={detail?.adjustment}
                   onChange={(e) => handleInputChange(index, 'adjustment', e.target.value)}
                 />
               </td>
 
-              <td className="px-4 py-2 text-right font-semibold">
+              <td className="px-4 py-2 text-right font-semibold text-black">
                 {formatCurrencyPK(calculateTotal(detail).toFixed(2))}
               </td>
             </tr>
           ))}
 
           <tr className="bg-gray-50 border-t">
-            <td colSpan="8" className="text-right px-4 py-2 font-semibold">Subtotal</td>
-            <td className="text-right px-4 py-2 font-bold">{formatCurrencyPK(subtotal.toFixed(2))}</td>
+            <td colSpan="8" className="text-right px-4 py-2 font-semibold text-black">Subtotal</td>
+            <td className="text-right px-4 py-2 font-bold text-black">{formatCurrencyPK(subtotal.toFixed(2))}</td>
           </tr>
           <tr className="bg-gray-50 border-t">
-          <td colSpan="8" className="text-right px-4 py-2 font-semibold">
+          <td colSpan="8" className="text-right px-4 py-2 font-semibold text-black">
               Tax ({parseFloat(taxPercentage) || 0}%)
             </td>  
              <td className="text-right px-4 py-2">
               <input
                 type="text"
                 onChange={(e) => setTaxPercentage(e.target.value)}
-                className="w-20 border rounded px-2 py-1 text-right"
+                className="w-20 border rounded px-2 py-1 text-right text-black"
                 placeholder="0"
               />
             </td>

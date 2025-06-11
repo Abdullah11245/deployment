@@ -362,7 +362,7 @@ const handlePageChange = (pageNumber) => {
         <h2 className="text-xl font-semibold text-gray-700">Ledger</h2>
       </div>
 
-      <div className='mt-4 mb-8 border-b-2 pb-4'>
+      <div className='mt-4 mb-8 border-b-2 pb-4 text-black'>
         <p>Ledger of Account</p>
         <p>From: {startDate || 'dd-mm-yyyy'} To {endDate || 'dd-mm-yyyy'}</p>
         <p>Account Title: {partyOptions.find(p => p.value === supplierId)?.label || ''}</p>
@@ -388,14 +388,14 @@ const handlePageChange = (pageNumber) => {
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md flex-1"
+            className="px-4 py-2 border border-gray-300 rounded-md flex-1 text-black"
           />
 
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md flex-1"
+            className="px-4 py-2 border border-gray-300 rounded-md flex-1 text-black"
           />
         </div>
 
@@ -440,7 +440,7 @@ const handlePageChange = (pageNumber) => {
 
       return voucherDetails.length > 0 ? (
         voucherDetails.map((detail, detailIndex) => (
-          <tr key={`${voucher.id}-${detailIndex}`} className="border-t">
+          <tr key={`${voucher.id}-${detailIndex}`} className="border-t text-black">
             {detailIndex === 0 && (
               <>
                 <td className="px-6 py-4" rowSpan={rowSpan}>{(currentPage - 1) * itemsPerPage + voucherIndex + 1}</td>

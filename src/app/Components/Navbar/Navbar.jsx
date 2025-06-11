@@ -60,7 +60,7 @@ const Navbar = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <p className="text-sm text-light">Management System - {role}</p>
+          <p className="text-sm text-black">Management System - {role}</p>
         </div>
 
         {/* Dropdown section */}
@@ -71,28 +71,28 @@ const Navbar = () => {
           >
             <a
               href="#"
-              className="flex items-center p-2 text-base font-normal w-8 h-8 text-gray-900 dark:text-white rounded-full bg-slate-500 dark:hover:bg-gray-700"
+              className="flex items-center p-2 text-base font-normal w-8 h-8 text-gray-900  rounded-full bg-slate-500 "
             >
              
             </a>
-            <span className="font-semibold">{username}</span>
+            <span className="font-semibold text-black">{username}</span>
             <span  onClick={toggleDropdown}>
-<svg className='w-6 h-6' viewBox="0 0 48 48" fill="#000000"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M0 0h48v48H0z" fill="none"></path> <g id="Shopicon"> <path d="M8.706,37.027c2.363-0.585,4.798-1.243,6.545-1.243c0.683,0,1.261,0.101,1.688,0.345c1.474,0.845,2.318,4.268,3.245,7.502 C21.421,43.866,22.694,44,24,44c1.306,0,2.579-0.134,3.816-0.368c0.926-3.234,1.771-6.657,3.244-7.501 c0.427-0.245,1.005-0.345,1.688-0.345c1.747,0,4.183,0.658,6.545,1.243c1.605-1.848,2.865-3.99,3.706-6.333 c-2.344-2.406-4.872-4.891-4.872-6.694c0-1.804,2.528-4.288,4.872-6.694c-0.841-2.343-2.101-4.485-3.706-6.333 c-2.363,0.585-4.798,1.243-6.545,1.243c-0.683,0-1.261-0.101-1.688-0.345c-1.474-0.845-2.318-4.268-3.245-7.502 C26.579,4.134,25.306,4,24,4c-1.306,0-2.579,0.134-3.816,0.368c-0.926,3.234-1.771,6.657-3.245,7.501 c-0.427,0.245-1.005,0.345-1.688,0.345c-1.747,0-4.183-0.658-6.545-1.243C7.101,12.821,5.841,14.962,5,17.306 C7.344,19.712,9.872,22.196,9.872,24c0,1.804-2.527,4.288-4.872,6.694C5.841,33.037,7.101,35.179,8.706,37.027z M18,24 c0-3.314,2.686-6,6-6s6,2.686,6,6s-2.686,6-6,6S18,27.314,18,24z"></path> </g> </g></svg>            </span>
+<svg className='w-6 h-6' viewBox="0 0 48 48" fill="rgb(0 31 63)"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M0 0h48v48H0z" fill="none"></path> <g id="Shopicon"> <path d="M8.706,37.027c2.363-0.585,4.798-1.243,6.545-1.243c0.683,0,1.261,0.101,1.688,0.345c1.474,0.845,2.318,4.268,3.245,7.502 C21.421,43.866,22.694,44,24,44c1.306,0,2.579-0.134,3.816-0.368c0.926-3.234,1.771-6.657,3.244-7.501 c0.427-0.245,1.005-0.345,1.688-0.345c1.747,0,4.183,0.658,6.545,1.243c1.605-1.848,2.865-3.99,3.706-6.333 c-2.344-2.406-4.872-4.891-4.872-6.694c0-1.804,2.528-4.288,4.872-6.694c-0.841-2.343-2.101-4.485-3.706-6.333 c-2.363,0.585-4.798,1.243-6.545,1.243c-0.683,0-1.261-0.101-1.688-0.345c-1.474-0.845-2.318-4.268-3.245-7.502 C26.579,4.134,25.306,4,24,4c-1.306,0-2.579,0.134-3.816,0.368c-0.926,3.234-1.771,6.657-3.245,7.501 c-0.427,0.245-1.005,0.345-1.688,0.345c-1.747,0-4.183-0.658-6.545-1.243C7.101,12.821,5.841,14.962,5,17.306 C7.344,19.712,9.872,22.196,9.872,24c0,1.804-2.527,4.288-4.872,6.694C5.841,33.037,7.101,35.179,8.706,37.027z M18,24 c0-3.314,2.686-6,6-6s6,2.686,6,6s-2.686,6-6,6S18,27.314,18,24z"></path> </g> </g></svg>            </span>
           </div>
 
           {/* Dropdown menu */}
           {isDropdownOpen && (
-            <div className="absolute right-0 top-8 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-10">
-              <ul className="py-1 text-sm text-gray-700 dark:text-gray-200">
+            <div className="absolute right-0 top-8 mt-2 w-48 bg-white  border border-gray-200  rounded shadow-lg z-10">
+              <ul className="py-1 text-sm text-gray-700 ">
                 <li>
-                  <Link href="http://localhost:3000/Pages/Dashboard/Systems" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+                  <Link href="http://localhost:3000/Pages/Dashboard/Systems" className="block px-4 py-2 hover:bg-gray-100 ">
                     Settings
                   </Link>
                 </li>
                 <li>
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    className="w-full text-left block px-4 py-2 hover:bg-gray-100 "
                   >
                     Logout
                   </button>

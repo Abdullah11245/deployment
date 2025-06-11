@@ -726,7 +726,7 @@ const sortedData = mergedData
         <h2 className="text-xl font-semibold text-gray-700">Ledger</h2>
       </div>
 
-      <div className='mt-4 mb-8 border-b-2 pb-4'>
+      <div className='mt-4 mb-8 border-b-2 pb-4 text-black'>
         <p>Ledger of Account</p>
         <p>From: {startDate || 'dd-mm-yyyy'} To {endDate ||today }</p>
         <p>Account Title: {partyOptions.find(p => p.value === selectedPartyId)?.label || ''}</p>
@@ -741,7 +741,7 @@ const sortedData = mergedData
   onChange={(selectedOption) => setSelectedPartyId(selectedOption ? selectedOption.value : '')}
   placeholder="Select Party"
   isClearable
-  className="flex-1"
+  className="flex-1 text-black"
   classNamePrefix="react-select"
 />
 
@@ -770,14 +770,15 @@ const sortedData = mergedData
 
     setBeforeStartBalance(debitBefore - creditBefore);
   }}
-  className="px-4 py-2 border border-gray-300 rounded-md flex-1"
+  className="px-4 py-2 border border-gray-300 rounded-md flex-1 text-black"
 />
 
           <input
             type="date"
             value={endDate}
+
             onChange={(e) => setEndDate(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md flex-1"
+            className="px-4 py-2 border border-gray-300 rounded-md flex-1 text-black"
           />
         </div>
 
@@ -893,7 +894,7 @@ if (startDate) {
 
     if (index >= paginatedStartIndex && index < paginatedEndIndex) {
       allRows.push(
-        <tr key={`${voucher.id}-${index}`} className="border-t">
+        <tr key={`${voucher.id}-${index}`} className="border-t text-black">
           <td className="px-3 py-4 text-center">{displayIndex++}</td>
           <td className="px-3 py-4 text-center">
             <Link href={getVoucherLink(voucher)} className="hover:underline">

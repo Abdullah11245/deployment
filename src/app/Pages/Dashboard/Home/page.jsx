@@ -359,7 +359,7 @@ const Dashboard = () => {
             </svg>
           </div>
           <div className="flex-grow flex flex-col ml-4">
-            <span className="text-xl font-bold">{suppliersCount}</span>
+            <span className="text-xl font-bold text-black">{suppliersCount}</span>
             <div className="flex items-center justify-between">
               <span className="text-gray-500">Total Suppliers</span>
               <span className="text-green-500 text-sm font-semibold ml-2">0%</span>
@@ -384,7 +384,7 @@ const Dashboard = () => {
             </svg>
           </div>
           <div className="flex-grow flex flex-col ml-4">
-            <span className="text-xl font-bold">{itemsCount}</span>
+            <span className="text-xl font-bold text-black">{itemsCount}</span>
             <div className="flex items-center justify-between">
               <span className="text-gray-500">Total Items</span>
               <span className="text-red-500 text-sm font-semibold ml-2">0%</span>
@@ -409,7 +409,7 @@ const Dashboard = () => {
             </svg>
           </div>
           <div className="flex-grow flex flex-col ml-4">
-            <span className="text-xl font-bold">0</span>
+            <span className="text-xl font-bold text-black">0</span>
             <div className="flex items-center justify-between">
               <span className="text-gray-500">Approve P.O.</span>
               <span className="text-green-500 text-sm font-semibold ml-2">0%</span>
@@ -432,7 +432,7 @@ const Dashboard = () => {
             </svg>
           </div>
           <div className="flex-grow flex flex-col ml-4">
-            <span className="text-xl font-bold">0</span>
+            <span className="text-xl font-bold text-black">0</span>
             <div className="flex items-center justify-between">
               <span className="text-gray-500">Denied PO</span>
               <span className="text-red-500 text-sm font-semibold ml-2">0%</span>
@@ -450,7 +450,7 @@ const Dashboard = () => {
            <div className="p-3 bg-white rounded-full shadow-lg">
              <span className="text-2xl">{card.icon}</span>
            </div>
-           <h2 className="font-semibold ml-4">{card.title}</h2>
+           <h2 className="font-semibold ml-4 text-black">{card.title}</h2>
          </div>
        </div>
      </Link>

@@ -176,7 +176,7 @@ const Purchase = () => {
                 const routeNames = [...new Set(entry.details.map(d => d.route_name))].join(', ') || 'N/A';
 
                 return (
-                  <tr key={entry.id} className="border-t">
+                  <tr key={entry.id} className="border-t text-black">
                     <td className="px-6 py-4 text-sm">{index + 1}</td>
                     <td className="px-6 py-4 text-sm">{new Date(entry.end_date).toLocaleDateString()}</td>
                     <td className="px-6 py-4 text-sm">{itemNames}</td>

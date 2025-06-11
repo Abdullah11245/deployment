@@ -370,7 +370,7 @@ useEffect(() => {
                 const net = gross - freight;
 
                 return (
-                  <tr key={sale.sale_id} className="border-t">
+                  <tr key={sale.sale_id} className="border-t text-black">
                     <td className="px-6 py-4 text-sm">{indexOfFirstSale + index + 1}</td>
                     <td className="px-6 py-4 text-sm">{new Date(sale.sale_date).toISOString().split('T')[0]}</td>
 <td className='px-6 py-4 text-sm text-blue-500'>
