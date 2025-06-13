@@ -204,7 +204,7 @@ for (const detail of voucherDetails) {
               value={voucherDate || ''}
               onChange={(e) => setVoucherDate(e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-md px-4 py-2"
+              className="w-full border border-gray-300 rounded-md px-4 py-2 text-black"
             />
           </div>
 

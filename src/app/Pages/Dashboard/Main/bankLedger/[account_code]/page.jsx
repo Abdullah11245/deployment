@@ -8,8 +8,8 @@ import autoTable from 'jspdf-autotable';
 import { json2csv } from 'json-2-csv';
 import Select from 'react-select'; // For dropdowns
 import Link from 'next/link';
-import end_points from '../../../api_url';
-
+import end_points from '../../../../../api_url';
+import { useParams } from 'next/navigation';
 const numberToWords = (num) => {
   const a = [
     '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
@@ -52,7 +52,11 @@ const [searchQuery, setSearchQuery] = useState('');
     const rounded = Math.round(Number(number));
     return rounded.toLocaleString('en-IN');
   };
+  const { account_code } = useParams();
+  console.log(account_code);
+
   useEffect(() => {
+    setAccountCode(account_code);
     const fetchData = async () => {
       try {
         const [
@@ -499,60 +503,6 @@ const colPositions = colWidths.reduce((acc, width, i) => {
 
 
 
-
-
-
-
-
-
-
-
-
-//   const handlePrint = () => {
-//    const headerHTML = `
-//   <div style="text-align: center; margin-bottom: 20px; flex-direction: column; align-items: center;">
-//     <p style="font-size: 24px; margin-bottom: 20px; ">
-//       ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''} ()
-//     </p>
-//     <div style="border: 2px solid black; padding: 8px; display: inline-block; text-align:center; font-size: 18px; ">
-
-//     Ledger of Account
-//     </div>
-//     <p style="margin-top: 20px;">
-//       From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || today}
-//     </p>
-   
-//   </div>
-// `;
-
-
-//     const tableHTML = tableRef.current.innerHTML;
-//     const printWindow = window.open('', '', 'width=900,height=650');
-
-//     printWindow.document.write(`
-//       <html>
-//         <head>
-//           <title>Receipt Report</title>
-//           <style>
-//             body { font-family: Arial, sans-serif; padding: 20px; }
-//             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-//             th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
-//             thead { background-color: #f3f4f6; }
-//           </style>
-//         </head>
-//         <body>
-//           ${headerHTML}
-//           ${tableHTML}
-//         </body>
-//       </html>
-//     `);
-
-//     printWindow.document.close();
-//     printWindow.focus();
-//     printWindow.print();
-//     printWindow.close();
-//   };
-
 const handlePrint = () => {
  const headerHTML = `
   <div style="text-align: center; margin-bottom: 20px; flex-direction: column; align-items: center;">
@@ -743,6 +693,7 @@ const sortedData = mergedData
   isClearable
   className="flex-1 text-black"
   classNamePrefix="react-select"
+  isDisabled={true}
 />
 
 

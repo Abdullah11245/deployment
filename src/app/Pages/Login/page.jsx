@@ -71,7 +71,7 @@ const LoginPage = () => {
           <h2 className="text-2xl font-bold text-[#002D74] mt-8">Login</h2>
           <p className="text-sm mt-4 text-[#002D74]">Sign in to start your session</p>
 
-          <form className="mt-6" onSubmit={handleSubmit}>
+          <form className="mt-6 text-black" onSubmit={handleSubmit}>
             <div>
               <label className="block text-sm text-gray-700">Email</label>
               <input

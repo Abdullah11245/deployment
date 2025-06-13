@@ -81,6 +81,7 @@ const CreateVoucher = () => {
       const isBP = voucherType.value === 'BP';
 
       for (const detail of voucherDetails) {
+        console.log(detail)
         const debitEntry = {
           main_id: voucherId,
           account_code: detail.account_code,
@@ -158,7 +159,7 @@ const CreateVoucher = () => {
               value={voucherType}
               onChange={handleVoucherTypeChange}
               placeholder="Select Voucher Type"
-              className="text-sm"
+              className="text-sm text-black"
               required
             />
           </div>
@@ -170,7 +171,7 @@ const CreateVoucher = () => {
               value={voucherDate}
               onChange={(e) => setVoucherDate(e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-md px-4 py-2"
+              className="w-full border border-gray-300 rounded-md px-4 py-2 text-black"
             />
           </div>
         </div>
@@ -186,7 +187,7 @@ const CreateVoucher = () => {
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-4 py-2"
+            className="w-full border border-gray-300 rounded-md px-4 py-2 text-black"
             placeholder="Enter notes..."
           />
         </div>

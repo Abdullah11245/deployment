@@ -4,8 +4,8 @@ import Select from 'react-select';
 import end_points from '../../../../../api_url';
 
 const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) => {
-  const [mainOptions, setMainOptions] = useState([]);
-  const [bankOptions, setBankOptions] = useState([]);
+   const [accountOptions, setAccountOptions] = useState([]);
+
   const formatCurrencyPK = (number) => {
     if (isNaN(number)) return '0';
     const rounded = Math.round(Number(number));
@@ -15,38 +15,55 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
     const fetchOptions = async () => {
       try {
         // Always fetch banks
-        const bankRes = await fetch(`${end_points}/banks/getAll`);
-        const bankData = await bankRes.json();
-        setBankOptions(
-          bankData.map((bank) => ({
-            value: bank.account_code,
-            label: bank.account_title,
-          }))
-        );
+        const initials = [
+          { account_title: 'Cash', account_code: '1110001' },
+          { account_title: 'Sales Tax ()', account_code: '2120001' },
+          { account_title: 'Adjusted Balances ()', account_code: '5110001' },
+          { account_title: 'Inventory', account_code: '1140001' },
+          { account_title: 'Deduction of W.H.T by Azhar Corp. (Pvt.) Ltd.', account_code: '1150001' },
+          { account_title: 'Deduction of W.H.T by Salva Feed (Pvt.) Ltd.', account_code: '1150002' },
+          { account_title: 'Deduction of W.H.T by Sadiq Feed (Pvt.) Ltd.', account_code: '1150003' },
+        ];
 
-        // Fetch either customers or suppliers based on type
-        if (voucherType =='BR') {
-          const res = await fetch(`${end_points}/parties/getAll`);
-          const data = await res.json();
-          console.log(data.data);
-          setMainOptions(
-            data.map((p) => ({
-              value: p.party_code,
-              label: p.name,
-            }))
-          );
-        } else if (voucherType == 'BP') {
-          const res = await fetch(`${end_points}/suppliers/getAll`);
-          const data = await res.json();
-          setMainOptions(
-            data.suppliers.map((s) => ({
-              value: s.supplier_code,
-              label: s.name,
-            }))
-          );
-        } else {
-          setMainOptions([]); // or default to other data
-        }
+        const [bankRes, partyRes, supplierRes] = await Promise.all([
+          fetch(`${end_points}/banks/getAll`),
+          fetch(`${end_points}/parties/getAll`),
+          fetch(`${end_points}/suppliers/getAll`),
+        ]);
+
+        const banks = await bankRes.json();
+        const parties = await partyRes.json();
+        const suppliersData = await supplierRes.json();
+        const suppliers = suppliersData?.suppliers || [];
+
+        const bankMapped = banks.map((b) => ({
+          label: b.account_title,
+          value: b.account_code,
+        }));
+
+        const partyMapped = parties.map((p) => ({
+          label: p.name,
+          value: p.party_code,
+        }));
+
+        const supplierMapped = suppliers.map((s) => ({
+          label: s.name,
+          value: s.supplier_code,
+        }));
+
+        const initialMapped = initials.map((i) => ({
+          label: i.account_title,
+          value: i.account_code,
+        }));
+
+        const grouped = [
+          { label: 'Banks', options: bankMapped },
+          { label: 'Parties', options: partyMapped },
+          { label: 'Suppliers', options: supplierMapped },
+          { label: 'Initial Accounts', options: initialMapped },
+        ];
+
+        setAccountOptions(grouped);
       } catch (err) {
         console.error('Error fetching dropdown data:', err);
       }
@@ -55,37 +72,39 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
     fetchOptions();
   }, [voucherType]);
 
-  const handleInputChange = (index, field, value) => {
-    const updated = [...voucherDetails];
-    const currentRow = updated[index];
-  
-    if (field === 'account_code') {
-      const selected = mainOptions.find(opt => opt.value === value);
-      updated[index] = {
-        ...currentRow,
-        [field]: value,
-        party_name: selected?.label || '',
-      };
-    } else if (field === 'bank_account_code') {
-      const selectedBank = bankOptions.find(opt => opt.value === value);
-      const bankTitle = selectedBank?.label || '';
-  
-      updated[index] = {
-        ...currentRow,
-        [field]: value,
-        bank_name: bankTitle,
-        // Removed auto-editing of particulars here
-      };
-    } else {
-      updated[index] = {
-        ...currentRow,
-        [field]: value,
-      };
-    }
-  
-    setVoucherDetails(updated);
-  };
-  
+const flattenOptions = (grouped) => {
+  return grouped.reduce((acc, group) => acc.concat(group.options), []);
+};
+
+const handleInputChange = (index, field, value) => {
+  const updated = [...voucherDetails];
+  const currentRow = updated[index];
+
+  const flatOptions = flattenOptions(accountOptions);
+  const selected = flatOptions.find((opt) => opt.value === value);
+
+  if (field === 'account_code') {
+    updated[index] = {
+      ...currentRow,
+      [field]: value,
+      party_name: selected?.label || '',
+    };
+  } else if (field === 'bank_account_code') {
+    updated[index] = {
+      ...currentRow,
+      [field]: value,
+      bank_name: selected?.label || '',
+    };
+  } else {
+    updated[index] = {
+      ...currentRow,
+      [field]: value,
+    };
+  }
+
+  setVoucherDetails(updated);
+};
+
   
 
   const addRow = () => {
@@ -147,27 +166,29 @@ Account
 
             
               <td className="px-2 py-2 w-48">
-                <Select
-                  value={mainOptions.find((opt) => opt.value === row.account_code) || null}
-                  onChange={(selected) =>
-                    handleInputChange(index, 'account_code', selected?.value || '')
-                  }
-                  options={mainOptions}
-                  placeholder="Account"
-                  isClearable
-                />
+               <Select
+  value={flattenOptions(accountOptions).find((opt) => opt.value === row.account_code) || null}
+  onChange={(selected) =>
+    handleInputChange(index, 'account_code', selected?.value || '')
+  }
+  options={accountOptions}
+  placeholder="Account"
+  isClearable
+  className="text-black"
+/>
               </td>
 
              
               <td className="px-2 py-2 w-48">
-              <Select
-  value={bankOptions.find((opt) => opt.value === row.bank_account_code) ||''}
+            <Select
+  value={flattenOptions(accountOptions).find((opt) => opt.value === row.bank_account_code) || null}
   onChange={(selected) =>
     handleInputChange(index, 'bank_account_code', selected?.value || '')
   }
-  options={bankOptions}
+  options={accountOptions}
   placeholder="Account"
   isClearable
+  className="text-black"
 />
 
               </td>
@@ -177,7 +198,7 @@ Account
                   type="text"
                   value={row.particulars}
                   onChange={(e) => handleInputChange(index, 'particulars', e.target.value)}
-                  className="w-full border rounded px-2 py-3"
+                  className="w-full border rounded px-2 py-3 text-black"
                   placeholder="e.g. Payment for..."
                 />
               </td>
@@ -187,7 +208,7 @@ Account
                   type="text"
                   value={row.debit}
                   onChange={(e) => handleInputChange(index, 'debit', e.target.value)}
-                  className="border w-28  rounded px-2 py-3 text-right"
+                  className="border w-28  rounded px-2 py-3 text-right text-black"
                   placeholder="0"
                 />
               </td>
@@ -197,7 +218,7 @@ Account
                   type="text"
                   value={row.credit}
                   onChange={(e) => handleInputChange(index, 'credit', e.target.value)}
-                  className=" border w-28  rounded px-2 py-3 text-right"
+                  className=" border w-28  rounded px-2 py-3 text-right text-black"
                   placeholder="0"
                 />
               </td>
@@ -205,7 +226,7 @@ Account
              
             </tr>
           ))}
-          <tr className="bg-gray-50 border-t font-semibold">
+          <tr className="bg-gray-50 border-t font-semibold text-black">
             <td colSpan="4" className="px-4 py-2 text-right">Totals</td>
             <td className="px-4 py-2 text-right">{formatCurrencyPK(totalDebit.toFixed(2))}</td>
             <td className="px-4 py-2 text-right">{formatCurrencyPK(totalCredit.toFixed(2))}</td>

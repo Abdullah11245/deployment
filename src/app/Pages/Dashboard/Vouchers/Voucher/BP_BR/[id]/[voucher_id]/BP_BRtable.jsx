@@ -177,6 +177,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                   options={mainOptions}
                   placeholder="Select"
                   isClearable
+                  className='text-black'
                 />
               </td>
 
@@ -190,6 +191,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                   options={bankOptions}
                   placeholder="Select Bank"
                   isClearable
+                  className='text-black'
                 />
               </td>
 
@@ -198,7 +200,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                   type="text"
                   value={row.particulars}
                   onChange={(e) => handleInputChange(index, 'particulars', e.target.value)}
-                  className="w-full border border-black rounded px-2 py-1"
+                  className="w-full border border-black  text-black rounded px-2 py-1"
                   placeholder="e.g. Payment for..."
                 />
               </td>
@@ -209,7 +211,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                   step="0.01"
                   value={row.debit}
                   onChange={(e) => handleInputChange(index, 'debit', e.target.value)}
-                  className="w-24 border border-black rounded px-2 py-1 text-right"
+                  className="w-24 border border-black rounded px-2 py-1 text-right text-black"
                   placeholder="0"
                 />
               </td>
@@ -220,7 +222,7 @@ const VoucherDetailTable = ({ voucherDetails, setVoucherDetails, voucherType }) 
                   step="0.01"
                   value={row.credit}
                   onChange={(e) => handleInputChange(index, 'credit', e.target.value)}
-                  className="w-24 border border-black rounded px-2 py-1 text-right"
+                  className="w-24 border border-black rounded px-2 py-1 text-right text-black"
                   placeholder="0"
                 />
               </td>

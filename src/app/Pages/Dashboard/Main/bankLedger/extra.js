@@ -8,8 +8,8 @@ import autoTable from 'jspdf-autotable';
 import { json2csv } from 'json-2-csv';
 import Select from 'react-select'; // For dropdowns
 import Link from 'next/link';
-import end_points from '../../../api_url';
-
+import end_points from '../../../../../api_url';
+import { useParams } from 'next/navigation';
 const numberToWords = (num) => {
   const a = [
     '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
@@ -52,6 +52,13 @@ const [searchQuery, setSearchQuery] = useState('');
     const rounded = Math.round(Number(number));
     return rounded.toLocaleString('en-IN');
   };
+  const { account_code } = useParams();
+ 
+useEffect(() => {
+  if (account_code) {
+    setAccountCode(account_code);
+  }
+}, [account_code]);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -114,7 +121,7 @@ const [searchQuery, setSearchQuery] = useState('');
     fetchData();
   }, []);
 useEffect(() => {
-  if (!originalData.length) return;
+  if (!accountCode || !originalData.length) return;
 
   const filtered = originalData.filter(entry => {
     const voucherDate = new Date(entry.voucher_date);
@@ -144,7 +151,7 @@ useEffect(() => {
 
   setMergedData(filtered);
   setCurrentPage(1);
-}, [startDate, endDate, accountCode, selectedPartyId, originalData]);
+}, [startDate, endDate, accountCode, selectedPartyId, originalData,account_code]);
 
 const handleSearch = () => {
   const filtered = originalData.filter(entry => {
@@ -202,436 +209,8 @@ const today = new Date().toISOString().split('T')[0];
 
 
 
-const exportCSV = () => {
-  const filteredRows = [];
-  let runningBalance = beforeStartBalance || 0;
 
-  const headerInfo = [
-    ['Ledger of Account'],
-    [`From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || 'dd-mm-yyyy'}`],
-    [`Account Title: ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''}`],
-    [`Account Code: ${selectedPartyId || ''}`],
-    [], // Empty row before table
-  ];
 
-  // Add opening balance row if applicable
-  if (startDate) {
-    filteredRows.push({
-      VoucherID: '-',
-      Date: new Date(startDate).toLocaleDateString(),
-      Particulars: 'Opening Balance',
-      Debit: '-',
-      Credit: '-',
-      Balance: runningBalance,
-    });
-  }
-
-  const transactions = [];
-
-  sortedData.forEach((voucher) => {
-    voucher.details
-      .filter((detail) => String(detail.account_code) === String(selectedPartyId))
-      .forEach((detail) => {
-        const debit = parseFloat(detail.debit) || 0;
-        const credit = parseFloat(detail.credit) || 0;
-        const isOpeningEntry = (detail.particulars || '').toLowerCase().includes('opening balance');
-
-        transactions.push({
-          isOpeningEntry,
-          row: {
-            VoucherID: `${voucher.voucher_type}-${voucher.voucher_id}`,
-            Date: new Date(voucher.voucher_date).toLocaleDateString(),
-            Particulars: detail.particulars || '-',
-            Debit: debit,
-            Credit: credit,
-            runningBalance: debit - credit,
-          },
-        });
-      });
-  });
-
-  // Sort to bring opening entries to top
-  const sortedRows = transactions
-    .sort((a, b) => (a.isOpeningEntry ? -1 : 0))
-    .map((entry) => {
-      runningBalance += entry.row.runningBalance;
-      return {
-        ...entry.row,
-        Balance: runningBalance,
-      };
-    });
-
-  filteredRows.push(...sortedRows);
-
-  // Convert to CSV
-  json2csv([...headerInfo, ...filteredRows], (err, csv) => {
-    if (err) throw err;
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'ledger.csv';
-    link.click();
-  });
-};
-
-
-
-
-const exportExcel = () => {
-  let runningBalance = beforeStartBalance || 0;
-
-  const sheetData = [
-    ['Ledger of Account'],
-    [`From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || 'dd-mm-yyyy'}`],
-    [`Account Title: ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''}`],
-    [`Account Code: ${selectedPartyId || ''}`],
-    [], // Empty row before table
-    ['Voucher ID', 'Date', 'Particulars', 'Debit', 'Credit', 'Balance'],
-  ];
-
-  // Opening balance row if applicable
-  if (startDate) {
-    sheetData.push([
-      '-', // Voucher ID
-      new Date(startDate).toLocaleDateString(),
-      'Opening Balance',
-      '-', '-', 
-      runningBalance
-    ]);
-  }
-
-  const transactions = [];
-
-  sortedData.forEach((voucher) => {
-    voucher.details
-      .filter(detail => String(detail.account_code) === String(selectedPartyId))
-      .forEach((detail) => {
-        const debit = parseFloat(detail.debit) || 0;
-        const credit = parseFloat(detail.credit) || 0;
-        const isOpeningEntry = (detail.particulars || '').toLowerCase().includes('opening balance');
-
-        transactions.push({
-          isOpeningEntry,
-          row: {
-            VoucherID: `${voucher.voucher_type}-${voucher.voucher_id}`,
-            Date: new Date(voucher.voucher_date).toLocaleDateString(),
-            Particulars: detail.particulars || '-',
-            Debit: debit,
-            Credit: credit,
-            runningBalance: debit - credit,
-          },
-        });
-      });
-  });
-
-  // Sort to bring opening balance entry to top
-  const sortedRows = transactions
-    .sort((a, b) => (a.isOpeningEntry ? -1 : 0))
-    .map(entry => {
-      runningBalance += entry.row.runningBalance;
-      return [
-        entry.row.VoucherID,
-        entry.row.Date,
-        entry.row.Particulars,
-        entry.row.Debit,
-        entry.row.Credit,
-        runningBalance
-      ];
-    });
-
-  sheetData.push(...sortedRows);
-
-  // Create worksheet & workbook
-  const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Ledger');
-
-  // Save file
-  XLSX.writeFile(workbook, 'ledger.xlsx');
-};
-
-
-
-
-const exportPDF = () => {
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-
-  const partyLabel = partyOptions.find(p => p.value === selectedPartyId)?.label || '';
-  const formattedStart = startDate || 'dd-mm-yyyy';
-  const formattedEnd = endDate || today;
-  const accountCode = selectedPartyId || '';
-
-  // --- HEADER ---
-  doc.setFontSize(18);
-  doc.setFont(undefined, 'normal');
-  doc.text(partyLabel, pageWidth / 2, 20, { align: 'center' });
-
-  doc.setFontSize(12);
-  doc.setLineWidth(0.1);
-  doc.rect((pageWidth - 100) / 2, 25, 100, 10);
-  doc.text('Ledger of Account', pageWidth / 2, 32, { align: 'center' });
-
-  doc.setFontSize(12);
-  doc.text(`From: ${formattedStart} To: ${formattedEnd}`, pageWidth / 2, 45, { align: 'center' });
-
-  let yOffset = 60;
-
-  // --- DATA PROCESSING ---
-  let runningBalance = beforeStartBalance || 0;
-  const filteredRows = [];
-
-  if (startDate) {
-    filteredRows.push([
-      '-', new Date(startDate).toLocaleDateString(),
-      'Opening Balance', '-', '-', runningBalance
-    ]);
-  }
-
-  const transactions = [];
-
-  sortedData.forEach(voucher => {
-    voucher.details
-      .filter(detail => {
-        const voucherDate = new Date(voucher.voucher_date);
-        const isAfterStart = startDate ? voucherDate >= new Date(startDate) : true;
-        const isBeforeEnd = endDate ? voucherDate <= new Date(endDate) : true;
-        return isAfterStart && isBeforeEnd &&
-               String(detail.account_code) === String(selectedPartyId) &&
-               (parseFloat(detail.debit) || parseFloat(detail.credit));
-      })
-      .forEach(detail => {
-        const debit = parseFloat(detail.debit) || 0;
-        const credit = parseFloat(detail.credit) || 0;
-        const balanceChange = debit - credit;
-
-        transactions.push({
-          VoucherID: `${voucher.voucher_type}-${voucher.voucher_id}`,
-          Date: new Date(voucher.voucher_date).toLocaleDateString(),
-          Particulars: detail.particulars || '-',
-          Debit: debit,
-          Credit: credit,
-          Balance: balanceChange
-        });
-      });
-  });
-
-  transactions.forEach(tx => {
-    runningBalance += tx.Balance;
-    filteredRows.push([
-      tx.VoucherID,
-      tx.Date,
-      tx.Particulars,
-      tx.Debit,
-      tx.Credit,
-      runningBalance
-    ]);
-  });
-
-  const totalDebit = transactions.reduce((sum, t) => sum + parseFloat(t.Debit), 0);
-  const totalCredit = transactions.reduce((sum, t) => sum + parseFloat(t.Credit), 0);
-  const finalBalance = runningBalance;
-
-  // --- TABLE ---
-  autoTable(doc, {
-    startY: yOffset,
-    head: [['Type', 'Date', 'Particulars', 'Debit', 'Credit', 'Balance']],
-    body: filteredRows,
-    theme: 'grid',
-    styles: { fontSize: 10 },
-  });
-
-  // --- CUSTOM SUMMARY ROW (Styled Like Print UI) ---
-  const finalY = doc.lastAutoTable.finalY + 10;
-  const rowHeight = 8;
-  const cellPadding = 2;
-  const fontSize = 10;
-
-  const debitText = formatCurrencyPK(totalDebit);
-  const creditText = formatCurrencyPK(totalCredit);
-  const balanceText = `${formatCurrencyPK(Math.abs(finalBalance))} ${finalBalance < 0 ? 'Cr' : 'Dr'}`;
-  const balanceInWords = `${numberToWords(Math.abs(Math.round(finalBalance)))} ${finalBalance < 0 ? 'Credit' : 'Debit'}`;
-
-  // Column positions and widths
-// Column positions and widths
-const startX = 14;
-const colWidths = [20, 95, 25, 25, 30]; // Total, Words, Debit, Credit, Balance
-const colPositions = colWidths.reduce((acc, width, i) => {
-  const prevX = i === 0 ? startX : acc[i - 1];
-  acc.push(prevX + (i === 0 ? 0 : colWidths[i - 1]));
-  return acc;
-}, []);
-
-
-  // Draw each cell
-  doc.setFontSize(fontSize);
-  doc.setLineWidth(0.5);
-  doc.setDrawColor(0); // Black borders
-
-  // Column 1: "Total"
-  doc.setFont(undefined, 'bold');
-  doc.text('Total', colPositions[0] + cellPadding, finalY + rowHeight / 2 + 2);
-  doc.rect(colPositions[0], finalY, colWidths[0], rowHeight);
-
-  // Column 2: Balance in Words
-  doc.setFont(undefined, 'italic');
-  doc.text(balanceInWords, colPositions[1] + cellPadding, finalY + rowHeight / 2 + 2);
-  doc.rect(colPositions[1], finalY, colWidths[1], rowHeight);
-
-  // Column 3: Debit
-  doc.setFont(undefined, 'bold');
-  doc.text(debitText, colPositions[2] + cellPadding, finalY + rowHeight / 2 + 2);
-  doc.rect(colPositions[2], finalY, colWidths[2], rowHeight);
-
-  // Column 4: Credit
-  doc.text(creditText, colPositions[3] + cellPadding, finalY + rowHeight / 2 + 2);
-  doc.rect(colPositions[3], finalY, colWidths[3], rowHeight);
-
-  // Column 5: Balance
-  doc.text(balanceText, colPositions[4] + cellPadding, finalY + rowHeight / 2 + 2);
-  doc.rect(colPositions[4], finalY, colWidths[4], rowHeight);
-
-  // --- SAVE PDF ---
-  doc.save('ledger.pdf');
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//   const handlePrint = () => {
-//    const headerHTML = `
-//   <div style="text-align: center; margin-bottom: 20px; flex-direction: column; align-items: center;">
-//     <p style="font-size: 24px; margin-bottom: 20px; ">
-//       ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''} ()
-//     </p>
-//     <div style="border: 2px solid black; padding: 8px; display: inline-block; text-align:center; font-size: 18px; ">
-
-//     Ledger of Account
-//     </div>
-//     <p style="margin-top: 20px;">
-//       From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || today}
-//     </p>
-   
-//   </div>
-// `;
-
-
-//     const tableHTML = tableRef.current.innerHTML;
-//     const printWindow = window.open('', '', 'width=900,height=650');
-
-//     printWindow.document.write(`
-//       <html>
-//         <head>
-//           <title>Receipt Report</title>
-//           <style>
-//             body { font-family: Arial, sans-serif; padding: 20px; }
-//             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-//             th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
-//             thead { background-color: #f3f4f6; }
-//           </style>
-//         </head>
-//         <body>
-//           ${headerHTML}
-//           ${tableHTML}
-//         </body>
-//       </html>
-//     `);
-
-//     printWindow.document.close();
-//     printWindow.focus();
-//     printWindow.print();
-//     printWindow.close();
-//   };
-
-const handlePrint = () => {
- const headerHTML = `
-  <div style="text-align: center; margin-bottom: 20px; flex-direction: column; align-items: center;">
-    <p style="font-size: 24px; margin-bottom: 20px; ">
-      ${partyOptions.find(p => p.value === selectedPartyId)?.label || ''} ()
-    </p>
-    <div style="border: 2px solid black; padding: 8px; display: inline-block; text-align:center; font-size: 18px; ">
-
-    Ledger of Account
-    </div>
-    <p style="margin-top: 20px;">
-      From: ${startDate || 'dd-mm-yyyy'} To: ${endDate || today}
-    </p>
-   
-  </div>
-`;
-
-  const tableHTML = tableRef.current.innerHTML;
-
-  // Compute the total values (copy logic from your component if needed)
-  let totalDebit = 0;
-  let totalCredit = 0;
-  let runningBalance = 0;
-
-  sortedData.forEach((voucher) => {
-    voucher.details
-      .filter((detail) => {
-        const voucherDate = new Date(voucher.voucher_date);
-        const isAfterStart = startDate ? voucherDate >= new Date(startDate) : true;
-        const isBeforeEnd = endDate ? voucherDate <= new Date(endDate) : true;
-        return isAfterStart && isBeforeEnd && String(detail.account_code) === String(selectedPartyId) && (parseFloat(detail.debit) || parseFloat(detail.credit));
-      })
-      .forEach((detail) => {
-        const debit = parseFloat(detail.debit) || 0;
-        const credit = parseFloat(detail.credit) || 0;
-        totalDebit += debit;
-        totalCredit += credit;
-        runningBalance += debit - credit;
-      });
-  });
-
-  const totalSummaryHTML = `
-    <div style=" font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-   <div style="font-weight: bold;  border-top: 2px solid #000; border-bottom: 2px solid #000;  padding: 10px 0;">Total</div>
-     <div style=" font-style: italic; font-size: 14px;  border-top: 2px solid #000; border-bottom: 2px solid #000;  padding: 10px 0;">
-       <strong>${numberToWords(Math.abs(Math.round(runningBalance)))} ${runningBalance < 0 ? 'Credit' : 'Debit'}</strong>
-    </div>
-      <div style=" border-top: 2px solid #000; border-bottom: 2px solid #000;  padding: 10px 0;"> ${formatCurrencyPK(totalDebit)}</div>
-      <div style=" border-top: 2px solid #000; border-bottom: 2px solid #000;  padding: 10px 0;"> ${formatCurrencyPK(totalCredit)}</div>
-      <div style=" border-top: 2px solid #000; border-bottom: 2px solid #000;  padding: 10px 0;"> ${formatCurrencyPK(Math.abs(runningBalance))} ${runningBalance < 0 ? 'Cr' : 'Dr'}</div>
-    </div>
-   
-  `;
-
-  const printWindow = window.open('', '', 'width=900,height=650');
-  printWindow.document.write(`
-    <html>
-      <head>
-        <title>Ledger Report</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 20px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
-          thead { background-color: #f3f4f6; }
-        </style>
-      </head>
-      <body>
-        ${headerHTML}
-        ${tableHTML}
-        ${totalSummaryHTML}
-      </body>
-    </html>
-  `);
-
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
-  printWindow.close();
-};
 
   const totalPages = Math.ceil(mergedData.length / itemsPerPage);
 
@@ -743,6 +322,7 @@ const sortedData = mergedData
   isClearable
   className="flex-1 text-black"
   classNamePrefix="react-select"
+  isDisabled={true}
 />
 
 
