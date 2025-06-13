@@ -53,7 +53,8 @@ const [searchQuery, setSearchQuery] = useState('');
     return rounded.toLocaleString('en-IN');
   };
   const { account_code } = useParams();
-  console.log(account_code);
+
+
 
   useEffect(() => {
     setAccountCode(account_code);
@@ -177,7 +178,13 @@ const handleSearch = () => {
   setHasSearched(true);
 };
 
-
+  useEffect(() => {
+    if (!selectedPartyId) {
+      setSelectedPartyId(account_code);
+     
+    }
+     handleSearch()
+  }, [selectedPartyId, account_code]); 
   const handleReset = () => {
     setStartDate('');
     setEndDate('');
