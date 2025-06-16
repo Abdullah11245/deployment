@@ -285,7 +285,7 @@ useEffect(() => {
             className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
             href={'/Pages/Dashboard/Sales/Sale/createSale'}
           >
-Sale
+Create Sale
           </Link>
    </div>
     </div>
@@ -311,7 +311,7 @@ Sale
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-4 py-2 border rounded-md text-sm w-full max-w-[300px]"
+            className="px-4 py-2 border rounded-md text-sm w-full max-w-[300px] text-black"
           />
         </div>
 

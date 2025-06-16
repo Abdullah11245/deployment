@@ -262,24 +262,24 @@ const Purchase = () => {
          <h3 className="text-lg font-semibold mb-4">Select Detail Entry</h3>
 
          <div className="overflow-x-auto">
-           <table className="min-w-full border-collapse bg-white shadow">
-             <thead className="bg-gray-100">
-               <tr>
-                 <th>#</th>
-                 <th>Qty</th>
-                 <th>Rate</th>
-                 <th>Supplier</th>
-                 <th>Supplier (Urdu)</th>
-                 <th>Address</th>
-                 <th>Contact</th>
-                 <th>Action</th>
+           <table className="min-w-full border-collapse bg-white shadow border border-gray-300">
+             <thead className="bg-gray-500 rounded-t-lg text-white">
+               <tr className=''>
+                 <th className='p-2'>#</th>
+                 <th className='p-2'>Qty</th>
+                 <th className='p-2'>Rate</th>
+                 <th className='p-2'>Supplier</th>
+                 <th className='p-2'>Supplier (Urdu)</th>
+                 <th className='p-2'>Address</th>
+                 <th className='p-2'>Contact</th>
+                 <th className='p-2'>Action</th>
                </tr>
              </thead>
              <tbody>
                {selectedPurchase.details.map((detail, i) => {
                  const supplier = supplierDetails[detail.supplier_id];
                  return (
-                   <tr key={i} className="border-t">
+                   <tr key={i} className="border-t text-black">
                      <td className="px-6 py-4 text-sm">{i + 1}</td>
                      <td className="px-6 py-4 text-sm">{detail.qty}</td>
                      <td className="px-6 py-4 text-sm">{detail.rate}</td>

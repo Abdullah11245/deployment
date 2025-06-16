@@ -335,7 +335,7 @@ const handlePrint = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 text-black">
       <h2 className="text-xl font-semibold mb-4">Creditor Final Status</h2>
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>

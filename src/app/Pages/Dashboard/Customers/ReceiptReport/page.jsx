@@ -502,7 +502,7 @@ function Receiptreport() {
           options={partiesOptions}
           value={selectedParty}
           onChange={setSelectedParty}
-          className="mt-2"
+          className="mt-2 text-black"
           placeholder="Select Party"
         />
       </div>
@@ -514,7 +514,7 @@ function Receiptreport() {
           options={banksOptions}
           value={selectedCashBank}
           onChange={setSelectedCashBank}
-          className="mt-2"
+          className="mt-2 text-black"
           placeholder="Select Cash or Bank"
         />
       </div>
@@ -539,7 +539,7 @@ function Receiptreport() {
   type="text"
   placeholder="Search..."
   onChange={(e) => handleUniversalSearch(e.target.value)}
-  className="px-3 py-2 border rounded-md text-sm w-64"
+  className="px-3 py-2 border rounded-md text-sm w-64 text-black"
 />
       </div>
 

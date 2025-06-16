@@ -299,7 +299,7 @@ const handleBarSearch = (event) => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 text-black">
       <h2 className="text-xl font-semibold mb-4">Supplier Route Report</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -346,7 +346,7 @@ const handleBarSearch = (event) => {
       </div>
         </div>
         <table ref={tableRef} className="min-w-full table-auto">
-          <thead className="bg-gray-100 text-sm font-semibold text-left">
+          <thead className="bg-gray-500 text-sm font-semibold text-white text-left">
             <tr>
               <th className="px-4 py-2">#</th>
               <th className="px-4 py-2">Route</th>

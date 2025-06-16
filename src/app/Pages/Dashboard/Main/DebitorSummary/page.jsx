@@ -243,7 +243,7 @@ const searchedParties = filteredParties.filter((party) => {
 });
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 text-black">
       <h2 className="text-xl font-semibold mb-4">Debtor Summary</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
