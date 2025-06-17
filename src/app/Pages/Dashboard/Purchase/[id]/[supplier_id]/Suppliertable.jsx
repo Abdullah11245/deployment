@@ -42,7 +42,7 @@ const SupplierTable = ({ supplier = [], supplierInputs = [], setSupplierInputs }
   return (
     <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-6">
       <table className="min-w-full border-collapse">
-        <thead className="bg-gray-100">
+        <thead className="bg-gray-500">
           <tr>
             <th className="px-4 py-2">#</th>
             <th className="px-4 py-2">Party Name & Address</th>
@@ -58,9 +58,9 @@ const SupplierTable = ({ supplier = [], supplierInputs = [], setSupplierInputs }
             const input = supplierInputs[index] || {}; // Fallback to avoid crash
 
             return (
-              <tr key={s?.id || index} className="border-t">
+              <tr key={s?.id || index} className="border-t text-black">
                 <td className="px-4 py-2">{index + 1}</td>
-                <td className="px-4 py-2">{s?.name} - {s?.address}</td>
+                <td className="px-4 py-2"><input className='w-full px-2 py-2 border' type='text' value={`${s?.name} - ${s?.address}`}/></td>
                 <td className="px-4 py-2">
                   <input
                     type="number"
@@ -99,7 +99,7 @@ const SupplierTable = ({ supplier = [], supplierInputs = [], setSupplierInputs }
           })}
         </tbody>
         <tfoot>
-          <tr className="bg-gray-100 font-bold">
+          <tr className="bg-gray-200 font-bold text-black">
             <td colSpan="5" className="text-right px-4 py-2">Total:</td>
             <td className="px-4 py-2">{totalAmount}</td>
             <td></td>

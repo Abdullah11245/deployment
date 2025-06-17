@@ -348,7 +348,7 @@ const VoucherList = () => {
                     <td className="px-6 py-4 text-sm text-gray-700">{index + 1}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">
                       <Link
-                        className='hover:bg-gray-100 px-6 py-3'
+                        className='hover:bg-gray-100 px-6 py-3 text-blue-500'
                         href={getVoucherLink(voucher)}
                       >
                         {voucher.voucher_type}-{voucher.voucher_id}

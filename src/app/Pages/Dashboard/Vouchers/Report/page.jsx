@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import end_points from '../../../../api_url';
-
+import Link from 'next/link';
 function Receiptreport() {
   const [routes, setRoutes] = useState([]);
   const [voucherDetails, setVoucherDetails] = useState([]);
@@ -186,7 +186,22 @@ useEffect(() => {
   const indexOfFirstVoucher = (currentPage - 1) * pageSize;
   const indexOfLastVoucher = Math.min(indexOfFirstVoucher + pageSize, routes.length);
   const paginatedRoutes = routes.slice(indexOfFirstVoucher, indexOfLastVoucher);
+ const getVoucherLink = (voucher) => {
+    const { voucher_type, id, voucher_id } = voucher;
 
+    if (voucher_type === 'PV') {
+      return `/Pages/Dashboard/Vouchers/Voucher/PV/${voucher_id}/${id}`;
+    } else if (voucher_type === 'BP' || voucher_type === 'BR') {
+      return `/Pages/Dashboard/Vouchers/Voucher/BP_BR/${id}/${voucher_id}`;
+    } else if (voucher_type === 'CP' || voucher_type === 'CR') {
+      return `/Pages/Dashboard/Vouchers/Voucher/CP_CR/${id}/${voucher_id}`;
+    } else if (voucher_type === 'JV' || voucher_type === 'BRV') {
+      return `/Pages/Dashboard/Vouchers/Voucher/JV_BRV/${id}/${voucher_id}`;
+    }
+    else {
+      return `/Pages/Dashboard/Vouchers/Voucher/${voucher_type}/${id}/${voucher_id}`;
+    }
+  };
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-4 border-b-2 pb-2">
@@ -259,7 +274,12 @@ useEffect(() => {
                       {(currentPage - 1) * pageSize + index + 1}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
-                      {route.voucher_type}-{route.voucher_id}
+                      <Link
+                        className='hover:bg-gray-100 px-6 py-3 text-blue-500'
+                        href={getVoucherLink(route)}
+                      >
+                        {route.voucher_type}-{route.voucher_id}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
                       {new Date(route.voucher_date).toLocaleDateString()}

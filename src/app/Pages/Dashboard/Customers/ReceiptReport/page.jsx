@@ -8,6 +8,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { json2csv } from 'json-2-csv';
 import end_points from '../../../../api_url';
+import Link from 'next/link';
 
 function Receiptreport() {
   const [routes, setRoutes] = useState([]);
@@ -466,6 +467,22 @@ function Receiptreport() {
   setCurrentPage(1);
 };
 
+  const getVoucherLink = (voucher) => {
+    const { voucher_type, id, voucher_id } = voucher;
+
+    if (voucher_type === 'PV') {
+      return `/Pages/Dashboard/Vouchers/Voucher/PV/${voucher_id}/${id}`;
+    } else if (voucher_type === 'BP' || voucher_type === 'BR') {
+      return `/Pages/Dashboard/Vouchers/Voucher/BP_BR/${id}/${voucher_id}`;
+    } else if (voucher_type === 'CP' || voucher_type === 'CR') {
+      return `/Pages/Dashboard/Vouchers/Voucher/CP_CR/${id}/${voucher_id}`;
+    } else if (voucher_type === 'JV' || voucher_type === 'BRV') {
+      return `/Pages/Dashboard/Vouchers/Voucher/JV_BRV/${id}/${voucher_id}`;
+    }
+    else {
+      return `/Pages/Dashboard/Vouchers/Voucher/${voucher_type}/${id}/${voucher_id}`;
+    }
+  };
   
   return (
     <div className="container mx-auto px-4 py-8">
@@ -565,7 +582,7 @@ function Receiptreport() {
             return (
               <tr key={route.id} className="text-sm text-gray-700 hover:bg-gray-200">
                 <td className="py-3 px-4">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                <td className="py-3 px-4">{route.voucher_type}-{route.voucher_id}</td>
+                <td className="py-3 px-4"><Link className='text-blue-500  hover:bg-white p-2' href={getVoucherLink(route)}>{route.voucher_type}-{route.voucher_id}</Link></td>
                 <td className="py-3 px-4">{new Date(route.voucher_date).toLocaleDateString()}</td>
                 <td className="py-3 px-4">
   {(() => {

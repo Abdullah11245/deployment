@@ -353,7 +353,7 @@ useEffect(() => {
         <table className="max-w-full border-collapse">
           <thead className="bg-gray-500">
             <tr>
-              {['#', 'Date', 'Vr#','Party','Notes', 'Item Name', 'Weight', 'Rate', 'Gross Amount', 'Freight','Vehicle_No.', 'Net Amount'].map(header => (
+              {['#', 'Date', 'Vr#','Party','Notes', 'Item', 'Weight', 'Rate', 'Gross', 'Freight','Vehicle_No.', 'Net'].map(header => (
                 <th key={header} className="px-6 py-3 text-left text-sm font-medium text-white uppercase">{header}</th>
               ))}
             </tr>
@@ -371,18 +371,18 @@ useEffect(() => {
 
                 return (
                   <tr key={sale.sale_id} className="border-t text-black">
-                    <td className="px-6 py-4 text-sm">{indexOfFirstSale + index + 1}</td>
-                    <td className="px-6 py-4 text-sm">{new Date(sale.sale_date).toISOString().split('T')[0]}</td>
+                    <td className="px-1 py-4 text-sm text-center">{indexOfFirstSale + index + 1}</td>
+                    <td className="px-1 py-4 text-sm">{new Date(sale.sale_date).toISOString().split('T')[0]}</td>
 <td className='px-6 py-4 text-sm text-blue-500'>
-                      <Link href={`/Pages/Dashboard/Vouchers/Voucher/${findVoucherIdForSale(sale.sale_id)?.voucher_type}/${findVoucherIdForSale(sale.sale_id)?.id}/${findVoucherIdForSale(sale.sale_id)?.voucher_id}`}>
+                      <Link className='hover:bg-gray-100 px-3 py-2' href={`/Pages/Dashboard/Vouchers/Voucher/${findVoucherIdForSale(sale.sale_id)?.voucher_type}/${findVoucherIdForSale(sale.sale_id)?.id}/${findVoucherIdForSale(sale.sale_id)?.voucher_id}`}>
                       
                       {findVoucherIdForSale(sale.sale_id)?.voucher_id}
                       </Link>
                       
                       </td>  
-                      <td className="px-6 py-4 text-sm">{sale.party_name }</td>
+                      <td className="px-1 py-4 text-xs ">{sale.party_name }</td>
 
-                      <td>{sale.notes}</td>
+                      <td className='text-xs text-center'>{sale.notes}</td>
                                         <td className="px-6 py-4 text-sm w-20">
                       {firstDetail.item_id === 2 ? 'Oil' : firstDetail.item_id ? 'Protein' : '-'}
                     </td>

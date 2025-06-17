@@ -73,7 +73,7 @@ const CreateUserForm = () => {
   }
 
   return (
-    <div className="mx-auto p-6 bg-white shadow-md rounded-lg mt-10">
+    <div className="mx-auto p-6 bg-white shadow-md rounded-lg mt-10 text-black">
       <Toaster position="top-right" reverseOrder={false} />
       <h2 className="text-2xl font-semibold mb-6 text-gray-700">Register New User</h2>
 

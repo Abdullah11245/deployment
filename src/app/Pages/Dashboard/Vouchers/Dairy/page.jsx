@@ -255,7 +255,7 @@ function Diary() {
   <input
     type="text"
     placeholder="Search by bank, supplier, or date..."
-    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
     value={searchTerm}
     onChange={(e) => setSearchTerm(e.target.value.toLowerCase())}
   />
@@ -300,7 +300,7 @@ function Diary() {
         <span className="text-sm text-gray-600">
           Showing {indexOfFirstItem + 1} to {indexOfLastItem} of {totalItems} entries
         </span>
-        <div className="flex space-x-2 text-sm">
+        <div className="flex space-x-2 text-sm text-gray-300">
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             className={`px-3 py-1 border rounded ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'bg-blue-500 text-white'}`}

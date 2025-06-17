@@ -315,52 +315,52 @@ Create Sale
           />
         </div>
 
-        <table className="w-full ">
-          <thead className="bg-gray-500">
-            <tr>
-              {['#', 'Date',  'Item', 'Weight', 'Rate', 'Freight','Vehicle_No.', 'Total'].map(header => (
-                <th key={header} className="px-6 py-3 text-left text-sm font-medium text-white uppercase ">{header}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {currentSales.length > 0 ? (
-              currentSales.map((sale, index) => {
-                const details = getDetailsForSale(sale.sale_id);
-                const firstDetail = details[0] || {};
-                const totalWeight = getTotalWeight(details);
-                const averageRate = getAverageRate(details);
-                const gross = getTotalAmount(details);
-                const freight = parseFloat(sale.frieght || firstDetail.frieght || 0);
-                const net = gross - freight;
+     <table className="w-full table-fixed">
+  <thead className="bg-gray-500">
+    <tr>
+      {['#', 'Date', 'Item', 'Weight', 'Rate', 'Freight', 'Vehicle_No.', 'Total'].map((header, i) => (
+        <th key={i} className="w-1/8 px-2 py-3 text-left text-sm font-medium text-white uppercase truncate">
+          {header}
+        </th>
+      ))}
+    </tr>
+  </thead>
+  <tbody>
+    {currentSales.length > 0 ? (
+      currentSales.map((sale, index) => {
+        const details = getDetailsForSale(sale.sale_id);
+        const firstDetail = details[0] || {};
+        const totalWeight = getTotalWeight(details);
+        const averageRate = getAverageRate(details);
+        const gross = getTotalAmount(details);
+        const freight = parseFloat(sale.frieght || firstDetail.frieght || 0);
+        const net = gross - freight;
 
-                return (
-                  <tr key={sale.sale_id} className="border-t text-black">
-                    <td className="px-6 py-4 text-sm">{indexOfFirstSale + index + 1}</td>
-                    <td className="px-6 py-4 text-sm">{new Date(sale.sale_date).toISOString().split('T')[0]}</td>
+        return (
+          <tr key={sale.sale_id} className="border-t text-black">
+            <td className="w-1/8 px-2 py-4 text-sm truncate">{indexOfFirstSale + index + 1}</td>
+            <td className="w-1/8 px-2 py-4 text-sm truncate">
+              {new Date(sale.sale_date).toISOString().split('T')[0]}
+            </td>
+            <td className="w-1/8 px-2 py-4 text-sm truncate">
+              {firstDetail.item_id === 2 ? 'Oil' : firstDetail.item_id ? 'Protein' : '-'}
+            </td>
+            <td className="w-1/8 px-2 py-4 text-sm truncate">{totalWeight}</td>
+            <td className="w-1/8 px-2 py-4 text-sm truncate">{formatPKR(averageRate)}</td>
+            <td className="w-1/8 px-2 py-4 text-sm truncate">{formatPKR(freight)}</td>
+            <td className="w-1/8 px-2 py-4 text-sm truncate">{firstDetail.vehicle_no}</td>
+            <td className="w-1/8 px-2 py-4 text-sm truncate">{formatPKR(net)}</td>
+          </tr>
+        );
+      })
+    ) : (
+      <tr>
+        <td colSpan="8" className="text-center px-6 py-4 text-sm text-gray-700">No sales data found.</td>
+      </tr>
+    )}
+  </tbody>
+</table>
 
-                      
-                                        <td className="px-6 py-4 text-sm w-20">
-                      {firstDetail.item_id === 2 ? 'Oil' : firstDetail.item_id ? 'Protein' : '-'}
-                    </td>
-
-                    <td className="px-6 py-4 text-sm w-12">{totalWeight}</td>
-                    <td className="px-6 py-4 text-sm w-12">{formatPKR(averageRate)}</td>
-                    <td className="px-6 py-4 text-sm w-12">{formatPKR(freight)}</td>
-                    <td className="px-6 py-4 text-sm w-12">{firstDetail.vehicle_no}</td>
-                    <td className="px-6 py-4 text-sm w-12">{formatPKR(net)}</td>
-                    
-
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan="9" className="text-center px-6 py-4 text-sm text-gray-700">No sales data found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
       </div>
 
       {/* Pagination */}

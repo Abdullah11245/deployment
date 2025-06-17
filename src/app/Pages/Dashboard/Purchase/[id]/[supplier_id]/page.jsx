@@ -200,7 +200,7 @@ function EditPurchase() {
       <h2 className="text-xl font-semibold text-gray-700 border-b pb-2 mb-6">Edit Purchase</h2>
 
       <form onSubmit={handleSubmit}>
-        <div className="flex space-x-4 mb-5">
+        <div className="flex space-x-4 mb-5 text-black">
           <div className="w-1/2">
             <label className="block mb-2 text-sm font-medium text-gray-700">Purchase Date</label>
             <input
@@ -217,7 +217,7 @@ function EditPurchase() {
               type="datetime-local"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 "
               required
             />
           </div>
@@ -230,7 +230,7 @@ function EditPurchase() {
               type="text"
               value={nameUr}
               onChange={(e) => setNameUr(e.target.value)}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 text-black"
               required
             />
           </div>
@@ -242,7 +242,7 @@ function EditPurchase() {
               value={routeId}
               isDisabled
               placeholder="Select Route"
-              className="w-full"
+              className="w-full text-black"
             />
           </div>
         </div>
@@ -254,6 +254,7 @@ function EditPurchase() {
             onChange={setItemId}
             options={items}
             placeholder="Select Item"
+            className='text-black'
           />
         </div>
 
