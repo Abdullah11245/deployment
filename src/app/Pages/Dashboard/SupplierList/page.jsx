@@ -214,7 +214,7 @@ const handlePrint = () => {
       </div>
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-2">
         <table className="min-w-full border-collapse">
-        <thead className="bg-gray-500">
+        <thead className="bg-gray-600">
   <tr className='text-white' >
     <th className="px-4 py-3 text-left text-sm font-medium  uppercase">#</th>
     <th className="px-4 py-3 text-left text-sm font-medium  uppercase">Code</th>
@@ -239,8 +239,8 @@ const handlePrint = () => {
         <span
           className={`${
             route.status === 1
-              ? 'bg-blue-100 text-blue-800'
-              : 'bg-gray-200 text-gray-800'
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-500 text-white'
           } px-2 py-1 rounded-md text-xs font-semibold`}
         >
           {route.status === 1 ? 'Active' : 'Inactive'}

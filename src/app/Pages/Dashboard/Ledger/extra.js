@@ -744,157 +744,90 @@ const sortedData = mergedData
   });
 
 
+
 const handleCardPrint = () => {
-  const getFilteredRows = () => {
-    let runningBalance = beforeStartBalance || 0;
-    const result = [];
+  // Extract values from state or props
+  const partyName = partyOptions.find(p => p.value === selectedPartyId)?.label || '';
+  const partyAddress = partyOptions.find(p => p.value === selectedPartyId)?.address || '';
+  const shopkeeperName = shopkeeperNameState || '';
 
-    if (startDate) {
-      result.push({
-        VoucherID: '-',
-        Date: new Date(startDate).toLocaleDateString(),
-        Particulars: 'Opening Balance',
-        Debit: '-',
-        Credit: '-',
-        Balance: runningBalance,
-      });
-    }
+  // Compute aggregated values
+  const monthLabel = new Date(startDate).toLocaleString('ur-PK', { month: 'long', year: 'numeric' });
+  const credit = formatCurrencyPK(totalCredit);         // total for filtered rows
+  const totalWeight = `${totalWeightValue} کلو`;         // computed sum of weights
+  const rate = rateValue ? `${formatCurrencyPK(rateValue)}/کلو` : '';
+  const totalAmount = formatCurrencyPK(totalAmountValue);
+  const remainingAmount = formatCurrencyPK(remainingAmountValue);
 
-    sortedData.forEach(voucher => {
-      voucher.details
-        .filter(detail => {
-          const voucherDate = new Date(voucher.voucher_date);
-          const isAfterStart = startDate ? voucherDate >= new Date(startDate) : true;
-          const isBeforeEnd = endDate ? voucherDate <= new Date(endDate) : true;
-
-          const isSelectedAccount = String(detail.account_code) === String(selectedPartyId);
-          const hasAmount = parseFloat(detail.debit) || parseFloat(detail.credit);
-
-          return isAfterStart && isBeforeEnd && isSelectedAccount && hasAmount;
-        })
-        .forEach(detail => {
-          const debit = parseFloat(detail.debit) || 0;
-          const credit = parseFloat(detail.credit) || 0;
-          const balanceChange = debit - credit;
-          runningBalance += balanceChange;
-
-          result.push({
-            VoucherID: `${voucher.voucher_type}-${voucher.voucher_id}`,
-            Date: new Date(voucher.voucher_date).toLocaleDateString(),
-            Particulars: detail.particulars || '-',
-            Debit: debit,
-            Credit: credit,
-            Balance: runningBalance,
-          });
-        });
-    });
-
-    return result;
+  const data = {
+    month: monthLabel,
+    credit,
+    weight: totalWeight,
+    rate,
+    totalAmount,
+    remainingAmount
   };
 
-  const party = partyOptions.find(p => p.value === selectedPartyId);
-  const partyName = party?.label || '';
-  const shopkeeperName = partyName;
-  const partyAddress = party?.address || 'پتہ درج نہیں ہے'; // Fallback if no address provided
-  console.log(party)
-  // Format date: 24 جون
-  const dateObj = new Date(startDate||new Date());
-  const day = dateObj.getDate();
-  const monthUr = dateObj.toLocaleString('ur-PK', { month: 'long' });
-  const formattedDate = `${day} ${monthUr}`;
-
-  const filteredRows = getFilteredRows();
-
-  let totalCredit = 0;
-  let totalDebit = 0;
-  let weight = '';
-  let rate = '';
-
-  filteredRows.forEach(row => {
-    const credit = parseFloat(row.Credit) || 0;
-    const debit = parseFloat(row.Debit) || 0;
-    totalCredit += credit;
-    totalDebit += debit;
-
-    const parts = row.Particulars || '';
-    const match = parts.match(/(\d+(?:\.\d+)?)kg.@(\d+(?:\.\d+)?)/i);
-    if (match) {
-      weight = `${match[1]} کلو`;
-      rate = `₨${match[2]}/کلو`;
-    }
-  });
-
-  const totalAmount = formatCurrencyPK(totalDebit || totalCredit);
-  const remaining = formatCurrencyPK(Math.abs(totalDebit - totalCredit));
-
-  // HEADER HTML
   const headerHTML = `
-    <div style="text-align:center; margin-bottom:20px; font-size: 24px; font-weight: bold;  padding: 10px;">
-      <h2 style="margin: 0;">${partyName}</h2>
-      <p style="margin: 5px 0;border: 1px solid black ; padding :10px 5px;">پتہ: ${partyAddress}</p>
-      <p style="margin: 0;">دکاندار: ${shopkeeperName}</p>
+    <div style="text-align: center; margin-bottom: 30px;">
+      <h2 style="margin-bottom: 10px;">${partyName}</h2>
+      <div style="border: 2px solid black; border-radius: 8px; padding: 10px; display: inline-block; font-size: 16px;">
+        ${partyAddress}
+      </div>
+      <p style="margin-top: 20px; font-size: 16px; border-bottom: 1px solid #000; padding-bottom: 8px; width: 100%;">
+        دکاندار: ${shopkeeperName}
+      </p>
     </div>
-    <div style="margin-bottom:20px; font-size: 20px; border-bottom: 1px solid black; width:100%;">
-      <strong>تاریخ:</strong> ${formattedDate}
-    </div>
-    
   `;
 
-  // DETAIL ROWS
-  const detailRows = [];
-
-  if (weight && rate) {
-    detailRows.push(`
-      <div style="display: flex; justify-content: space-between; margin: 12px 0; font-size: 20px; padding-bottom: 6px;">
-       <span style=" border-bottom: 1px solid black; width:100%;"> <span > وزن:</span><span>${weight}</span></span>
-         <span style=" border-bottom: 1px solid black;width:100%;"><span >ریٹ:</span><span>${rate}</span></span>
+  const createPair = (label1, value1, label2, value2) => `
+    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+      <div style="flex: 1; margin-left: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <label>${label1}</label>
+          <div style="flex: 1; border-bottom: 1px solid #000; margin-right: 10px; padding-bottom: 4px;">${value1}</div>
+        </div>
       </div>
-    `);
-  }
-
-  detailRows.push(`
-    <div style="display: flex; justify-content: space-between; margin: 12px 0; font-size: 20px; padding-bottom: 6px; border-bottom: 1px solid black;">
-      <span style=" border-bottom: 1px solid black; width:100%;">  <span >کل رقم:</span><span>${totalAmount}</span></span>
-     <span style=" border-bottom: 1px solid black; width:100%;">   <span >بقیہ رقم:</span><span>${remaining}</span></span>
+      <div style="flex: 1;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <label>${label2}</label>
+          <div style="flex: 1; border-bottom: 1px solid #000; margin-right: 10px; padding-bottom: 4px;">${value2}</div>
+        </div>
+      </div>
     </div>
+  `;
 
-
-  `);
-
- detailRows.push(`
-    <div style=" margin: 12px 0; font-size: 20px; padding-bottom: 6px;">
- کسی بھی شکایت کی صورت میں براہِ کرم 15 دن کے اندر فیکٹری سے رابطہ کریں، بصورتِ دیگر فیکٹری ذمہ دار نہیں ہوگی۔
-<p style="text-align: center; font-size: 18px; margin-top: 10px;">منجانب: سہیل عباس &nbsp; 03008666495</p>
-
+  const infoSection = `
+    <div style="font-size: 16px;">
+      ${createPair("مہینہ", data.month, "قرض", data.credit)}
+      ${createPair("وزن", data.weight, "ریٹ", data.rate)}
+      ${createPair("کل رقم", data.totalAmount, "باقی رقم", data.remainingAmount)}
     </div>
+  `;
 
-
-   
-  `);
-  // FINAL HTML FOR PRINT
-  const printWindow = window.open('', '', 'width=600,height=600');
+  const printWindow = window.open('', '', 'width=700,height=600');
   printWindow.document.write(`
     <html dir="rtl" lang="ur">
       <head>
         <title>پرنٹ سلپ</title>
         <style>
+          @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&display=swap');
           body {
             font-family: 'Noto Nastaliq Urdu', serif;
-            padding: 20px;
-            font-size: 20px;
+            padding: 40px;
+            font-size: 16px;
+            direction: rtl;
           }
-          div {
-            margin-bottom: 10px;
-          }
-          span {
-            display: inline-block;
-            min-width: 80px;
+          label {
+            font-weight: bold;
+            font-size: 14px;
+            margin-left: 10px;
           }
         </style>
       </head>
       <body>
         ${headerHTML}
-        ${detailRows.join('')}
+        ${infoSection}
       </body>
     </html>
   `);
@@ -903,10 +836,6 @@ const handleCardPrint = () => {
   printWindow.print();
   printWindow.close();
 };
-
-
-
-
 
 
 
@@ -1092,7 +1021,7 @@ if (startDate) {
       allRows.push(
         <tr key={`${voucher.id}-${index}`} className="border-t text-black">
           <td className="px-3 py-4 text-center">{displayIndex++}</td>
-          <td className="px-3 py-4 text-center text-blue-500">
+          <td className="px-3 py-4 text-center">
             <Link href={getVoucherLink(voucher)} className="hover:underline">
               {voucher.voucher_type}-{voucher.voucher_id}
             </Link>

@@ -206,7 +206,7 @@ function EditSale() {
   }
 
   return (
-    <div className="container mx-auto px-2 py-8">
+    <div className="container mx-auto px-2 py-8 text-black">
       <Toaster position="top-right" reverseOrder={false} />
 
       <div className="flex justify-between items-center mb-0 border-b-2 pb-4 px-4">

@@ -308,7 +308,7 @@ try {
       </div>
             <Toaster position="top-right" reverseOrder={false} />
 
-      <div className="flex items-center justify-center p-12">
+      <div className="flex items-center justify-center p-12 text-black">
         <div className="mx-auto w-full bg-white">
           <form onSubmit={handleSubmit}>
             <div className="flex space-x-4 mb-5">

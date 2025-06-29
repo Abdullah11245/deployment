@@ -86,7 +86,7 @@ function RouteList() {
 
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg mt-2">
         <table className="min-w-full border-collapse">
-          <thead className="bg-gray-500 text-white">
+          <thead className="bg-gray-600 text-white">
             <tr>
               <th className="px-6 py-3 text-left text-sm font-medium  uppercase">#</th>
               <th className="px-6 py-3 text-left text-sm font-medium  uppercase">Route Name</th>
@@ -103,8 +103,8 @@ function RouteList() {
                   <span
                     className={`${
                       route.status === 'A'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-gray-200 text-gray-800'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-500 text-white'
                     } px-2 py-1 rounded-md text-xs font-semibold`}
                   >
                     {route.status === 'A' ? 'Active' : 'Inactive'}

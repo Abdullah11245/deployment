@@ -287,7 +287,7 @@ useEffect(() => {
       <h2 className="text-xl font-semibold text-gray-700 border-b pb-4 mb-4">Sales Report</h2>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4 text-black">
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-medium text-gray-900 mb-2">Party Name</label>
           <Select isMulti value={selectedValue} onChange={setSelectedValue} options={partyOptions} />

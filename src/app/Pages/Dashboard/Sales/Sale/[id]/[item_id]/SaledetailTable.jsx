@@ -89,7 +89,7 @@ const SaleDetailTable = ({
         </thead>
         <tbody>
           {saleDetails.map((detail, index) => (
-            <tr key={index} className="border-t">
+            <tr key={index} className="border-t text-black">
               <td className="px-4 py-2">{index + 1}</td>
 
               {/* Item Dropdown */}
